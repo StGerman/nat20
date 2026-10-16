@@ -39,7 +39,7 @@ use crate::{
     log::{LogEntry, LogWriter, action_name},
     monster::MonsterDef,
     pregen,
-    protocol::{ApiError, Control, Request, Response, SceneDef},
+    protocol::{ApiError, Control, ReactionOption, Request, Response, SceneDef, WaitingOn},
 };
 
 /// Simulated seconds per engine tick while settling.
@@ -827,23 +827,26 @@ impl Session {
         }
     }
 
-    fn awaiting_json(&self) -> Value {
+    fn awaiting_json(&self) -> WaitingOn {
         match self.awaiting() {
-            Awaiting::NoScene => json!({ "kind": "no_scene" }),
-            Awaiting::Nothing => json!({ "kind": "nothing" }),
-            Awaiting::CombatOver { winner } => json!({ "kind": "combat_over", "winner": winner }),
-            Awaiting::Action { actor } => {
-                json!({ "kind": "action", "actor": self.handle_of(actor) })
-            }
-            Awaiting::Reaction { reactor, options } => json!({
-                "kind": "reaction",
-                "actor": self.handle_of(reactor),
-                "options": options.iter().enumerate().map(|(i, o)| json!({
-                    "choice": i,
-                    "action": o.action_id.to_string(),
-                    "name": action_name(&o.action_id),
-                })).collect::<Vec<_>>(),
-            }),
+            Awaiting::NoScene => WaitingOn::NoScene,
+            Awaiting::Nothing => WaitingOn::Nothing,
+            Awaiting::CombatOver { winner } => WaitingOn::CombatOver { winner },
+            Awaiting::Action { actor } => WaitingOn::Action {
+                actor: self.handle_of(actor),
+            },
+            Awaiting::Reaction { reactor, options } => WaitingOn::Reaction {
+                actor: self.handle_of(reactor),
+                options: options
+                    .iter()
+                    .enumerate()
+                    .map(|(i, o)| ReactionOption {
+                        choice: i,
+                        action: o.action_id.to_string(),
+                        name: action_name(&o.action_id),
+                    })
+                    .collect(),
+            },
         }
     }
 

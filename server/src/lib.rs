@@ -13,4 +13,5 @@ pub mod log;
 pub mod monster;
 pub mod pregen;
 pub mod protocol;
+pub mod schema;
 pub mod session;

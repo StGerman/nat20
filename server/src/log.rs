@@ -17,9 +17,10 @@ use nat20_core::{
     },
     engine::event::{EncounterEvent, Event, EventKind},
 };
+use schemars::JsonSchema;
 use serde::Serialize;
 
-#[derive(Debug, Clone, Serialize, PartialEq)]
+#[derive(Debug, Clone, Serialize, PartialEq, JsonSchema)]
 pub struct LogEntry {
     pub seq: usize,
     pub kind: String,
@@ -34,7 +35,7 @@ pub struct LogEntry {
     pub roll: Option<Roll>,
 }
 
-#[derive(Debug, Clone, Serialize, PartialEq)]
+#[derive(Debug, Clone, Serialize, PartialEq, JsonSchema)]
 pub struct Roll {
     pub id: String,
     /// attack | saving_throw | skill_check | initiative | damage | healing
@@ -49,7 +50,7 @@ pub struct Roll {
     pub outcome: Option<String>,
 }
 
-#[derive(Debug, Clone, Serialize, PartialEq)]
+#[derive(Debug, Clone, Serialize, PartialEq, JsonSchema)]
 pub struct DiceRoll {
     pub source: String,
     pub dice: String,
@@ -59,13 +60,13 @@ pub struct DiceRoll {
     pub kept: Option<u32>,
 }
 
-#[derive(Debug, Clone, Serialize, PartialEq)]
+#[derive(Debug, Clone, Serialize, PartialEq, JsonSchema)]
 pub struct Modifier {
     pub source: String,
     pub value: i32,
 }
 
-#[derive(Debug, Clone, Serialize, PartialEq)]
+#[derive(Debug, Clone, Serialize, PartialEq, JsonSchema)]
 pub struct Against {
     /// "AC" or "DC"
     pub kind: String,

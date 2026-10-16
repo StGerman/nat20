@@ -1,0 +1,250 @@
+{
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "title": "Request",
+    "oneOf": [
+        {
+            "description": "Load a scene, spawn its creatures and start combat. Give either an\ninline `scene` or a `scene_id` from `data/scenes`.",
+            "type": "object",
+            "properties": {
+                "cmd": {
+                    "type": "string",
+                    "const": "load_scene"
+                },
+                "scene": {
+                    "anyOf": [
+                        {
+                            "$ref": "#/definitions/SceneDef"
+                        },
+                        {
+                            "type": "null"
+                        }
+                    ],
+                    "default": null
+                },
+                "scene_id": {
+                    "type": [
+                        "string",
+                        "null"
+                    ],
+                    "default": null
+                }
+            },
+            "required": [
+                "cmd"
+            ]
+        },
+        {
+            "description": "Creatures, HP, AC, positions, initiative order and who the engine is\nwaiting on.",
+            "type": "object",
+            "properties": {
+                "cmd": {
+                    "type": "string",
+                    "const": "get_state"
+                }
+            },
+            "required": [
+                "cmd"
+            ]
+        },
+        {
+            "description": "Everything `actor` may do right now, with valid targets.",
+            "type": "object",
+            "properties": {
+                "actor": {
+                    "type": "string"
+                },
+                "cmd": {
+                    "type": "string",
+                    "const": "legal_actions"
+                }
+            },
+            "required": [
+                "cmd",
+                "actor"
+            ]
+        },
+        {
+            "description": "Take an action. `context` picks among the action's options (for an\nattack, which weapon); see `legal_actions`.",
+            "type": "object",
+            "properties": {
+                "action": {
+                    "type": "string"
+                },
+                "actor": {
+                    "type": "string"
+                },
+                "cmd": {
+                    "type": "string",
+                    "const": "submit"
+                },
+                "context": {
+                    "type": "integer",
+                    "format": "uint",
+                    "default": 0,
+                    "minimum": 0
+                },
+                "targets": {
+                    "type": "array",
+                    "default": [],
+                    "items": {
+                        "type": "string"
+                    }
+                }
+            },
+            "required": [
+                "cmd",
+                "actor",
+                "action"
+            ]
+        },
+        {
+            "description": "Answer a reaction prompt: an option index from `awaiting.options`, or\nnull to decline.",
+            "type": "object",
+            "properties": {
+                "actor": {
+                    "type": "string"
+                },
+                "choice": {
+                    "type": [
+                        "integer",
+                        "null"
+                    ],
+                    "format": "uint",
+                    "default": null,
+                    "minimum": 0
+                },
+                "cmd": {
+                    "type": "string",
+                    "const": "react"
+                }
+            },
+            "required": [
+                "cmd",
+                "actor"
+            ]
+        },
+        {
+            "description": "End `actor`'s turn.",
+            "type": "object",
+            "properties": {
+                "actor": {
+                    "type": "string"
+                },
+                "cmd": {
+                    "type": "string",
+                    "const": "end_turn"
+                }
+            },
+            "required": [
+                "cmd",
+                "actor"
+            ]
+        },
+        {
+            "description": "The event log from entry `since` onwards (0 for all of it).",
+            "type": "object",
+            "properties": {
+                "cmd": {
+                    "type": "string",
+                    "const": "events"
+                },
+                "since": {
+                    "type": "integer",
+                    "format": "uint",
+                    "default": 0,
+                    "minimum": 0
+                }
+            },
+            "required": [
+                "cmd"
+            ]
+        }
+    ],
+    "definitions": {
+        "Control": {
+            "oneOf": [
+                {
+                    "description": "Decisions come from the API caller (human via the DM, or an AI player).",
+                    "type": "string",
+                    "const": "client"
+                },
+                {
+                    "description": "Decisions come from the server's scripted policy.",
+                    "type": "string",
+                    "const": "scripted"
+                }
+            ]
+        },
+        "SceneCreatureDef": {
+            "type": "object",
+            "properties": {
+                "control": {
+                    "$ref": "#/definitions/Control"
+                },
+                "handle": {
+                    "description": "The name every request and log entry uses for this creature.",
+                    "type": "string"
+                },
+                "monster": {
+                    "description": "A stat block in `data/monsters`.",
+                    "type": [
+                        "string",
+                        "null"
+                    ],
+                    "default": null
+                },
+                "position_m": {
+                    "description": "Spawn point in metres; the creature is dropped to the ground.",
+                    "type": "array",
+                    "items": {
+                        "type": "number",
+                        "format": "float"
+                    },
+                    "maxItems": 3,
+                    "minItems": 3
+                },
+                "pregen": {
+                    "description": "A pregenerated character id. Give exactly one of `pregen` or `monster`.",
+                    "type": [
+                        "string",
+                        "null"
+                    ],
+                    "default": null
+                },
+                "side": {
+                    "description": "Creatures on different sides fight; combat ends when one side is left.",
+                    "type": "string"
+                }
+            },
+            "required": [
+                "handle",
+                "side",
+                "control",
+                "position_m"
+            ]
+        },
+        "SceneDef": {
+            "description": "A scene: the creatures to spawn, which side each is on and who controls it.",
+            "type": "object",
+            "properties": {
+                "creatures": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/SceneCreatureDef"
+                    }
+                },
+                "description": {
+                    "type": "string",
+                    "default": ""
+                },
+                "id": {
+                    "type": "string"
+                }
+            },
+            "required": [
+                "id",
+                "creatures"
+            ]
+        }
+    }
+}

@@ -1,0 +1,342 @@
+{
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "title": "Response",
+    "description": "One response per request.",
+    "type": "object",
+    "properties": {
+        "awaiting": {
+            "description": "Who the engine is waiting on after this request.",
+            "allOf": [
+                {
+                    "$ref": "#/definitions/WaitingOn"
+                }
+            ]
+        },
+        "error": {
+            "anyOf": [
+                {
+                    "$ref": "#/definitions/ApiError"
+                },
+                {
+                    "type": "null"
+                }
+            ]
+        },
+        "new_events": {
+            "description": "Log entries appended while handling this request.",
+            "type": "array",
+            "items": {
+                "$ref": "#/definitions/LogEntry"
+            }
+        },
+        "ok": {
+            "type": "boolean"
+        },
+        "result": true
+    },
+    "required": [
+        "ok",
+        "new_events",
+        "awaiting"
+    ],
+    "definitions": {
+        "Against": {
+            "type": "object",
+            "properties": {
+                "kind": {
+                    "description": "\"AC\" or \"DC\"",
+                    "type": "string"
+                },
+                "value": {
+                    "type": "integer",
+                    "format": "int32"
+                }
+            },
+            "required": [
+                "kind",
+                "value"
+            ]
+        },
+        "ApiError": {
+            "type": "object",
+            "properties": {
+                "code": {
+                    "type": "string"
+                },
+                "message": {
+                    "type": "string"
+                }
+            },
+            "required": [
+                "code",
+                "message"
+            ]
+        },
+        "DiceRoll": {
+            "type": "object",
+            "properties": {
+                "dice": {
+                    "type": "string"
+                },
+                "kept": {
+                    "description": "For a d20 rolled with advantage or disadvantage, the die that counted.",
+                    "type": [
+                        "integer",
+                        "null"
+                    ],
+                    "format": "uint32",
+                    "minimum": 0
+                },
+                "results": {
+                    "type": "array",
+                    "items": {
+                        "type": "integer",
+                        "format": "uint32",
+                        "minimum": 0
+                    }
+                },
+                "source": {
+                    "type": "string"
+                }
+            },
+            "required": [
+                "source",
+                "dice",
+                "results"
+            ]
+        },
+        "LogEntry": {
+            "type": "object",
+            "properties": {
+                "actor": {
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "kind": {
+                    "type": "string"
+                },
+                "roll": {
+                    "anyOf": [
+                        {
+                            "$ref": "#/definitions/Roll"
+                        },
+                        {
+                            "type": "null"
+                        }
+                    ]
+                },
+                "round": {
+                    "type": [
+                        "integer",
+                        "null"
+                    ],
+                    "format": "uint",
+                    "minimum": 0
+                },
+                "seq": {
+                    "type": "integer",
+                    "format": "uint",
+                    "minimum": 0
+                },
+                "target": {
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "text": {
+                    "type": "string"
+                }
+            },
+            "required": [
+                "seq",
+                "kind",
+                "text"
+            ]
+        },
+        "Modifier": {
+            "type": "object",
+            "properties": {
+                "source": {
+                    "type": "string"
+                },
+                "value": {
+                    "type": "integer",
+                    "format": "int32"
+                }
+            },
+            "required": [
+                "source",
+                "value"
+            ]
+        },
+        "ReactionOption": {
+            "type": "object",
+            "properties": {
+                "action": {
+                    "type": "string"
+                },
+                "choice": {
+                    "description": "The index to send as `react.choice`.",
+                    "type": "integer",
+                    "format": "uint",
+                    "minimum": 0
+                },
+                "name": {
+                    "type": "string"
+                }
+            },
+            "required": [
+                "choice",
+                "action",
+                "name"
+            ]
+        },
+        "Roll": {
+            "type": "object",
+            "properties": {
+                "against": {
+                    "anyOf": [
+                        {
+                            "$ref": "#/definitions/Against"
+                        },
+                        {
+                            "type": "null"
+                        }
+                    ]
+                },
+                "dice": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/DiceRoll"
+                    }
+                },
+                "id": {
+                    "type": "string"
+                },
+                "kind": {
+                    "description": "attack | saving_throw | skill_check | initiative | damage | healing",
+                    "type": "string"
+                },
+                "label": {
+                    "type": "string"
+                },
+                "modifiers": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/Modifier"
+                    }
+                },
+                "outcome": {
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "total": {
+                    "type": "integer",
+                    "format": "int32"
+                }
+            },
+            "required": [
+                "id",
+                "kind",
+                "label",
+                "dice",
+                "modifiers",
+                "total"
+            ]
+        },
+        "WaitingOn": {
+            "description": "What the engine needs next.",
+            "oneOf": [
+                {
+                    "description": "No scene is loaded.",
+                    "type": "object",
+                    "properties": {
+                        "kind": {
+                            "type": "string",
+                            "const": "no_scene"
+                        }
+                    },
+                    "required": [
+                        "kind"
+                    ]
+                },
+                {
+                    "description": "Nothing is pending.",
+                    "type": "object",
+                    "properties": {
+                        "kind": {
+                            "type": "string",
+                            "const": "nothing"
+                        }
+                    },
+                    "required": [
+                        "kind"
+                    ]
+                },
+                {
+                    "description": "One side has nobody left standing.",
+                    "type": "object",
+                    "properties": {
+                        "kind": {
+                            "type": "string",
+                            "const": "combat_over"
+                        },
+                        "winner": {
+                            "type": "string"
+                        }
+                    },
+                    "required": [
+                        "kind",
+                        "winner"
+                    ]
+                },
+                {
+                    "description": "`actor` must submit an action or end its turn.",
+                    "type": "object",
+                    "properties": {
+                        "actor": {
+                            "type": "string"
+                        },
+                        "kind": {
+                            "type": "string",
+                            "const": "action"
+                        }
+                    },
+                    "required": [
+                        "kind",
+                        "actor"
+                    ]
+                },
+                {
+                    "description": "`actor` must answer a reaction prompt with `react`.",
+                    "type": "object",
+                    "properties": {
+                        "actor": {
+                            "type": "string"
+                        },
+                        "kind": {
+                            "type": "string",
+                            "const": "reaction"
+                        },
+                        "options": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/ReactionOption"
+                            }
+                        }
+                    },
+                    "required": [
+                        "kind",
+                        "actor",
+                        "options"
+                    ]
+                }
+            ]
+        }
+    }
+}

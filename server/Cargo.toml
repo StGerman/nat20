@@ -12,6 +12,7 @@ rerecast = { version = "0.2.0", features = ["serialize"] }
 uom = { version = "0.37.0", features = ["f32", "serde"] }
 serde = { version = "1.0.228", features = ["derive"] }
 serde_json = "1.0.145"
+schemars = "1.2.1"
 tracing = "0.1.43"
 tracing-subscriber = { version = "0.3.22", features = ["fmt", "env-filter"] }
 

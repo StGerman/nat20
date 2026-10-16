@@ -1,11 +1,15 @@
 //! Wire format: one JSON request per line in, one JSON response per line out.
+//!
+//! These types are the API contract. `schema.rs` turns them into the JSON
+//! Schemas checked in under `server/schema/`; a test fails when they drift.
 
+use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
 use crate::log::LogEntry;
 
-#[derive(Debug, Clone, Deserialize)]
+#[derive(Debug, Clone, Deserialize, JsonSchema)]
 #[serde(tag = "cmd", rename_all = "snake_case")]
 pub enum Request {
     /// Load a scene, spawn its creatures and start combat. Give either an
@@ -40,6 +44,7 @@ pub enum Request {
         #[serde(default)]
         choice: Option<usize>,
     },
+    /// End `actor`'s turn.
     EndTurn {
         actor: String,
     },
@@ -50,7 +55,8 @@ pub enum Request {
     },
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+/// A scene: the creatures to spawn, which side each is on and who controls it.
+#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 pub struct SceneDef {
     pub id: String,
     #[serde(default)]
@@ -58,19 +64,24 @@ pub struct SceneDef {
     pub creatures: Vec<SceneCreatureDef>,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 pub struct SceneCreatureDef {
+    /// The name every request and log entry uses for this creature.
     pub handle: String,
     #[serde(default)]
+    /// A pregenerated character id. Give exactly one of `pregen` or `monster`.
     pub pregen: Option<String>,
     #[serde(default)]
+    /// A stat block in `data/monsters`.
     pub monster: Option<String>,
+    /// Creatures on different sides fight; combat ends when one side is left.
     pub side: String,
     pub control: Control,
+    /// Spawn point in metres; the creature is dropped to the ground.
     pub position_m: [f32; 3],
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "snake_case")]
 pub enum Control {
     /// Decisions come from the API caller (human via the DM, or an AI player).
@@ -79,7 +90,8 @@ pub enum Control {
     Scripted,
 }
 
-#[derive(Debug, Clone, Serialize)]
+/// One response per request.
+#[derive(Debug, Clone, Serialize, JsonSchema)]
 pub struct Response {
     pub ok: bool,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -89,10 +101,37 @@ pub struct Response {
     /// Log entries appended while handling this request.
     pub new_events: Vec<LogEntry>,
     /// Who the engine is waiting on after this request.
-    pub awaiting: Value,
+    pub awaiting: WaitingOn,
 }
 
-#[derive(Debug, Clone, Serialize)]
+/// What the engine needs next.
+#[derive(Debug, Clone, Serialize, JsonSchema)]
+#[serde(tag = "kind", rename_all = "snake_case")]
+pub enum WaitingOn {
+    /// No scene is loaded.
+    NoScene,
+    /// Nothing is pending.
+    Nothing,
+    /// One side has nobody left standing.
+    CombatOver { winner: String },
+    /// `actor` must submit an action or end its turn.
+    Action { actor: String },
+    /// `actor` must answer a reaction prompt with `react`.
+    Reaction {
+        actor: String,
+        options: Vec<ReactionOption>,
+    },
+}
+
+#[derive(Debug, Clone, Serialize, JsonSchema)]
+pub struct ReactionOption {
+    /// The index to send as `react.choice`.
+    pub choice: usize,
+    pub action: String,
+    pub name: String,
+}
+
+#[derive(Debug, Clone, Serialize, JsonSchema)]
 pub struct ApiError {
     pub code: String,
     pub message: String,

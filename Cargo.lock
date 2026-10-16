@@ -1972,6 +1972,7 @@ dependencies = [
  "nat20_core",
  "parry3d",
  "rerecast",
+ "schemars 1.2.2",
  "serde",
  "serde_json",
  "tracing",

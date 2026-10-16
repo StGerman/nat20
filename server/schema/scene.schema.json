@@ -1,0 +1,89 @@
+{
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "title": "SceneDef",
+    "description": "A scene: the creatures to spawn, which side each is on and who controls it.",
+    "type": "object",
+    "properties": {
+        "creatures": {
+            "type": "array",
+            "items": {
+                "$ref": "#/definitions/SceneCreatureDef"
+            }
+        },
+        "description": {
+            "type": "string",
+            "default": ""
+        },
+        "id": {
+            "type": "string"
+        }
+    },
+    "required": [
+        "id",
+        "creatures"
+    ],
+    "definitions": {
+        "Control": {
+            "oneOf": [
+                {
+                    "description": "Decisions come from the API caller (human via the DM, or an AI player).",
+                    "type": "string",
+                    "const": "client"
+                },
+                {
+                    "description": "Decisions come from the server's scripted policy.",
+                    "type": "string",
+                    "const": "scripted"
+                }
+            ]
+        },
+        "SceneCreatureDef": {
+            "type": "object",
+            "properties": {
+                "control": {
+                    "$ref": "#/definitions/Control"
+                },
+                "handle": {
+                    "description": "The name every request and log entry uses for this creature.",
+                    "type": "string"
+                },
+                "monster": {
+                    "description": "A stat block in `data/monsters`.",
+                    "type": [
+                        "string",
+                        "null"
+                    ],
+                    "default": null
+                },
+                "position_m": {
+                    "description": "Spawn point in metres; the creature is dropped to the ground.",
+                    "type": "array",
+                    "items": {
+                        "type": "number",
+                        "format": "float"
+                    },
+                    "maxItems": 3,
+                    "minItems": 3
+                },
+                "pregen": {
+                    "description": "A pregenerated character id. Give exactly one of `pregen` or `monster`.",
+                    "type": [
+                        "string",
+                        "null"
+                    ],
+                    "default": null
+                },
+                "side": {
+                    "description": "Creatures on different sides fight; combat ends when one side is left.",
+                    "type": "string"
+                }
+            },
+            "required": [
+                "handle",
+                "side",
+                "control",
+                "position_m"
+            ]
+        }
+    }
+}
