@@ -1,16 +1,19 @@
 //! Checks a transcript against the engine log: the demo's rule that every
 //! roll a player sees must have come from the engine.
 //!
-//! A transcript cites a roll as `[r<seq>]` followed by the roll's arithmetic,
-//! e.g. `[r12] ... = 19 vs AC 15`. The audit fails when:
+//! A transcript cites a roll as `[r<seq>]` followed by the engine's own roll
+//! summary, e.g. `[r12] ... 1d20 (14) +5 = 19 vs AC 15, hit`. The audit fails
+//! when:
 //! - a citation names a roll the log does not have,
-//! - a cited total or AC/DC differs from the log,
+//! - a line cites more than one roll,
+//! - the line does not show the logged dice, modifiers, total, AC/DC and
+//!   outcome exactly, or shows more arithmetic after them,
 //! - a line shows roll arithmetic (`d20`, `= <n>`) without a citation,
 //! - (when `require_all`) a roll in the log is never cited.
 
 use std::collections::{HashMap, HashSet};
 
-use crate::log::{LogEntry, Roll};
+use crate::log::{LogEntry, Roll, roll_summary};
 
 #[derive(Debug, Default)]
 pub struct AuditReport {
@@ -39,7 +42,8 @@ pub fn audit_transcript(transcript: &str, log: &[LogEntry], require_all: bool) -
 
     for (line_no, line) in transcript.lines().enumerate() {
         let line_no = line_no + 1;
-        let Some(id) = citation(line) else {
+        let ids = citations(line);
+        let Some(id) = ids.first().cloned() else {
             if looks_like_roll(line) {
                 report.problems.push(format!(
                     "line {line_no}: roll shown without an engine citation: {line}"
@@ -47,6 +51,13 @@ pub fn audit_transcript(transcript: &str, log: &[LogEntry], require_all: bool) -
             }
             continue;
         };
+        if ids.len() > 1 {
+            report.problems.push(format!(
+                "line {line_no}: cites {} rolls; cite one roll per line",
+                ids.len()
+            ));
+            continue;
+        }
         let Some(roll) = rolls.get(id.as_str()) else {
             report.problems.push(format!(
                 "line {line_no}: cites {id}, which is not in the engine log"
@@ -54,25 +65,22 @@ pub fn audit_transcript(transcript: &str, log: &[LogEntry], require_all: bool) -
             continue;
         };
         cited.insert(id.clone());
-        match number_after(line, " = ") {
-            Some(total) if total == roll.total => {}
-            Some(total) => report.problems.push(format!(
-                "line {line_no}: {id} total {total} but engine rolled {}",
-                roll.total
-            )),
-            None => report
-                .problems
-                .push(format!("line {line_no}: {id} is cited without its total")),
-        }
-        for kind in ["AC", "DC"] {
-            if let Some(value) = number_after(line, &format!(" vs {kind} ")) {
-                match &roll.against {
-                    Some(against) if against.kind == kind && against.value == value => {}
-                    other => report.problems.push(format!(
-                        "line {line_no}: {id} shows {kind} {value} but engine has {other:?}"
-                    )),
-                }
-            }
+        // The line must show the engine's own arithmetic verbatim: dice,
+        // kept die, modifiers, total, AC/DC and outcome. Anything else
+        // (a changed die with the same total, a flipped outcome) fails.
+        let summary = roll_summary(roll);
+        let Some(at) = line.find(&summary) else {
+            report.problems.push(format!(
+                "line {line_no}: {id} does not show the engine's roll \"{summary}\""
+            ));
+            continue;
+        };
+        // Nothing after the summary may look like more arithmetic.
+        let tail = &line[at + summary.len()..];
+        if looks_like_roll(tail) || tail.contains(" vs AC ") || tail.contains(" vs DC ") {
+            report.problems.push(format!(
+                "line {line_no}: {id} is followed by extra roll arithmetic: {tail}"
+            ));
         }
     }
 
@@ -148,12 +156,20 @@ pub fn check_roll_arithmetic(roll: &Roll) -> Result<(), String> {
     Ok(())
 }
 
-fn citation(line: &str) -> Option<String> {
-    let start = line.find("[r")?;
-    let rest = &line[start + 2..];
-    let end = rest.find(']')?;
-    let digits = &rest[..end];
-    (!digits.is_empty() && digits.chars().all(|c| c.is_ascii_digit())).then(|| format!("r{digits}"))
+/// Every `[r<digits>]` on the line, in order.
+fn citations(line: &str) -> Vec<String> {
+    let mut ids = Vec::new();
+    let mut rest = line;
+    while let Some(start) = rest.find("[r") {
+        rest = &rest[start + 2..];
+        let Some(end) = rest.find(']') else { break };
+        let digits = &rest[..end];
+        if !digits.is_empty() && digits.chars().all(|c| c.is_ascii_digit()) {
+            ids.push(format!("r{digits}"));
+            rest = &rest[end + 1..];
+        }
+    }
+    ids
 }
 
 fn number_after(line: &str, marker: &str) -> Option<i32> {
@@ -178,7 +194,7 @@ fn looks_like_roll(line: &str) -> bool {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::log::Against;
+    use crate::log::{Against, DiceRoll, Modifier};
 
     fn log_with_roll() -> Vec<LogEntry> {
         vec![LogEntry {
@@ -192,8 +208,16 @@ mod tests {
                 id: "r3".into(),
                 kind: "attack".into(),
                 label: "attack roll vs goblin".into(),
-                dice: Vec::new(),
-                modifiers: Vec::new(),
+                dice: vec![DiceRoll {
+                    source: "attack".into(),
+                    dice: "1d20".into(),
+                    results: vec![14],
+                    kept: None,
+                }],
+                modifiers: vec![Modifier {
+                    source: "longsword".into(),
+                    value: 5,
+                }],
                 total: 19,
                 against: Some(Against {
                     kind: "AC".into(),
@@ -220,6 +244,29 @@ mod tests {
             "[r3] Bren attacks: = 20 vs AC 15\n[r9] = 4\nThe goblin rolls a d20 and gets 17.";
         let report = audit_transcript(transcript, &log_with_roll(), true);
         assert_eq!(report.problems.len(), 3, "{:?}", report.problems);
+    }
+
+    #[test]
+    fn rejects_forged_dice_or_outcome_with_the_right_total() {
+        for forged in [
+            "[r3] Bren attacks: 1d20 (17) +2 = 19 vs AC 15, hit.",
+            "[r3] Bren attacks: 1d20 (14) +5 = 19 vs AC 15, critical hit.",
+            "[r3] Bren attacks: 1d20 (14) +5 = 19 vs AC 12, hit.",
+        ] {
+            let report = audit_transcript(forged, &log_with_roll(), true);
+            assert!(!report.passed(), "{forged} passed");
+        }
+    }
+
+    #[test]
+    fn rejects_a_second_citation_or_extra_arithmetic_on_the_line() {
+        for forged in [
+            "[r3] Bren attacks: 1d20 (14) +5 = 19 vs AC 15, hit. [r999] = 99",
+            "[r3] Bren attacks: 1d20 (14) +5 = 19 vs AC 15, hit. Then = 25.",
+        ] {
+            let report = audit_transcript(forged, &log_with_roll(), true);
+            assert!(!report.passed(), "{forged} passed");
+        }
     }
 
     #[test]

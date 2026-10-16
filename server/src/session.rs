@@ -132,7 +132,8 @@ impl Session {
     }
 
     pub fn handle(&mut self, request: Request) -> Response {
-        let before = self.log.len();
+        let mut before = self.log.len();
+        let loading = matches!(request, Request::LoadScene { .. });
         let result = match request {
             Request::LoadScene { scene, scene_id } => self.load_scene(scene, scene_id),
             Request::GetState => self.state(),
@@ -150,6 +151,10 @@ impl Session {
                 "next": self.log.len(),
             })),
         };
+        // A successful load replaces the log, so everything in it is new.
+        if loading && result.is_ok() {
+            before = 0;
+        }
         let (ok, result, error) = match result {
             Ok(value) => (true, Some(value), None),
             Err(error) => (false, None, Some(error)),
@@ -200,6 +205,12 @@ impl Session {
             }
         };
 
+        if scene.creatures.is_empty() {
+            return Err(ApiError::new(
+                "bad_scene",
+                "a scene needs at least one creature",
+            ));
+        }
         let mut engine = new_engine_state();
         let mut creatures = Vec::new();
         let mut seen = HashSet::new();
@@ -247,6 +258,28 @@ impl Session {
                 side: def.side.clone(),
                 control: def.control,
             });
+        }
+
+        // Sides decide who wins; faction attitudes decide who may attack whom.
+        // They must agree, or a fight could never end.
+        for (i, a) in creatures.iter().enumerate() {
+            for b in &creatures[i + 1..] {
+                let hostile = systems::factions::mutual_attitude(&engine.world, a.entity, b.entity)
+                    == Attitude::Hostile;
+                if (a.side == b.side) == hostile {
+                    return Err(ApiError::new(
+                        "bad_scene",
+                        format!(
+                            "{} (side {}) and {} (side {}) are {}hostile to each other",
+                            a.handle,
+                            a.side,
+                            b.handle,
+                            b.side,
+                            if hostile { "" } else { "not " }
+                        ),
+                    ));
+                }
+            }
         }
 
         let handles = creatures

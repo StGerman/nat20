@@ -35,10 +35,11 @@ Every die the engine rolls becomes a log entry with a `roll` object: id
 AC or DC it was against and the outcome. Initiative is read from the encounter
 because Nat20 does not emit an event for it.
 
-`audit::audit_transcript` checks a transcript against the log: every cited
-roll (`[r12] ... = 19 vs AC 15`) must exist with the same total and AC/DC,
-every line that shows roll arithmetic must cite a roll, and every logged roll
-must be cited. `audit::check_roll_arithmetic` checks each logged roll adds up.
+`audit::audit_transcript` checks a transcript against the log: a line cites
+at most one roll and must show that roll's engine summary verbatim
+(`[r12] ... 1d20 (14) +5 = 19 vs AC 15, hit`: dice, modifiers, total, AC/DC,
+outcome), every line that shows roll arithmetic must cite a roll, and every
+logged roll must be cited. `audit::check_roll_arithmetic` checks each logged roll adds up.
 
 ## Scripted creatures
 

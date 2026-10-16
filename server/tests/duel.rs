@@ -263,3 +263,87 @@ fn stdio_binary_speaks_json_lines() {
     let events = lines[1]["result"]["events"].as_array().unwrap();
     assert!(events.iter().any(|e| e["roll"]["kind"] == "initiative"));
 }
+
+#[test]
+fn second_load_scene_returns_the_new_scenes_events() {
+    let mut session = Session::default();
+    let load = json!({ "cmd": "load_scene", "scene_id": "duel" });
+    call(&mut session, load.clone());
+    let second = call(&mut session, load);
+    assert_eq!(second["ok"], true, "{second}");
+    let events = second["new_events"].as_array().unwrap();
+    assert_eq!(events[0]["seq"], 0, "{second}");
+    assert_eq!(
+        events
+            .iter()
+            .filter(|e| e["roll"]["kind"] == "initiative")
+            .count(),
+        2,
+        "{second}"
+    );
+}
+
+#[test]
+fn bad_scenes_are_rejected_before_combat_starts() {
+    let creature = |handle: &str, side: &str, x: f32| {
+        json!({
+            "handle": handle, "monster": "goblin_warrior", "side": side,
+            "control": "scripted", "position_m": [x, 0.0, 0.0]
+        })
+    };
+    let bren = json!({
+        "handle": "bren", "pregen": "fighter_l2", "side": "party",
+        "control": "client", "position_m": [0.0, 0.0, 0.0]
+    });
+    let cases = [
+        json!([]),
+        // Two goblins share a faction, so neither can ever attack the other.
+        json!([creature("a", "red", 0.0), creature("b", "blue", 1.5)]),
+        // Bren is hostile to the goblin, so they cannot be on one side.
+        json!([bren, creature("goblin", "party", 1.5)]),
+    ];
+    for creatures in cases {
+        let mut session = Session::default();
+        let response = call(
+            &mut session,
+            json!({ "cmd": "load_scene", "scene": { "id": "bad", "creatures": creatures } }),
+        );
+        assert_eq!(response["ok"], false, "{creatures}: {response}");
+        assert_eq!(response["error"]["code"], "bad_scene", "{response}");
+        let state = call(&mut session, json!({ "cmd": "get_state" }));
+        assert_eq!(state["error"]["code"], "no_scene");
+    }
+}
+
+#[test]
+fn monster_with_the_wrong_proficiency_bonus_is_rejected() {
+    let dir = std::env::temp_dir().join(format!("nat20_pb_{}", std::process::id()));
+    std::fs::create_dir_all(dir.join("monsters")).unwrap();
+    let mut goblin: Value = serde_json::from_str(
+        &std::fs::read_to_string(
+            std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+                .join("data/monsters/goblin_warrior.json"),
+        )
+        .unwrap(),
+    )
+    .unwrap();
+    goblin["proficiency_bonus"] = json!(3);
+    std::fs::write(dir.join("monsters/bad_goblin.json"), goblin.to_string()).unwrap();
+    let mut session = Session::new(dir.clone());
+    let response = call(
+        &mut session,
+        json!({ "cmd": "load_scene", "scene": { "id": "pb", "creatures": [{
+            "handle": "goblin", "monster": "bad_goblin", "side": "monsters",
+            "control": "scripted", "position_m": [0.0, 0.0, 0.0]
+        }] } }),
+    );
+    assert_eq!(response["error"]["code"], "bad_monster", "{response}");
+    assert!(
+        response["error"]["message"]
+            .as_str()
+            .unwrap()
+            .contains("proficiency_bonus"),
+        "{response}"
+    );
+    std::fs::remove_dir_all(dir).ok();
+}

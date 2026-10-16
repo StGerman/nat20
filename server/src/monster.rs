@@ -18,7 +18,7 @@ use nat20_core::{
             equipment::{armor::ArmorTrainingSet, weapon::WeaponProficiencyMap},
             inventory::ItemInstance,
         },
-        level::ChallengeRating,
+        level::{ChallengeRating, Level},
         modifier::{FlatModifiable, ModifierSource},
         proficiency::{Proficiency, ProficiencyLevel},
         species::{CreatureSize, CreatureType},
@@ -92,7 +92,16 @@ impl MonsterDef {
                 .parse::<u8>()
                 .map_err(|_| MonsterError::Invalid(format!("bad challenge_rating {other}")))?,
         };
-        Ok(ChallengeRating::new(cr))
+        let cr = ChallengeRating::new(cr);
+        if cr.proficiency_bonus() != self.proficiency_bonus {
+            return Err(MonsterError::Invalid(format!(
+                "proficiency_bonus {} but challenge rating {} gives {}",
+                self.proficiency_bonus,
+                self.challenge_rating,
+                cr.proficiency_bonus()
+            )));
+        }
+        Ok(cr)
     }
 
     fn ability_scores(&self) -> Result<AbilityScoreMap, MonsterError> {
