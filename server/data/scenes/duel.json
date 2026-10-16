@@ -1,0 +1,8 @@
+{
+  "id": "duel",
+  "description": "Milestone 1: one level 2 Fighter against one Goblin Warrior, starting in melee.",
+  "creatures": [
+    { "handle": "bren", "pregen": "fighter_l2", "side": "party", "control": "client", "position_m": [0.0, 0.0, 0.0] },
+    { "handle": "goblin", "monster": "goblin_warrior", "side": "monsters", "control": "scripted", "position_m": [1.5, 0.0, 0.0] }
+  ]
+}
