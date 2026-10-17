@@ -20,6 +20,7 @@ use crate::{
         effects::effect_manager::EffectManager,
         faction::FactionSet,
         health::{
+            hit_point_dice::HitPointDice,
             hit_points::HitPoints,
             life_state::{DeathPolicy, LifeState},
         },
@@ -73,6 +74,7 @@ from_world!(
         pub background: BackgroundId,
         pub levels: CharacterLevels,
         pub hit_points: HitPoints,
+        pub hit_point_dice: HitPointDice,
         pub life_state: LifeState,
         pub death_policy: DeathPolicy,
         pub ability_scores: AbilityScoreMap,
@@ -116,6 +118,7 @@ impl Character {
             speed: Speed::default(),
             levels: CharacterLevels::new(),
             hit_points: HitPoints::new(1),
+            hit_point_dice: HitPointDice::new(),
             life_state: LifeState::Normal,
             death_policy: DeathPolicy::Unconscious,
             ability_scores: AbilityScoreMap::new(),
