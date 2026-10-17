@@ -297,6 +297,8 @@ impl D20Check {
     fn determine_outcome(&self, selected_roll: u8, crit_threshold: u8) -> Option<D20CheckOutcome> {
         if let Some((_, forced_outcome)) = &self.forced_outcome {
             Some(*forced_outcome)
+        } else if !self.natural_roll_decides() {
+            None
         } else if selected_roll >= crit_threshold {
             Some(D20CheckOutcome::CriticalSuccess)
         } else if selected_roll == D20_CRITICAL_FAILURE {
@@ -304,6 +306,15 @@ impl D20Check {
         } else {
             None
         }
+    }
+
+    /// Only attack rolls and Death Saving Throws care about a natural 20 or 1. Ability
+    /// checks and other saving throws just compare the total against the DC
+    fn natural_roll_decides(&self) -> bool {
+        matches!(
+            self.kind,
+            D20CheckKind::AttackRoll(_) | D20CheckKind::SavingThrow(SavingThrowKind::Death)
+        )
     }
 
     pub fn apply_pre_roll_hooks(&mut self, engine_state: &EngineState, entity: Entity) {
@@ -403,8 +414,15 @@ impl D20Check {
 
         let roll_mode = self.advantage_tracker.roll_mode();
 
+        // A natural 1 always misses and a natural 20 always hits, but only for attacks
+        let (min_needed, max_needed) = if self.natural_roll_decides() {
+            (2, 20)
+        } else {
+            (1, 21)
+        };
+
         let roll_p = [total_modifier.min, total_modifier.max].map(|modifier| {
-            let needed = (target_dc as i32 - modifier).clamp(2, 20);
+            let needed = (target_dc as i32 - modifier).clamp(min_needed, max_needed);
 
             let single_roll_p = (21 - needed) as f64 / 20.0;
 
@@ -813,7 +831,7 @@ mod tests {
     #[test]
     fn d20_check_critical_success() {
         let mut check = D20Check::new(
-            D20CheckKind::Skill(Skill::Athletics),
+            D20CheckKind::AttackRoll(AttackSource::Spell),
             Proficiency::new(ProficiencyLevel::Proficient, ModifierSource::None),
         );
         check.modifiers.add_modifier(
@@ -836,7 +854,7 @@ mod tests {
     #[test]
     fn d20_check_critical_failure() {
         let mut check = D20Check::new(
-            D20CheckKind::Skill(Skill::Athletics),
+            D20CheckKind::AttackRoll(AttackSource::Spell),
             Proficiency::new(ProficiencyLevel::Proficient, ModifierSource::None),
         );
         check.modifiers.add_modifier(
@@ -910,7 +928,7 @@ mod tests {
     #[test]
     fn d20_check_crit_threshold_reduction() {
         let mut check = D20Check::new(
-            D20CheckKind::Skill(Skill::Athletics),
+            D20CheckKind::AttackRoll(AttackSource::Spell),
             Proficiency::new(ProficiencyLevel::Proficient, ModifierSource::None),
         );
         check.add_crit_threshold_reduction(ModifierSource::Custom("Test".to_string()), 2);
@@ -930,7 +948,7 @@ mod tests {
     #[test]
     fn d20_check_crit_threshold_reduction_above_20() {
         let mut check = D20Check::new(
-            D20CheckKind::Skill(Skill::Athletics),
+            D20CheckKind::AttackRoll(AttackSource::Spell),
             Proficiency::new(ProficiencyLevel::Proficient, ModifierSource::None),
         );
         check.add_crit_threshold_reduction(ModifierSource::Custom("Test".to_string()), 100);
