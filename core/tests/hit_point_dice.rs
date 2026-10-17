@@ -136,3 +136,42 @@ fn a_long_rest_restores_all_hit_point_dice() {
     scenario.probe("fighter").rest(RestKind::Long);
     assert_eq!(hit_point_dice(&mut scenario).remaining(DieSize::D10), 2);
 }
+
+#[test]
+fn spending_is_refused_once_combat_starts() {
+    let mut scenario = fighter_scenario(1);
+    scenario
+        .spawn("goblin", "monster.goblin_warrior")
+        .level(1)
+        .position([1.0, 0.0, 0.0], false)
+        .spawn();
+    start_short_rest(&mut scenario);
+    scenario
+        .encounter()
+        .initiative_order(vec!["fighter", "goblin"])
+        .build();
+
+    assert_eq!(
+        spend(&mut scenario, DieSize::D10),
+        Err(SpendHitPointDieError::InCombat)
+    );
+    assert_eq!(hit_point_dice(&mut scenario).remaining(DieSize::D10), 1);
+}
+
+#[test]
+fn a_resting_monster_has_no_hit_point_dice_to_spend() {
+    let mut scenario = Scenario::new();
+    scenario
+        .spawn("goblin", "monster.goblin_warrior")
+        .level(1)
+        .spawn();
+    let goblin = scenario.entity("goblin");
+    systems::time::start_rest(&mut scenario.engine_state, vec![goblin], &RestKind::Short).unwrap();
+
+    assert_eq!(
+        systems::health::spend_hit_point_die(&mut scenario.engine_state, goblin, DieSize::D6),
+        Err(SpendHitPointDieError::HitPointDice(
+            HitPointDiceError::NoSuchDie(DieSize::D6)
+        ))
+    );
+}

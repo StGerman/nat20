@@ -350,6 +350,8 @@ fn update_hit_point_dice(world: &mut World, entity: Entity) {
 pub enum SpendHitPointDieError {
     /// Hit Point Dice can only be spent during a Short Rest
     NotShortResting,
+    /// Rolling Initiative interrupts a Short Rest, so no dice during combat
+    InCombat,
     HitPointDice(HitPointDiceError),
 }
 
@@ -363,8 +365,15 @@ pub fn spend_hit_point_die(
     if engine_state.resting.get(&entity) != Some(&RestKind::Short) {
         return Err(SpendHitPointDieError::NotShortResting);
     }
+    if systems::combat::is_in_combat(engine_state, entity) {
+        return Err(SpendHitPointDieError::InCombat);
+    }
 
-    systems::helpers::get_component_mut::<HitPointDice>(&mut engine_state.world, entity)
+    // Monsters can rest too, but they have no Hit Point Dice
+    engine_state
+        .world
+        .get::<&mut HitPointDice>(entity)
+        .map_err(|_| SpendHitPointDieError::HitPointDice(HitPointDiceError::NoSuchDie(die)))?
         .spend(die)
         .map_err(SpendHitPointDieError::HitPointDice)?;
 
