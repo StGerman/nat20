@@ -1965,21 +1965,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "nat20_server"
-version = "0.1.0"
-dependencies = [
- "hecs",
- "nat20_core",
- "parry3d",
- "rerecast",
- "serde",
- "serde_json",
- "tracing",
- "tracing-subscriber",
- "uom",
-]
-
-[[package]]
 name = "ndk"
 version = "0.9.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
