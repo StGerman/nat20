@@ -6,7 +6,7 @@ use tracing::{debug, error, info};
 
 use crate::{
     components::{
-        health::hit_points::HitPoints,
+        health::hit_point_dice::HitPointDice,
         id::EntityIdentifier,
         resource::RechargeRule,
         time::{EntityClock, TimeMode, TimeStep, TurnBoundary},
@@ -200,16 +200,16 @@ pub fn on_rest_end(engine_state: &mut EngineState, participants: &[Entity], kind
         match kind {
             RestKind::Short => {
                 systems::resources::recharge(world, entity, &RechargeRule::Rest(RestKind::Short));
-                // SRD says we should spend Hit Dice here, but for now it's easier
-                // to just heal half our max HP
-                let half_max_hp =
-                    systems::helpers::get_component::<HitPoints>(world, entity).max() / 2;
-                systems::health::heal(world, entity, half_max_hp);
+                // Healing comes from the Hit Point Dice spent during the rest,
+                // see `systems::health::spend_hit_point_die`
             }
 
             RestKind::Long => {
                 systems::resources::recharge(world, entity, &RechargeRule::Rest(RestKind::Long));
                 systems::health::heal_full(world, entity);
+                if let Ok(mut hit_point_dice) = world.get::<&mut HitPointDice>(entity) {
+                    hit_point_dice.restore_all();
+                }
                 // TODO: Remove non-permanent effects?
             }
         }

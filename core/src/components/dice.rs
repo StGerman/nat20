@@ -9,7 +9,9 @@ use serde::{Deserialize, Serialize};
 
 use crate::{components::range::Range, registry::serialize::schema::impl_string_schema};
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize, JsonSchema)]
+#[derive(
+    Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize, JsonSchema,
+)]
 #[serde(rename_all = "snake_case")]
 pub enum DieSize {
     D4 = 4,
