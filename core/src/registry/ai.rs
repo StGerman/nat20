@@ -1,4 +1,7 @@
-use std::{collections::HashMap, sync::LazyLock};
+use std::{
+    collections::{HashMap, HashSet},
+    sync::LazyLock,
+};
 
 use hecs::Entity;
 use rand::{
@@ -50,13 +53,20 @@ impl AIController for RandomController {
         match &prompt.kind {
             ActionPromptKind::Action { actor } => {
                 let mut action_builder = ActionBuilder::available(engine_state, *actor);
+                // Actions that turned out to have no possible targets, e.g. Help's
+                // Stabilize when nobody is dying
+                let mut targetless = HashSet::new();
 
                 loop {
                     match action_builder.state() {
                         Ok(state) => match state {
                             ActionBuilderState::Action { actions } => {
-                                action_builder
-                                    .action(engine_state, &actions.keys().choose(rng).cloned()?);
+                                let action = actions
+                                    .keys()
+                                    .filter(|action| !targetless.contains(*action))
+                                    .choose(rng)
+                                    .cloned()?;
+                                action_builder.action(engine_state, &action);
                             }
 
                             ActionBuilderState::Variant { variants, .. } => {
@@ -96,7 +106,10 @@ impl AIController for RandomController {
                                         "AI actor {:?} has no possible targets for action: {:?}",
                                         actor, action.action_id
                                     );
-                                    return None;
+                                    // Pick again among the other actions
+                                    targetless.insert(action.action_id.clone());
+                                    action_builder = ActionBuilder::available(engine_state, *actor);
+                                    continue;
                                 }
 
                                 let targeting = systems::actions::targeting_context_data(

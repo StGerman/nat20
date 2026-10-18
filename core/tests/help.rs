@@ -505,6 +505,39 @@ fn help_stabilize_goes_on_after_tactical_mind() {
 }
 
 #[test]
+fn random_ai_skips_help_with_nobody_to_help() {
+    // Nobody is dying and the fighter has no ally, so assisting a check and
+    // Stabilize have no targets; attacking the goblin does
+    let mut scenario = Scenario::new();
+    scenario
+        .spawn("fighter", "hero.fighter")
+        .level(1)
+        .position([0.0, 0.0, 0.0], false)
+        .spawn();
+    scenario
+        .spawn("goblin", "monster.goblin_warrior")
+        .level(5)
+        .position([1.0, 0.0, 0.0], false)
+        .spawn();
+    scenario
+        .encounter()
+        .initiative_order(vec!["fighter", "goblin"])
+        .build();
+
+    let fighter = scenario.entity("fighter");
+    let prompt = scenario
+        .engine_state
+        .next_prompt_entity(fighter)
+        .cloned()
+        .expect("the fighter's turn");
+    for _ in 0..100 {
+        assert!(
+            systems::ai::decide_activity(&mut scenario.engine_state, &prompt, fighter).is_some()
+        );
+    }
+}
+
+#[test]
 fn help_stabilize_needs_a_dying_target() {
     let mut scenario = party();
 
