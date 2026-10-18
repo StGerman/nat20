@@ -61,6 +61,17 @@ impl EngineState {
         participants: HashSet<Entity>,
         encounter_id: EncounterId,
     ) -> EncounterId {
+        self.start_surprised_encounter_with_id(participants, HashSet::new(), encounter_id)
+    }
+
+    /// Starts an encounter where the `surprised` participants were caught unawares, so they
+    /// roll Initiative with Disadvantage (SRD 5.2.1 Surprise)
+    pub fn start_surprised_encounter_with_id(
+        &mut self,
+        participants: HashSet<Entity>,
+        surprised: HashSet<Entity>,
+        encounter_id: EncounterId,
+    ) -> EncounterId {
         for entity in &participants {
             systems::helpers::get_component_mut::<CombatState>(&mut self.world, *entity)
                 .enter_combat(encounter_id);
@@ -78,7 +89,7 @@ impl EngineState {
                 encounter_id,
             )));
 
-        let encounter = Encounter::new(self, participants, encounter_id);
+        let encounter = Encounter::new(self, participants, &surprised, encounter_id);
 
         self.encounters.insert(encounter_id, encounter);
         encounter_id
@@ -86,6 +97,14 @@ impl EngineState {
 
     pub fn start_encounter(&mut self, participants: HashSet<Entity>) -> EncounterId {
         self.start_encounter_with_id(participants, EncounterId::new_v4())
+    }
+
+    pub fn start_surprised_encounter(
+        &mut self,
+        participants: HashSet<Entity>,
+        surprised: HashSet<Entity>,
+    ) -> EncounterId {
+        self.start_surprised_encounter_with_id(participants, surprised, EncounterId::new_v4())
     }
 
     pub fn encounter(&self, encounter_id: &EncounterId) -> Option<&Encounter> {

@@ -7,9 +7,14 @@ use rand::Rng;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
-use crate::{components::range::Range, registry::serialize::schema::impl_string_schema};
+use crate::{
+    components::{range::Range, rng},
+    registry::serialize::schema::impl_string_schema,
+};
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize, JsonSchema)]
+#[derive(
+    Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize, JsonSchema,
+)]
 #[serde(rename_all = "snake_case")]
 pub enum DieSize {
     D4 = 4,
@@ -53,7 +58,7 @@ impl DiceSet {
     }
 
     pub fn roll(&self) -> DiceSetResult {
-        let mut rng = rand::rng();
+        let mut rng = rng::rng();
         let rolls: Vec<u32> = (0..self.num_dice)
             .map(|_| rng.random_range(1..=self.die_size as u32))
             .collect();

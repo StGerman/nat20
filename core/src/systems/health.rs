@@ -9,12 +9,14 @@ use crate::{
         actions::action::ActionConditionResolution,
         d20::D20CheckDC,
         damage::{DamageMitigationResult, DamageResistances, DamageRollResult},
+        dice::{DiceSet, DieSize},
         health::{
+            hit_point_dice::{HitPointDice, HitPointDiceError},
             hit_points::HitPoints,
             life_state::{DeathPolicy, LifeState},
         },
         level::CharacterLevels,
-        modifier::{ModifierMap, ModifierSource},
+        modifier::{ModifierMap, ModifierResult, ModifierSource},
         saving_throw::SavingThrowKind,
         spells::{concentration::CONCENTRATION_SAVING_THROW_DC_DEFAULT, spellbook::Spellbook},
     },
@@ -24,7 +26,7 @@ use crate::{
         engine_state::EngineState,
     },
     registry::registry::ClassesRegistry,
-    systems,
+    systems::{self, time::RestKind},
 };
 
 pub fn heal(world: &mut World, target: Entity, amount: u32) -> Option<LifeState> {
@@ -314,4 +316,98 @@ pub fn update_hit_points(world: &mut World, entity: Entity) {
 
         hit_points.update_max(new_hp);
     }
+
+    update_hit_point_dice(world, entity);
+}
+
+/// One Hit Point Die per class level, of that class's Hit Die
+fn update_hit_point_dice(world: &mut World, entity: Entity) {
+    let Ok(class_levels) = world.get::<&CharacterLevels>(entity) else {
+        return;
+    };
+    let mut dice_per_size: Vec<(DieSize, u8)> = Vec::new();
+    for (class_id, class_level) in class_levels.all_classes() {
+        if let Some(class) = ClassesRegistry::get(class_id) {
+            match dice_per_size
+                .iter_mut()
+                .find(|(die, _)| *die == class.hit_die)
+            {
+                Some((_, count)) => *count += class_level.level(),
+                None => dice_per_size.push((class.hit_die, class_level.level())),
+            }
+        }
+    }
+    drop(class_levels);
+
+    if let Ok(mut hit_point_dice) = world.get::<&mut HitPointDice>(entity) {
+        for (die, count) in dice_per_size {
+            hit_point_dice.set_max(die, count);
+        }
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum SpendHitPointDieError {
+    /// Hit Point Dice can only be spent during a Short Rest
+    NotShortResting,
+    /// Rolling Initiative interrupts a Short Rest, so no dice during combat
+    InCombat,
+    HitPointDice(HitPointDiceError),
+}
+
+/// Spends one Hit Point Die during a Short Rest: roll it, add the Constitution
+/// modifier and regain that many Hit Points (minimum 1). Returns the roll.
+pub fn spend_hit_point_die(
+    engine_state: &mut EngineState,
+    entity: Entity,
+    die: DieSize,
+) -> Result<ModifierResult, SpendHitPointDieError> {
+    if engine_state.resting.get(&entity) != Some(&RestKind::Short) {
+        return Err(SpendHitPointDieError::NotShortResting);
+    }
+    if systems::combat::is_in_combat(engine_state, entity) {
+        return Err(SpendHitPointDieError::InCombat);
+    }
+
+    // Monsters can rest too, but they have no Hit Point Dice
+    engine_state
+        .world
+        .get::<&mut HitPointDice>(entity)
+        .map_err(|_| SpendHitPointDieError::HitPointDice(HitPointDiceError::NoSuchDie(die)))?
+        .spend(die)
+        .map_err(SpendHitPointDieError::HitPointDice)?;
+
+    let constitution_modifier =
+        systems::helpers::get_component::<AbilityScoreMap>(&engine_state.world, entity)
+            .get(&Ability::Constitution)
+            .ability_modifier()
+            .total();
+
+    let mut healing = ModifierMap::default();
+    healing.add_modifier(
+        ModifierSource::Custom("Hit Point Die".to_string()),
+        DiceSet {
+            num_dice: 1,
+            die_size: die,
+        },
+    );
+    healing.add_modifier(
+        ModifierSource::Ability(Ability::Constitution),
+        constitution_modifier,
+    );
+    let result = healing.evaluate();
+
+    debug!(
+        "Entity {:?} spent a {:?} Hit Point Die and regains {} HP",
+        entity,
+        die,
+        result.total().max(1)
+    );
+    heal(
+        &mut engine_state.world,
+        entity,
+        result.total().max(1) as u32,
+    );
+
+    Ok(result)
 }

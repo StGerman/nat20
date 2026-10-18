@@ -1,0 +1,10 @@
+{
+    "id": "nat20_core::effect.item.shield_stopgap",
+    "kind": "buff",
+    "description": "Stopgap for a carried Shield: +2 bonus to Armor Class. Replace with a real Shield item once shields are supported as equipment.",
+    "on_armor_class": [
+        {
+            "modifier": "+2"
+        }
+    ]
+}
