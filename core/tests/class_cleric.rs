@@ -193,6 +193,40 @@ fn cure_wounds_and_healing_word_heal_2_dice_plus_wisdom() {
 }
 
 #[test]
+fn healing_caps_at_max_revives_from_0_and_skips_the_dead() {
+    // ENG-3: healing through the action pipeline
+    let mut scenario = chapel();
+    let max_hp = scenario.probe("fighter").max_hp();
+    scenario.probe("fighter").damage(1, DamageType::Slashing);
+    scenario
+        .act("cleric", "action.healing_word")
+        .context_spell_level(1)
+        .target_entity("fighter")
+        .perform();
+    assert_eq!(scenario.probe("fighter").hp(), max_hp);
+
+    scenario
+        .probe("fighter")
+        .damage(max_hp, DamageType::Slashing);
+    scenario.probe("cleric").rest(RestKind::Short);
+    scenario
+        .act("cleric", "action.healing_word")
+        .context_spell_level(1)
+        .target_entity("fighter")
+        .perform();
+    assert!(scenario.probe("fighter").hp() > 0);
+    assert_eq!(life_state(&scenario, "fighter"), LifeState::Normal);
+
+    scenario.probe("goblin").kill();
+    scenario.probe("cleric").rest(RestKind::Short);
+    scenario
+        .act("cleric", "action.healing_word")
+        .context_spell_level(1)
+        .target_entity("goblin")
+        .assert_perform_fails();
+}
+
+#[test]
 fn sacred_flame_deals_no_damage_on_a_successful_save() {
     for (outcome, damage) in [
         (D20CheckOutcome::Failure, 1..=8),
