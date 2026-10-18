@@ -419,7 +419,21 @@ pub enum ResourceDefinitionKind {
 pub struct Resource {
     pub id: ResourceId,
     pub kind: ResourceDefinitionKind,
+    /// When every expended use comes back.
     pub recharge: RechargeRule,
+    /// Rests that bring back only some expended uses, e.g. Second Wind regains one
+    /// use on a Short Rest and all of them on a Long Rest. Flat resources only.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub partial_recharge: Vec<PartialRecharge>,
+}
+
+/// Some expended uses of a resource that come back on a rest.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, JsonSchema)]
+pub struct PartialRecharge {
+    /// The rest (or turn) that brings the uses back.
+    pub on: RechargeRule,
+    /// How many expended uses come back.
+    pub uses: u8,
 }
 
 impl IdProvider for Resource {

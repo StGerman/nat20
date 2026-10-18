@@ -9,8 +9,15 @@
         "kind": {
             "$ref": "#/definitions/ResourceDefinitionKind"
         },
+        "partial_recharge": {
+            "description": "Rests that bring back only some expended uses, e.g. Second Wind regains one\nuse on a Short Rest and all of them on a Long Rest. Flat resources only.",
+            "type": "array",
+            "items": {
+                "$ref": "#/definitions/PartialRecharge"
+            }
+        },
         "recharge": {
-            "description": "When the resource recharges.",
+            "description": "When every expended use comes back.",
             "type": "string",
             "enum": [
                 "turn",
@@ -27,6 +34,34 @@
         "recharge"
     ],
     "definitions": {
+        "PartialRecharge": {
+            "description": "Some expended uses of a resource that come back on a rest.",
+            "type": "object",
+            "properties": {
+                "on": {
+                    "description": "The rest (or turn) that brings the uses back.",
+                    "type": "string",
+                    "enum": [
+                        "turn",
+                        "short_rest",
+                        "long_rest",
+                        "daily",
+                        "never"
+                    ]
+                },
+                "uses": {
+                    "description": "How many expended uses come back.",
+                    "type": "integer",
+                    "format": "uint8",
+                    "maximum": 255,
+                    "minimum": 0
+                }
+            },
+            "required": [
+                "on",
+                "uses"
+            ]
+        },
         "ResourceDefinitionKind": {
             "type": "string",
             "enum": [
