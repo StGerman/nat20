@@ -1,6 +1,7 @@
 use std::{fmt::Display, str::FromStr, sync::Arc};
 
 use hecs::{Entity, World};
+use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
 use crate::{
@@ -9,7 +10,10 @@ use crate::{
             ActionContext, AttackRollFunction, AttackRollProvider, SavingThrowFunction,
             SavingThrowProvider,
         },
+        d20::D20CheckDC,
+        modifier::{ModifierMap, ModifierSource},
         saving_throw::SavingThrowKind,
+        skill::Skill,
         spells::spellbook::Spellbook,
     },
     registry::serialize::schema::impl_string_schema,
@@ -167,5 +171,24 @@ impl TryFrom<String> for SavingThrowDefinition {
 impl From<SavingThrowDefinition> for String {
     fn from(equation: SavingThrowDefinition) -> Self {
         equation.raw
+    }
+}
+
+/// A skill check the actor makes against a fixed DC, e.g. "a successful DC 10
+/// Wisdom (Medicine) check" to stabilize a creature
+#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
+pub struct SkillCheckDefinition {
+    /// The skill the actor makes the check with
+    pub skill: Skill,
+    /// The DC the check has to meet or beat to succeed
+    pub dc: u8,
+}
+
+impl From<SkillCheckDefinition> for D20CheckDC {
+    fn from(value: SkillCheckDefinition) -> Self {
+        D20CheckDC::Skill {
+            skill: value.skill,
+            dc: ModifierMap::from(ModifierSource::Base, value.dc as i32).evaluate(),
+        }
     }
 }

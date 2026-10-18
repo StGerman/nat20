@@ -1,0 +1,23 @@
+{
+    "id": "nat20_core::effect.help.ability_check.athletics",
+    "kind": "buff",
+    "stacking_policy": "replace",
+    "description": "You have Advantage on your next Strength (Athletics) check. This benefit expires if you don't use it before the start of your helper's next turn.",
+    "modifiers": [
+        {
+            "skill": "athletics advantage"
+        }
+    ],
+    "end_conditions": [
+        {
+            "event": {
+                "d20_check": {
+                    "kind": "skill",
+                    "skill": "athletics",
+                    "roller": "target"
+                }
+            },
+            "on_trigger": "remove"
+        }
+    ]
+}

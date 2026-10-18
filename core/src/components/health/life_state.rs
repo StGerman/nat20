@@ -19,6 +19,18 @@ impl LifeState {
     }
 }
 
+/// A change to a creature's life state that an action makes directly, rather
+/// than through damage or healing.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "snake_case")]
+pub enum LifeStateChange {
+    /// "A Stable creature doesn't make Death Saving Throws even though it has 0
+    /// Hit Points, but it still has the Unconscious condition." Only a creature
+    /// that is making Death Saving Throws can become Stable; any other creature
+    /// is unaffected.
+    Stable,
+}
+
 pub const DEATH_SAVING_THROW_DC: u8 = 10;
 pub const DEATH_SAVING_THROW_SUCCESS_THRESHOLD: u8 = 3;
 pub const DEATH_SAVING_THROW_FAILURE_THRESHOLD: u8 = 3;

@@ -1,0 +1,30 @@
+{
+    "id": "nat20_core::variant.help.religion",
+    "description": "The ally has Advantage on their next Intelligence (Religion) check.",
+    "usability": {
+        "skill_proficiency": "religion"
+    },
+    "phases": [
+        {
+            "payload": {
+                "components": [
+                    {
+                        "effect": {
+                            "effect_id": "nat20_core::effect.help.ability_check.religion",
+                            "lifetime": {
+                                "turn_boundary": {
+                                    "entity": "applier",
+                                    "boundary": "start",
+                                    "duration": {
+                                        "turns": 1
+                                    }
+                                }
+                            }
+                        }
+                    }
+                ],
+                "delivery": "immediate"
+            }
+        }
+    ]
+}

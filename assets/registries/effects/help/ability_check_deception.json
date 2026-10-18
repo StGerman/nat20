@@ -1,0 +1,23 @@
+{
+    "id": "nat20_core::effect.help.ability_check.deception",
+    "kind": "buff",
+    "stacking_policy": "replace",
+    "description": "You have Advantage on your next Charisma (Deception) check. This benefit expires if you don't use it before the start of your helper's next turn.",
+    "modifiers": [
+        {
+            "skill": "deception advantage"
+        }
+    ],
+    "end_conditions": [
+        {
+            "event": {
+                "d20_check": {
+                    "kind": "skill",
+                    "skill": "deception",
+                    "roller": "target"
+                }
+            },
+            "on_trigger": "remove"
+        }
+    ]
+}

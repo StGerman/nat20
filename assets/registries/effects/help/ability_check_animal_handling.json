@@ -1,0 +1,23 @@
+{
+    "id": "nat20_core::effect.help.ability_check.animal_handling",
+    "kind": "buff",
+    "stacking_policy": "replace",
+    "description": "You have Advantage on your next Wisdom (Animal Handling) check. This benefit expires if you don't use it before the start of your helper's next turn.",
+    "modifiers": [
+        {
+            "skill": "animal_handling advantage"
+        }
+    ],
+    "end_conditions": [
+        {
+            "event": {
+                "d20_check": {
+                    "kind": "skill",
+                    "skill": "animal_handling",
+                    "roller": "target"
+                }
+            },
+            "on_trigger": "remove"
+        }
+    ]
+}

@@ -1,0 +1,30 @@
+{
+    "id": "nat20_core::variant.help.sleight_of_hand",
+    "description": "The ally has Advantage on their next Dexterity (Sleight of Hand) check.",
+    "usability": {
+        "skill_proficiency": "sleight_of_hand"
+    },
+    "phases": [
+        {
+            "payload": {
+                "components": [
+                    {
+                        "effect": {
+                            "effect_id": "nat20_core::effect.help.ability_check.sleight_of_hand",
+                            "lifetime": {
+                                "turn_boundary": {
+                                    "entity": "applier",
+                                    "boundary": "start",
+                                    "duration": {
+                                        "turns": 1
+                                    }
+                                }
+                            }
+                        }
+                    }
+                ],
+                "delivery": "immediate"
+            }
+        }
+    ]
+}

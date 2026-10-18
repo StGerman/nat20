@@ -212,6 +212,13 @@ pub fn action_usable(
 
     if !skip_checks.contains(&ActionUsabilityCheck::Variant) {
         variant_usable(action, variant_id).map_err(ActionUsabilityError::VariantError)?;
+
+        if let Some(variant) = variant_id.and_then(|variant_id| action.kind().variant(variant_id))
+            && let Some(usability_fn) = &variant.usability
+            && let Some(reason) = usability_fn(engine_state, actor, action_id, action_context)
+        {
+            return Err(ActionUsabilityError::UsabilityFunctionError(reason));
+        }
     }
 
     if !skip_checks.contains(&ActionUsabilityCheck::Cooldown)

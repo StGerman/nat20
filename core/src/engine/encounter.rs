@@ -296,6 +296,27 @@ impl Encounter {
         std::mem::take(&mut self.event_log)
     }
 
+    /// Adds a creature that joins the fight after it started. It rolls Initiative
+    /// and takes its turn at its place in the order: later this round if its count
+    /// hasn't come up yet, otherwise from the next round. On a tie it goes after
+    /// the creatures already in the order.
+    pub fn add_participant(&mut self, engine_state: &EngineState, entity: Entity) {
+        if !self.participants.insert(entity) {
+            return;
+        }
+        let roll = systems::helpers::get_component::<SkillSet>(&engine_state.world, entity)
+            .check(&Skill::Initiative, engine_state, entity);
+        let index = self
+            .initiative_order
+            .iter()
+            .position(|(_, other)| other.total() < roll.total())
+            .unwrap_or(self.initiative_order.len());
+        if index <= self.turn_index {
+            self.turn_index += 1;
+        }
+        self.initiative_order.insert(index, (entity, roll));
+    }
+
     pub fn remove_participant(&mut self, engine_state: &mut EngineState, entity: Entity) {
         self.participants.remove(&entity);
         let current_entity = self.current_entity();
