@@ -749,7 +749,7 @@ impl ImguiRenderable for ArmorDexterityBonus {
 impl ImguiRenderable for ArmorType {
     fn render(&self, ui: &imgui::Ui) {
         let mut segments = vec![(self.to_string(), TextKind::Details)];
-        if self != &ArmorType::Clothing {
+        if !matches!(self, ArmorType::Clothing | ArmorType::Shield) {
             segments.push(("Armor".to_string(), TextKind::Details));
         }
         TextSegments::new(segments).render(ui);

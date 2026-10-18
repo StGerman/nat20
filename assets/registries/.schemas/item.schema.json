@@ -78,12 +78,21 @@
             ]
         },
         "ArmorType": {
-            "type": "string",
-            "enum": [
-                "clothing",
-                "light",
-                "medium",
-                "heavy"
+            "oneOf": [
+                {
+                    "type": "string",
+                    "enum": [
+                        "clothing",
+                        "light",
+                        "medium",
+                        "heavy"
+                    ]
+                },
+                {
+                    "description": "Carried in the off hand. Its `armor_class` is the bonus it adds to the\nwearer's Armor Class, and Dexterity plays no part in it.",
+                    "type": "string",
+                    "const": "shield"
+                }
             ]
         },
         "DamageType": {
