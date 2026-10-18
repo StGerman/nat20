@@ -12,6 +12,7 @@ use nat20_core::{
         skill::Skill,
         time::TimeMode,
     },
+    engine::event::EventKind,
     test_utils::scenario::{Operator, Scenario},
 };
 
@@ -115,6 +116,60 @@ fn fighter_tactical_mind() {
             DiceSet::new(1, DieSize::D10),
         )
         .assert_event();
+}
+
+#[test]
+fn fighter_tactical_mind_can_turn_a_failed_check_into_a_success() {
+    let dc = 15;
+    let mut turned = 0;
+    // The rolls are random, so try until Tactical Mind has turned a few checks
+    for _ in 0..200 {
+        let mut scenario = fighter_scenario(2);
+        scenario.probe("fighter").d20_check(&D20CheckDC::Skill {
+            skill: Skill::Stealth,
+            dc: ModifierMap::from(ModifierSource::Custom("Test skill check".into()), dc).evaluate(),
+        });
+        let resolved = |scenario: &Scenario| {
+            scenario
+                .engine_state
+                .event_log
+                .events
+                .iter()
+                .find_map(|event| match &event.kind {
+                    EventKind::D20CheckResolved { result, dc, .. } => {
+                        Some((result.clone(), dc.clone()))
+                    }
+                    _ => None,
+                })
+        };
+        if resolved(&scenario).is_some() {
+            // The check succeeded, so Tactical Mind was not offered
+            continue;
+        }
+        scenario
+            .probe("fighter")
+            .react()
+            .option_id("action.fighter.tactical_mind")
+            .perform();
+
+        let (result, check_dc) =
+            resolved(&scenario).expect("the check resolves after the reaction");
+        if matches!(
+            result.outcome,
+            Some(D20CheckOutcome::CriticalSuccess | D20CheckOutcome::CriticalFailure)
+        ) {
+            continue;
+        }
+        let success = result.total() >= dc;
+        assert_eq!(result.is_success(&check_dc), success, "{result:?}");
+        if success {
+            turned += 1;
+            if turned == 3 {
+                return;
+            }
+        }
+    }
+    panic!("Tactical Mind turned only {turned} failed checks into successes");
 }
 
 #[test]
