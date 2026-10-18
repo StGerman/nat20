@@ -3,7 +3,7 @@ extern crate nat20_core;
 use nat20_core::{
     components::{
         actions::{
-            action::ActionContext,
+            action::{ActionContext, ActionResultComponent},
             targeting::{TargetInstance, TargetingError},
         },
         activity::ActivityError,
@@ -21,7 +21,7 @@ use nat20_core::{
         event::{EventFilter, EventKind},
     },
     systems::{self, actions::ActionUsabilityError},
-    test_utils::scenario::Scenario,
+    test_utils::scenario::{Operator, Scenario},
 };
 
 const HELP_ATHLETICS: &str = "effect.help.ability_check.athletics";
@@ -46,10 +46,14 @@ fn life_state(scenario: &Scenario, handle: &str) -> LifeState {
 /// Perception) next to the wizard (Arcana, History, Insight and Investigation).
 /// Level 1, so the fighter has no Tactical Mind to react to a failed check
 fn party() -> Scenario {
+    party_with_fighter_level(1)
+}
+
+fn party_with_fighter_level(level: u8) -> Scenario {
     let mut scenario = Scenario::new();
     scenario
         .spawn("fighter", "hero.fighter")
-        .level(1)
+        .level(level)
         .position([0.0, 0.0, 0.0], false)
         .spawn();
     scenario
@@ -344,7 +348,10 @@ fn help_attack_roll_spent_by_an_ally_leaves_that_allys_own_help() {
 
 /// The fighter next to the wizard, who is at 0 HP and making Death Saving Throws
 fn dying_wizard() -> Scenario {
-    let mut scenario = party();
+    dying_wizard_with(party())
+}
+
+fn dying_wizard_with(mut scenario: Scenario) -> Scenario {
     let hp = scenario.probe("wizard").hp();
     scenario.probe("wizard").damage(hp, DamageType::default());
     assert!(matches!(
@@ -449,6 +456,52 @@ fn help_stabilize_failure() {
 
     scenario.probe("fighter").end_turn();
     assert_eq!(death_saves(&scenario), 1);
+}
+
+#[test]
+fn help_stabilize_goes_on_after_tactical_mind() {
+    // Level 2 gives the fighter Tactical Mind, which reacts to its own failed
+    // Medicine check in the middle of the Help action
+    let mut scenario = dying_wizard_with(party_with_fighter_level(2));
+
+    scenario
+        .probe("fighter")
+        .d20_force_outcome(
+            D20CheckKind::Skill(Skill::Medicine),
+            D20CheckOutcome::Failure,
+        )
+        .act("action.help.stabilize")
+        .target_entity("wizard")
+        .perform();
+    scenario
+        .probe("fighter")
+        .react()
+        .option_id("action.fighter.tactical_mind")
+        .perform();
+
+    scenario
+        .probe("fighter")
+        .assert_resource("resource.fighter.second_wind", Operator::Equal(1))
+        .assert_resource("resource.reaction", Operator::Equal(0));
+
+    // The Help action resumes after the reaction and resolves its check
+    let wizard = scenario.entity("wizard");
+    let resolved = scenario.filter_events(EventFilter::new(move |event| {
+        matches!(
+            &event.kind,
+            EventKind::ActionResult { result, .. }
+                if result.target.id() == wizard
+                    && result
+                        .components
+                        .iter()
+                        .any(|component| matches!(component, ActionResultComponent::LifeState(_)))
+        )
+    }));
+    assert_eq!(resolved.len(), 1);
+    assert!(matches!(
+        life_state(&scenario, "wizard"),
+        LifeState::Unconscious(_)
+    ));
 }
 
 #[test]
