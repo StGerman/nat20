@@ -107,6 +107,25 @@ impl EngineState {
         self.start_surprised_encounter_with_id(participants, surprised, EncounterId::new_v4())
     }
 
+    /// Brings `entity` into a running encounter, e.g. reinforcements arriving
+    /// mid-fight. It rolls Initiative and takes its turn at its place in the order
+    pub fn join_encounter(&mut self, encounter_id: &EncounterId, entity: Entity) {
+        let Some(mut encounter) = self.encounters.remove(encounter_id) else {
+            return;
+        };
+        systems::helpers::get_component_mut::<CombatState>(&mut self.world, entity)
+            .enter_combat(*encounter_id);
+        systems::time::set_time_mode(
+            &mut self.world,
+            entity,
+            TimeMode::TurnBased {
+                encounter_id: Some(*encounter_id),
+            },
+        );
+        encounter.add_participant(self, entity);
+        self.encounters.insert(*encounter_id, encounter);
+    }
+
     pub fn encounter(&self, encounter_id: &EncounterId) -> Option<&Encounter> {
         self.encounters.get(encounter_id)
     }
