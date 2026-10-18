@@ -2,7 +2,10 @@ use hecs::{Entity, World};
 
 use crate::{
     components::{
-        actions::action::{ActionKind, ActionPayloadComponent},
+        actions::{
+            action::{ActionKind, ActionPayloadComponent},
+            targeting::EntityFilter,
+        },
         activity::Activity,
         ai::PlayerControlledTag,
         effects::effect::EffectKind,
@@ -81,9 +84,18 @@ pub fn possible_targets(engine_state: &EngineState, action_data: &ActionData) ->
     if let Some(encounter) = engine_state.encounter_for_entity(action_data.actor.id())
         && let Some(action) = systems::actions::get_action(&action_data.action_id)
     {
+        // The filters are checked here rather than by the encounter, which has no actor to
+        // check an attitude filter against
+        let actor = action_data.actor.id();
         encounter
-            .participants(&engine_state.world, &targeting.allowed_entities)
+            .participants(&engine_state.world, &[EntityFilter::All])
             .into_iter()
+            .filter(|target| {
+                targeting
+                    .allowed_entities
+                    .iter()
+                    .all(|filter| filter.matches(&engine_state.world, *target, Some(actor)))
+            })
             .filter(|target| {
                 let target_attitude = systems::factions::mutual_attitude(
                     &engine_state.world,
