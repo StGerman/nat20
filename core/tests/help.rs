@@ -538,6 +538,41 @@ fn random_ai_skips_help_with_nobody_to_help() {
 }
 
 #[test]
+fn random_ai_finds_the_ally_and_the_enemy_a_help_can_target() {
+    let mut scenario = party();
+    scenario
+        .spawn("goblin", "monster.goblin_warrior")
+        .level(5)
+        .position([0.0, 1.0, 0.0], false)
+        .spawn();
+    scenario
+        .encounter()
+        .initiative_order(vec!["fighter", "wizard", "goblin"])
+        .build();
+
+    let help = |action: &str| {
+        ActionData::new(
+            scenario.entity_identifier("fighter"),
+            action.into(),
+            ActionContext::default(),
+            ResourceAmountMap::from_iter(vec![("resource.action".into(), ResourceAmount::Flat(1))]),
+            Vec::new(),
+        )
+    };
+    let assist_check =
+        help("action.help.assist_ability_check").with_variant("variant.help.athletics");
+    assert_eq!(
+        systems::ai::possible_targets(&scenario.engine_state, &assist_check),
+        vec![scenario.entity("wizard")]
+    );
+    let assist_attack = help("action.help.assist_attack_roll");
+    assert_eq!(
+        systems::ai::possible_targets(&scenario.engine_state, &assist_attack),
+        vec![scenario.entity("goblin")]
+    );
+}
+
+#[test]
 fn help_stabilize_needs_a_dying_target() {
     let mut scenario = party();
 
