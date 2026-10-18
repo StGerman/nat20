@@ -108,8 +108,12 @@ impl EngineState {
     }
 
     /// Brings `entity` into a running encounter, e.g. reinforcements arriving
-    /// mid-fight. It rolls Initiative and takes its turn at its place in the order
+    /// mid-fight. It rolls Initiative and takes its turn at its place in the order.
+    /// A creature already in combat, in this encounter or another, is left as it is
     pub fn join_encounter(&mut self, encounter_id: &EncounterId, entity: Entity) {
+        if systems::combat::is_in_combat(self, entity) {
+            return;
+        }
         let Some(mut encounter) = self.encounters.remove(encounter_id) else {
             return;
         };
