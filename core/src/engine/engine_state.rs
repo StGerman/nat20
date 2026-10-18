@@ -10,6 +10,7 @@ use crate::{
         actions::targeting::EntityFilter,
         activity::{Activity, ActivityError, ActivityState},
         d20::D20CheckDC,
+        scratchpad::Scratchpad,
         time::TimeMode,
     },
     engine::{
@@ -143,6 +144,36 @@ impl EngineState {
             CombatState::InCombat(encounter_id) => self.encounters.get(encounter_id),
             _ => None,
         }
+    }
+
+    /// Marks a once-per-turn feature (keyed by `key`, e.g. a feat ID) as used by
+    /// `entity` on the current turn. Returns true if it had not been used yet this
+    /// turn, false if it had. Outside combat there are no turns, so this always
+    /// returns true and records nothing.
+    ///
+    /// Takes `&self` so read-only hooks (e.g. damage roll hooks) can call it; the
+    /// mark is kept in the entity's [`Scratchpad`].
+    pub fn use_once_per_turn(&self, entity: Entity, key: &str) -> bool {
+        let Some(encounter) = self.encounter_for_entity(entity) else {
+            return true;
+        };
+        let turn = format!(
+            "{}:{}:{}",
+            encounter.id(),
+            encounter.round(),
+            encounter.current_entity().to_bits()
+        );
+
+        let Ok(mut scratchpad) = self.world.get::<&mut Scratchpad>(entity) else {
+            warn!("Entity {entity:?} has no scratchpad to track once-per-turn uses");
+            return true;
+        };
+        let scratch_key = format!("once_per_turn.{key}");
+        if scratchpad.get::<String>(&scratch_key) == Some(&turn) {
+            return false;
+        }
+        scratchpad.insert(scratch_key, turn);
+        true
     }
 
     pub fn end_encounter(&mut self, encounter_id: &EncounterId) {

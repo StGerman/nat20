@@ -7,6 +7,7 @@ use strum::Display;
 use crate::{
     components::{
         id::{ActionId, EffectId, IdProvider, SpeciesId, SubspeciesId},
+        level_up::LevelUpPrompt,
         speed::Speed,
     },
     registry::serialize::species::{SpeciesDefinition, SubspeciesDefinition},
@@ -72,6 +73,8 @@ pub struct Species {
     pub size: CreatureSize,
     // TODO: Subspeciess can modify the speed using an effect?
     pub speed: Speed,
+    /// Choices the species asks for when it is picked, e.g. a skill or an origin feat.
+    pub prompts: Vec<LevelUpPrompt>,
 }
 
 impl IdProvider for Species {

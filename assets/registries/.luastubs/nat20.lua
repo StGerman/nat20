@@ -42,6 +42,10 @@ function DamageRollResult:clamp_damage_dice_min(min) end
 ---@param source string       -- e.g. "nat20_core::action.spell.hex"
 function DamageRollResult:add_damage(dice, damage_type, source) end
 
+--- Roll the first component's base dice (a weapon's damage dice) again and keep the higher roll
+---@return boolean -- true if the new roll was kept
+function DamageRollResult:reroll_base_dice_keep_higher() end
+
 ---@class DamageMitigationResult
 ---@field total integer
 local DamageMitigationResult = {}
@@ -336,6 +340,12 @@ function EngineState:add_resource(entity, resource_id, amount) end
 ---@param dc table
 ---@param callback fun(engine_state: EngineState, success: boolean, result: D20CheckResult)
 function EngineState:saving_throw(entity, saving_throw, dc, callback) end
+
+--- Mark a once-per-turn feature as used on the current turn; always true outside combat
+---@param entity ScriptEntity
+---@param key string  -- e.g. "nat20_core::feat.savage_attacker"
+---@return boolean    -- false if it was already used this turn
+function EngineState:use_once_per_turn(entity, key) end
 
 ---@param entity ScriptEntity
 ---@param key string

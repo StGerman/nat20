@@ -2,11 +2,10 @@
     "id": "nat20_core::background.soldier",
     "ability_scores": [
         "strength",
-        "constitution",
-        "charisma"
+        "dexterity",
+        "constitution"
     ],
-    "_comment": "Placeholder feat",
-    "feat": "nat20_core::feat.fighting_style.archery",
+    "feat": "nat20_core::feat.savage_attacker",
     "skill_proficiencies": [
         "athletics",
         "intimidation"

@@ -182,6 +182,41 @@ impl DamageRollResult {
     pub fn recalculate_total(&mut self) {
         self.total = self.components.iter_mut().map(|c| c.result.total()).sum();
     }
+
+    /// Rolls the base dice of the first damage component again and keeps whichever
+    /// roll is higher. For a weapon attack these are the weapon's damage dice (already
+    /// doubled on a critical hit), e.g. for Savage Attacker. Returns true if the new
+    /// roll was kept.
+    pub fn reroll_base_dice_keep_higher(&mut self) -> bool {
+        let Some(component) = self.components.first_mut() else {
+            return false;
+        };
+
+        let mut kept = false;
+        for (source, result) in component.result.iter_mut() {
+            if *source != ModifierSource::Base {
+                continue;
+            }
+            let reroll = reroll_dice(result);
+            if reroll.total() > result.total() {
+                *result = reroll;
+                kept = true;
+            }
+        }
+
+        self.recalculate_total();
+        kept
+    }
+}
+
+fn reroll_dice(result: &ModifierKindResult) -> ModifierKindResult {
+    match result {
+        ModifierKindResult::Flat(value) => ModifierKindResult::Flat(*value),
+        ModifierKindResult::Dice(dice) => ModifierKindResult::Dice(dice.dice().roll()),
+        ModifierKindResult::Composite(results) => {
+            ModifierKindResult::Composite(results.iter().map(reroll_dice).collect())
+        }
+    }
 }
 
 impl DamageModifiable for DamageRollResult {

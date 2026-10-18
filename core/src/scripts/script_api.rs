@@ -259,6 +259,10 @@ impl UserData for DamageRollResult {
                 add_damage_component(this, amount, damage_type, source)
             },
         );
+
+        methods.add_method_mut("reroll_base_dice_keep_higher", |_, this, ()| {
+            Ok(this.reroll_base_dice_keep_higher())
+        });
     }
 }
 
@@ -1141,6 +1145,13 @@ impl UserData for EngineState {
                     let engine_state = scope.create_userdata_ref_mut(this)?;
                     callback.call::<()>((engine_state, success, result.clone()))
                 })
+            },
+        );
+
+        methods.add_method(
+            "use_once_per_turn",
+            |_, this, (entity, key): (ScriptEntity, String)| {
+                Ok(this.use_once_per_turn(entity.into(), &key))
             },
         );
 

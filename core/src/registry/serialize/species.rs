@@ -6,6 +6,7 @@ use serde::{Deserialize, Serialize};
 use crate::{
     components::{
         id::{ActionId, EffectId, SpeciesId, SubspeciesId},
+        level_up::LevelUpPrompt,
         species::{CreatureSize, CreatureType, Species, SpeciesBase, Subspecies},
         speed::Speed,
     },
@@ -26,6 +27,9 @@ pub struct SpeciesDefinition {
     pub actions_by_level: HashMap<u8, Vec<ActionId>>,
     pub subspecies: HashSet<SubspeciesId>,
     pub speed: LengthExpressionDefinition,
+    /// Choices the species asks for when it is picked, e.g. a skill or an origin feat.
+    #[serde(default)]
+    pub prompts: Vec<LevelUpPrompt>,
 }
 
 impl From<SpeciesDefinition> for Species {
@@ -40,6 +44,7 @@ impl From<SpeciesDefinition> for Species {
             creature_type: value.creature_type,
             size: value.size,
             speed: Speed::new(value.speed.evaluate_without_variables().unwrap()),
+            prompts: value.prompts,
         }
     }
 }
@@ -58,6 +63,9 @@ impl RegistryReferenceCollector for SpeciesDefinition {
         }
         for subspecies in &self.subspecies {
             collector.add(RegistryReference::Subspecies(subspecies.clone()));
+        }
+        for prompt in &self.prompts {
+            prompt.collect_registry_references(collector);
         }
     }
 }

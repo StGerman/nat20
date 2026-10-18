@@ -2,8 +2,8 @@
     "id": "nat20_core::background.criminal",
     "ability_scores": [
         "dexterity",
-        "intelligence",
-        "charisma"
+        "constitution",
+        "intelligence"
     ],
     "_comment": "Placeholder feat",
     "feat": "nat20_core::feat.fighting_style.archery",

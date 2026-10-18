@@ -1,0 +1,34 @@
+{
+    "id": "nat20_core::feat.skilled",
+    "description": "You gain proficiency in any combination of three skills or tools of your choice. You can take this feat more than once.",
+    "_comment": "Tools are not modelled yet, so the three picks are skills.",
+    "prompts": [
+        {
+            "skill_proficiency": {
+                "skills": [
+                    "acrobatics",
+                    "animal_handling",
+                    "arcana",
+                    "athletics",
+                    "deception",
+                    "history",
+                    "insight",
+                    "intimidation",
+                    "investigation",
+                    "medicine",
+                    "nature",
+                    "perception",
+                    "performance",
+                    "persuasion",
+                    "religion",
+                    "sleight_of_hand",
+                    "stealth",
+                    "survival"
+                ],
+                "choices": 3,
+                "source": "nat20_core::feat.skilled"
+            }
+        }
+    ],
+    "repeatable": true
+}
