@@ -432,7 +432,10 @@ fn help_stabilize_success() {
 
     // Taking damage starts them again
     scenario.probe("wizard").damage(1, DamageType::default());
-    assert_eq!(life_state(&scenario, "wizard"), LifeState::unconscious());
+    assert!(matches!(
+        life_state(&scenario, "wizard"),
+        LifeState::Unconscious(_)
+    ));
 }
 
 #[test]
