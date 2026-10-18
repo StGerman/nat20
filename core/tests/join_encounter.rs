@@ -113,3 +113,34 @@ fn joining_twice_changes_nothing() {
 
     assert_eq!(order(&scenario, encounter), before);
 }
+
+#[test]
+fn a_creature_in_another_fight_cannot_join() {
+    let (mut scenario, first, [fighter, goblin, goblin_2]) = fight_with_reinforcement(50);
+    scenario
+        .spawn("fighter_2", "hero.fighter")
+        .level(1)
+        .position([10.0, 0.0, 0.0], false)
+        .spawn();
+    scenario
+        .spawn("goblin_3", "monster.goblin_warrior")
+        .level(1)
+        .position([11.0, 0.0, 0.0], false)
+        .spawn();
+    let (fighter_2, goblin_3) = (scenario.entity("fighter_2"), scenario.entity("goblin_3"));
+    let second = scenario
+        .engine_state
+        .start_encounter([fighter_2, goblin_3].into_iter().collect());
+    let before = order(&scenario, second);
+
+    scenario.engine_state.join_encounter(&second, goblin);
+
+    assert_eq!(order(&scenario, second), before);
+    assert_eq!(order(&scenario, first), vec![fighter, goblin_2, goblin]);
+    assert!(
+        scenario
+            .engine_state
+            .encounter_for_entity(goblin)
+            .is_some_and(|e| *e.id() == first)
+    );
+}
