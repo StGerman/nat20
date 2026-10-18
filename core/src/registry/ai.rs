@@ -52,9 +52,10 @@ impl AIController for RandomController {
         match &prompt.kind {
             ActionPromptKind::Action { actor } => {
                 let mut action_builder = ActionBuilder::available(engine_state, *actor);
-                // Actions that turned out to have no possible targets, e.g. Help's
-                // Stabilize when nobody is dying
-                let mut targetless = HashSet::new();
+                // Actions that turned out to have nothing the actor can do with them:
+                // no possible targets, e.g. Help's Stabilize when nobody is dying, or no
+                // variant it can use
+                let mut unusable = HashSet::new();
 
                 loop {
                     match action_builder.state() {
@@ -62,14 +63,47 @@ impl AIController for RandomController {
                             ActionBuilderState::Action { actions } => {
                                 let action = actions
                                     .keys()
-                                    .filter(|action| !targetless.contains(*action))
+                                    .filter(|action| !unusable.contains(*action))
                                     .choose(rng)
                                     .cloned()?;
                                 action_builder.action(engine_state, &action);
                             }
 
-                            ActionBuilderState::Variant { variants, .. } => {
-                                let variant = variants.iter().choose(rng)?.clone();
+                            ActionBuilderState::Variant {
+                                action,
+                                contexts_and_costs,
+                                variants,
+                            } => {
+                                // Only the variants the actor can use, e.g. Help with a
+                                // skill it is proficient in
+                                let variant = variants
+                                    .iter()
+                                    .filter(|variant| {
+                                        contexts_and_costs.iter().any(|(context, cost)| {
+                                            systems::actions::action_usable(
+                                                engine_state,
+                                                *actor,
+                                                action,
+                                                Some(variant),
+                                                context,
+                                                cost,
+                                                &[],
+                                            )
+                                            .is_ok()
+                                        })
+                                    })
+                                    .choose(rng)
+                                    .cloned();
+                                let Some(variant) = variant else {
+                                    debug!(
+                                        "AI actor {:?} has no usable variant for action: {:?}",
+                                        actor, action
+                                    );
+                                    // Pick again among the other actions
+                                    unusable.insert(action.clone());
+                                    action_builder = ActionBuilder::available(engine_state, *actor);
+                                    continue;
+                                };
                                 action_builder.variant(&engine_state.world, &variant);
                             }
 
@@ -106,7 +140,7 @@ impl AIController for RandomController {
                                         actor, action.action_id
                                     );
                                     // Pick again among the other actions
-                                    targetless.insert(action.action_id.clone());
+                                    unusable.insert(action.action_id.clone());
                                     action_builder = ActionBuilder::available(engine_state, *actor);
                                     continue;
                                 }

@@ -541,6 +541,34 @@ fn random_ai_skips_help_with_nobody_to_help() {
 }
 
 #[test]
+fn random_ai_helps_only_with_skills_it_is_proficient_in() {
+    // With an ally to help, every Help with a skill the fighter isn't
+    // proficient in would fail to build, so the AI would give up its turn
+    let mut scenario = party();
+    scenario
+        .spawn("goblin", "monster.goblin_warrior")
+        .level(5)
+        .position([0.0, 1.0, 0.0], false)
+        .spawn();
+    scenario
+        .encounter()
+        .initiative_order(vec!["fighter", "wizard", "goblin"])
+        .build();
+
+    let fighter = scenario.entity("fighter");
+    let prompt = scenario
+        .engine_state
+        .next_prompt_entity(fighter)
+        .cloned()
+        .expect("the fighter's turn");
+    for _ in 0..200 {
+        assert!(
+            systems::ai::decide_activity(&mut scenario.engine_state, &prompt, fighter).is_some()
+        );
+    }
+}
+
+#[test]
 fn random_ai_finds_the_ally_and_the_enemy_a_help_can_target() {
     let mut scenario = party();
     scenario
