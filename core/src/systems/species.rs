@@ -55,6 +55,7 @@ pub fn set_species(
     if !species.subspecies.is_empty() {
         prompts.push(LevelUpPrompt::subspecies(&species.id));
     }
+    prompts.extend(species.prompts.iter().cloned());
 
     systems::helpers::set_component::<CreatureSize>(
         &mut engine_state.world,

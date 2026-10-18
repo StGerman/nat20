@@ -1,0 +1,54 @@
+{
+    "id": "nat20_core::species.human",
+    "creature_type": "humanoid",
+    "size": "medium",
+    "_comment": "Size is Medium only (the Small option is not offered). Resourceful (Heroic Inspiration) is out of scope.",
+    "effects_by_level": {},
+    "actions_by_level": {},
+    "subspecies": [],
+    "speed": "30 feet",
+    "prompts": [
+        {
+            "skill_proficiency": {
+                "skills": [
+                    "acrobatics",
+                    "animal_handling",
+                    "arcana",
+                    "athletics",
+                    "deception",
+                    "history",
+                    "insight",
+                    "intimidation",
+                    "investigation",
+                    "medicine",
+                    "nature",
+                    "perception",
+                    "performance",
+                    "persuasion",
+                    "religion",
+                    "sleight_of_hand",
+                    "stealth",
+                    "survival"
+                ],
+                "choices": 1,
+                "source": "nat20_core::species.human"
+            }
+        },
+        {
+            "choice": {
+                "id": "choice.human.versatile",
+                "label": "Versatile: Origin Feat",
+                "options": [
+                    {
+                        "feat": "nat20_core::feat.savage_attacker"
+                    },
+                    {
+                        "feat": "nat20_core::feat.skilled"
+                    }
+                ],
+                "picks": 1,
+                "allow_duplicates": false
+            }
+        }
+    ]
+}

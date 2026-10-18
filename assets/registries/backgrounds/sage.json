@@ -1,9 +1,9 @@
 {
     "id": "nat20_core::background.sage",
     "ability_scores": [
-        "wisdom",
+        "constitution",
         "intelligence",
-        "charisma"
+        "wisdom"
     ],
     "_comment": "Placeholder feat",
     "feat": "nat20_core::feat.fighting_style.archery",
