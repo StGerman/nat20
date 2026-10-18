@@ -120,6 +120,42 @@ fn help_ability_check_expires_at_the_start_of_the_helpers_next_turn() {
 }
 
 #[test]
+fn help_ability_check_from_two_helpers_lasts_until_the_later_helpers_turn() {
+    let mut scenario = party();
+    scenario
+        .spawn("fighter_2", "hero.fighter")
+        .level(1)
+        .position([0.0, 0.0, 1.0], false)
+        .spawn();
+    scenario
+        .encounter()
+        .initiative_order(vec!["fighter", "fighter_2", "wizard"])
+        .build();
+
+    for helper in ["fighter", "fighter_2"] {
+        scenario
+            .act(helper, "action.help.assist_ability_check")
+            .variant("variant.help.athletics")
+            .target_entity("wizard")
+            .perform();
+        scenario.probe(helper).end_turn();
+    }
+    scenario.probe("wizard").end_turn();
+
+    // The first helper's turn starts, the second Help still stands
+    scenario
+        .probe("wizard")
+        .assert_effect(HELP_ATHLETICS)
+        .assert_d20_advantage(
+            &D20CheckKind::Skill(Skill::Athletics),
+            &ModifierSource::Effect(HELP_ATHLETICS.into()),
+            AdvantageType::Advantage,
+        );
+    scenario.probe("fighter").end_turn();
+    scenario.probe("wizard").assert_no_effect(HELP_ATHLETICS);
+}
+
+#[test]
 fn help_ability_check_requires_proficiency_in_the_skill() {
     let mut scenario = party();
 
@@ -234,6 +270,76 @@ fn help_attack_roll_gives_the_next_attack_by_an_ally_advantage() {
         .assert_event_count(1);
     scenario.probe("goblin").assert_no_effect(HELP_ATTACK_ROLL);
     assert_eq!(advantage(&mut scenario, "ally"), None);
+}
+
+#[test]
+fn help_attack_roll_spent_by_an_ally_leaves_that_allys_own_help() {
+    let mut scenario = Scenario::new();
+    scenario
+        .spawn("fighter", "hero.fighter")
+        .level(1)
+        .position([0.0, 0.0, 0.0], false)
+        .spawn();
+    scenario
+        .spawn("ally", "hero.fighter")
+        .level(2)
+        .position([0.0, 0.0, 1.0], false)
+        .spawn();
+    scenario
+        .spawn("goblin", "monster.goblin_warrior")
+        .level(5)
+        .position([1.0, 0.0, 0.0], false)
+        .spawn();
+    scenario
+        .encounter()
+        .initiative_order(vec!["fighter", "ally", "goblin"])
+        .build();
+
+    scenario
+        .act("fighter", "action.help.assist_attack_roll")
+        .target_entity("goblin")
+        .perform();
+    scenario.probe("fighter").end_turn();
+    scenario
+        .act("ally", "action.help.assist_attack_roll")
+        .target_entity("goblin")
+        .perform();
+
+    // The ally's attack draws on the fighter's Help only. Miss, so the goblin survives
+    let melee = D20CheckKind::AttackRoll(AttackSource::Weapon(WeaponKind::Melee));
+    scenario
+        .probe("ally")
+        .d20_force_outcome(melee.clone(), D20CheckOutcome::CriticalFailure)
+        .act("action.fighter.action_surge")
+        .perform();
+    scenario
+        .act("ally", "action.melee_attack")
+        .target_entity("goblin")
+        .perform();
+    scenario
+        .event_filter()
+        .actor("ally")
+        .d20_advantage(
+            melee,
+            ModifierSource::Effect(HELP_ATTACK_ROLL.into()),
+            AdvantageType::Advantage,
+        )
+        .assert_event_count(1);
+
+    // The ally's own Help is left for the fighter
+    scenario.probe("goblin").assert_effect(HELP_ATTACK_ROLL);
+    let advantage = scenario
+        .probe("fighter")
+        .preview_attack_roll(
+            "goblin",
+            "action.melee_attack",
+            EquipmentSlot::MeleeMainHand,
+        )
+        .advantage_tracker()
+        .summary()
+        .get(&ModifierSource::Effect(HELP_ATTACK_ROLL.into()))
+        .copied();
+    assert_eq!(advantage, Some(AdvantageType::Advantage));
 }
 
 /// The fighter next to the wizard, who is at 0 HP and making Death Saving Throws

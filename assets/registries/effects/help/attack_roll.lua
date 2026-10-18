@@ -17,12 +17,15 @@ local function attacked_hook(engine_state, effect, victim, attacker, check)
     end
 end
 
---- Spent by the first attack roll against the target that got the Advantage
+--- Spent by the first attack roll against the target that got the Advantage. A
+--- helper's own attack never draws on its Help, so it doesn't spend it either
 ---@type EventFilterFn
 local function event_filter(event, applier, target)
     local actor, result, dc = event:as_d20_check_performed()
     if actor and result and dc and result.kind:attack_roll() then
-        return dc.target == target and result:get_advantage(HELP_ATTACK_ROLL) ~= nil
+        return dc.target == target
+            and actor ~= applier
+            and result:get_advantage(HELP_ATTACK_ROLL) ~= nil
     end
 
     return false

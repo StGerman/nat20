@@ -1,6 +1,7 @@
 {
     "id": "nat20_core::effect.help.ability_check.survival",
     "kind": "buff",
+    "stacking_policy": "replace",
     "description": "You have Advantage on your next Wisdom (Survival) check. This benefit expires if you don't use it before the start of your helper's next turn.",
     "modifiers": [
         {
