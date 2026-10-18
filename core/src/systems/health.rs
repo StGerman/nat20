@@ -13,7 +13,7 @@ use crate::{
         health::{
             hit_point_dice::{HitPointDice, HitPointDiceError},
             hit_points::HitPoints,
-            life_state::{DeathPolicy, LifeState},
+            life_state::{DeathPolicy, DeathSavingThrows, LifeState},
         },
         level::CharacterLevels,
         modifier::{ModifierMap, ModifierResult, ModifierSource},
@@ -96,12 +96,19 @@ pub fn damage(
         {
             // Track any changes to the life state of the target
             let mut new_life_state = None;
-            // Check if the target is already at 0 HP
+            // Check if the target is already at 0 HP. Damage that mitigation brings
+            // down to zero is no damage, so it costs no Death Saving Throw
             let hp_before_damage = hit_points.current();
-            if hit_points.current() == 0 {
+            if hit_points.current() == 0 && mitigation_result.total > 0 {
                 match life_state {
                     LifeState::Stable => {
-                        new_life_state = Some(LifeState::unconscious());
+                        // "If the creature takes damage, it stops being Stable and starts making
+                        // Death Saving Throws again", and damage at 0 HP is a failure (two on a
+                        // Critical Hit)
+                        let failures = if damage_roll_result.crit { 2 } else { 1 };
+                        let mut death_saving_throws = DeathSavingThrows::new();
+                        death_saving_throws.record_failure(failures);
+                        new_life_state = Some(LifeState::Unconscious(death_saving_throws));
                     }
 
                     LifeState::Unconscious(death_saving_throws) => {
