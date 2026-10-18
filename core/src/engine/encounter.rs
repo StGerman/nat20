@@ -7,11 +7,12 @@ use crate::{
     components::{
         actions::targeting::EntityFilter,
         d20::{D20CheckDC, D20CheckResult},
+        effects::effect_manager::EffectManager,
         health::life_state::{DEATH_SAVING_THROW_DC, LifeState},
         modifier::{ModifierMap, ModifierSource},
         saving_throw::SavingThrowKind,
         skill::{Skill, SkillSet},
-        time::{TimeStep, TurnBoundary},
+        time::{EntityClock, TimeMode, TimeStep, TurnBoundary},
     },
     engine::{
         action_prompt::{ActionPrompt, ActionPromptKind},
@@ -247,15 +248,29 @@ impl Encounter {
     }
 
     fn advance_time(&mut self, engine_state: &mut EngineState, boundary: TurnBoundary) {
+        let time_step = TimeStep::TurnBoundary {
+            entity: self.current_entity(),
+            boundary,
+        };
         for entity in self.participants.iter() {
-            systems::time::advance_time(
-                engine_state,
-                *entity,
-                TimeStep::TurnBoundary {
-                    entity: self.current_entity(),
-                    boundary,
-                },
-            );
+            systems::time::advance_time(engine_state, *entity, time_step);
+        }
+
+        // An effect that lasts until a participant's turn can be on a creature
+        // outside the encounter, e.g. an ally it helped before the fight, so their
+        // effects see the boundary too. A creature in real time already counts the
+        // time down as it passes, so only the ones whose time passes in turns
+        let outsiders: Vec<Entity> = engine_state
+            .world
+            .query::<(&EffectManager, &EntityClock)>()
+            .iter()
+            .filter(|(entity, (_, clock))| {
+                !self.participants.contains(entity) && clock.mode() != TimeMode::RealTime
+            })
+            .map(|(entity, _)| entity)
+            .collect();
+        for entity in outsiders {
+            systems::effects::effects_mut(&mut engine_state.world, entity).advance_time(time_step);
         }
     }
 
