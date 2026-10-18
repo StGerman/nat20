@@ -1,0 +1,30 @@
+{
+    "id": "nat20_core::variant.help.acrobatics",
+    "description": "The ally has Advantage on their next Dexterity (Acrobatics) check.",
+    "usability": {
+        "skill_proficiency": "acrobatics"
+    },
+    "phases": [
+        {
+            "payload": {
+                "components": [
+                    {
+                        "effect": {
+                            "effect_id": "nat20_core::effect.help.ability_check.acrobatics",
+                            "lifetime": {
+                                "turn_boundary": {
+                                    "entity": "applier",
+                                    "boundary": "start",
+                                    "duration": {
+                                        "turns": 1
+                                    }
+                                }
+                            }
+                        }
+                    }
+                ],
+                "delivery": "immediate"
+            }
+        }
+    ]
+}

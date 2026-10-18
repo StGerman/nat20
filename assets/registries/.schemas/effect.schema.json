@@ -509,6 +509,18 @@
                                         }
                                     ],
                                     "default": null
+                                },
+                                "skill": {
+                                    "description": "Only match checks made with this skill (e.g. Help's Advantage is spent\nby the next check with the chosen skill). Omit to match any skill.",
+                                    "anyOf": [
+                                        {
+                                            "$ref": "#/definitions/Skill"
+                                        },
+                                        {
+                                            "type": "null"
+                                        }
+                                    ],
+                                    "default": null
                                 }
                             },
                             "required": [

@@ -230,6 +230,10 @@ function D20CheckResult:add_modifier(modifier, source) end
 ---@param source string
 function D20CheckResult:add_advantage(advantage, source) end
 
+---@param source string
+---@return string? -- advantage/disadvantage
+function D20CheckResult:get_advantage(source) end
+
 ---@param bonus string
 ---@param source string
 ---@param force_use_new boolean
@@ -354,6 +358,12 @@ function EngineState:hp_current(entity) end
 ---@param entity ScriptEntity
 ---@return integer
 function EngineState:hp_max(entity) end
+
+--- How `entity` regards `other`
+---@param entity ScriptEntity
+---@param other ScriptEntity
+---@return string  -- "friendly" | "neutral" | "hostile"
+function EngineState:attitude(entity, other) end
 
 ---@param entity ScriptEntity
 ---@param ability_name string  -- "strength" | "dexterity" | ...

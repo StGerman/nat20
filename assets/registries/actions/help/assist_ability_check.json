@@ -1,0 +1,57 @@
+{
+    "id": "nat20_core::action.help.assist_ability_check",
+    "description": "Choose one of your skill or tool proficiencies and one ally who is near enough for you to assist verbally or physically when they make an ability check. That ally has Advantage on the next ability check they make with the chosen skill or tool. This benefit expires if the ally doesn't use it before the start of your next turn. The GM has final say on whether your assistance is possible.",
+    "kind": {
+        "variant": {
+            "variants": [
+                "nat20_core::variant.help.athletics",
+                "nat20_core::variant.help.acrobatics",
+                "nat20_core::variant.help.sleight_of_hand",
+                "nat20_core::variant.help.stealth",
+                "nat20_core::variant.help.arcana",
+                "nat20_core::variant.help.history",
+                "nat20_core::variant.help.investigation",
+                "nat20_core::variant.help.nature",
+                "nat20_core::variant.help.religion",
+                "nat20_core::variant.help.animal_handling",
+                "nat20_core::variant.help.insight",
+                "nat20_core::variant.help.medicine",
+                "nat20_core::variant.help.perception",
+                "nat20_core::variant.help.survival",
+                "nat20_core::variant.help.deception",
+                "nat20_core::variant.help.intimidation",
+                "nat20_core::variant.help.performance",
+                "nat20_core::variant.help.persuasion"
+            ]
+        }
+    },
+    "targeting": {
+        "kind": "single",
+        "range": "5 feet",
+        "line_of_sight": {
+            "trajectory": "ray"
+        },
+        "allowed_targets": [
+            {
+                "tag": "not_self"
+            },
+            {
+                "attitudes": [
+                    "friendly"
+                ]
+            },
+            {
+                "life_states": [
+                    "normal"
+                ]
+            }
+        ]
+    },
+    "resource_cost": {
+        "nat20_core::resource.action": 1
+    },
+    "timeline": {
+        "total_duration": 1.0,
+        "perform_time": 0.5
+    }
+}

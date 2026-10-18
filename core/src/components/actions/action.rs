@@ -19,7 +19,7 @@ use crate::{
         d20::{D20Check, D20CheckDC, D20CheckOutcome, D20CheckResult},
         damage::{AttackSource, DamageMitigationResult, DamageRoll, DamageRollResult},
         effects::effect::EffectInstanceTemplate,
-        health::life_state::LifeState,
+        health::life_state::{LifeState, LifeStateChange},
         id::{ActionId, ActionVariantId, EffectId, EntityIdentifier, IdProvider, SpellId},
         items::equipment::slots::EquipmentSlot,
         modifier::{ModifierMap, ModifierResult},
@@ -289,6 +289,9 @@ pub struct ActionVariant {
     pub description: String,
     /// Phases in addition to the parent's
     pub phases: Vec<ActionPhaseSpec>,
+    /// Like the parent action's `usability`, but only checked when this variant
+    /// is chosen, e.g. Help can only assist with a skill you are proficient in
+    pub usability: Option<Arc<ActionUsabilityFunction>>,
 }
 
 impl IdProvider for ActionVariant {
@@ -466,6 +469,9 @@ pub enum ActionCondition {
     None,
     AttackRoll(Arc<AttackRollFunction>),
     SavingThrow(Arc<SavingThrowFunction>),
+    /// A skill check made by the actor against a fixed DC, e.g. the DC 10
+    /// Wisdom (Medicine) check to stabilize a creature
+    SkillCheck(D20CheckDC),
 }
 
 impl Debug for ActionCondition {
@@ -474,6 +480,7 @@ impl Debug for ActionCondition {
             ActionCondition::None => write!(f, "None"),
             ActionCondition::AttackRoll(_) => write!(f, "AttackRoll"),
             ActionCondition::SavingThrow(_) => write!(f, "SavingThrow"),
+            ActionCondition::SkillCheck(dc) => write!(f, "SkillCheck({:?})", dc),
         }
     }
 }
@@ -494,6 +501,7 @@ pub enum ActionPayloadComponent {
     Healing(Arc<HealingFunction>),
     Reaction(ReactionBody),
     Displacement(Arc<DisplacementFunction>),
+    LifeState(LifeStateChange),
 }
 
 #[derive(Clone)]
@@ -701,6 +709,13 @@ pub struct HealingResult {
     pub new_life_state: Option<LifeState>,
 }
 
+#[derive(Debug, Clone, PartialEq)]
+pub struct LifeStateResult {
+    pub resolution: ActionConditionResolution,
+    /// None if the condition failed or the target was unaffected
+    pub new_life_state: Option<LifeState>,
+}
+
 #[derive(Debug, Clone, PartialEq, Kinded)]
 pub enum ActionResultComponent {
     Damage(DamageResult),
@@ -708,6 +723,7 @@ pub enum ActionResultComponent {
     Healing(HealingResult),
     Reaction(ReactionResult),
     Displacement(Option<Displacement>),
+    LifeState(LifeStateResult),
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -737,6 +753,7 @@ impl ActionResult {
             match component {
                 ActionResultComponent::Damage(damage) => return &damage.resolution,
                 ActionResultComponent::Effect(effect) => return &effect.resolution,
+                ActionResultComponent::LifeState(life_state) => return &life_state.resolution,
                 _ => {}
             }
         }

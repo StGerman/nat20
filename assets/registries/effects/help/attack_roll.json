@@ -1,0 +1,23 @@
+{
+    "id": "nat20_core::effect.help.attack_roll",
+    "kind": "debuff",
+    "description": "You are distracted. The next attack roll against you by one of the helper's allies has Advantage. This ends at the start of the helper's next turn.",
+    "on_attacked": [
+        {
+            "script": "nat20_core::script.effect.help.attack_roll"
+        }
+    ],
+    "end_conditions": [
+        {
+            "event": {
+                "script": {
+                    "events": [
+                        "d20_check_performed"
+                    ],
+                    "script": "nat20_core::script.effect.help.attack_roll"
+                }
+            },
+            "on_trigger": "remove"
+        }
+    ]
+}

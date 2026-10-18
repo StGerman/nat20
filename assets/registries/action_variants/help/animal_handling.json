@@ -1,0 +1,30 @@
+{
+    "id": "nat20_core::variant.help.animal_handling",
+    "description": "The ally has Advantage on their next Wisdom (Animal Handling) check.",
+    "usability": {
+        "skill_proficiency": "animal_handling"
+    },
+    "phases": [
+        {
+            "payload": {
+                "components": [
+                    {
+                        "effect": {
+                            "effect_id": "nat20_core::effect.help.ability_check.animal_handling",
+                            "lifetime": {
+                                "turn_boundary": {
+                                    "entity": "applier",
+                                    "boundary": "start",
+                                    "duration": {
+                                        "turns": 1
+                                    }
+                                }
+                            }
+                        }
+                    }
+                ],
+                "delivery": "immediate"
+            }
+        }
+    ]
+}

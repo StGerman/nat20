@@ -11,7 +11,7 @@ use crate::{
                 ActionCondition, ActionConditionKind, ActionConditionResolution, ActionPayload,
                 ActionPayloadComponent, ActionPhaseSpec, ActionResult, ActionResultComponent,
                 DamageOnFailure, DamageResult, EffectResult, EffectResultKind, HealingResult,
-                PayloadDelivery, PhaseOutcomes, PhaseRequirement, PhaseTargets,
+                LifeStateResult, PayloadDelivery, PhaseOutcomes, PhaseRequirement, PhaseTargets,
             },
             reaction::{ReactionBody, ReactionResult},
             targeting::TargetInstance,
@@ -19,6 +19,7 @@ use crate::{
         activity::ActivityState,
         damage::DamageRollResult,
         effects::effect::EffectInstanceTemplate,
+        health::life_state::LifeStateChange,
         id::{EffectId, EntityIdentifier},
         modifier::{ModifierKindResult, ModifierResult, ModifierSource},
         spells::{concentration::ConcentrationInstance, spell::SpellFlag},
@@ -209,7 +210,9 @@ impl PhaseState {
 
             PayloadDelivery::Projectile { template } => {
                 match self.condition {
-                    ActionConditionKind::None | ActionConditionKind::AttackRoll => {
+                    ActionConditionKind::None
+                    | ActionConditionKind::AttackRoll
+                    | ActionConditionKind::SkillCheck => {
                         if !self.resolve_condition(engine_state) {
                             return PhasePerformResult::AwaitingEvent;
                         }
@@ -434,6 +437,11 @@ impl StepState {
                     Some(&action.action_id),
                 )
             }
+
+            // Unlike a saving throw, the actor makes the check
+            ActionCondition::SkillCheck(dc) => {
+                systems::d20::check_with_action(engine_state, actor, dc, Some(&action.action_id))
+            }
         }
         .with_parent(
             engine_state
@@ -536,6 +544,8 @@ enum PayloadResult {
     Reaction,
     /// None: the condition failed, so the target is not displaced
     Displacement(Option<DisplacementTemplate>),
+    /// None: the condition failed, so the target's life state is unchanged
+    LifeState(Option<LifeStateChange>),
 }
 
 impl StepComponent {
@@ -702,6 +712,12 @@ impl StepComponent {
                 self.payload_result = Awaitable::Ready(PayloadResult::Displacement(displacement));
                 true
             }
+
+            ActionPayloadComponent::LifeState(change) => {
+                let change = resolution.is_success().then_some(*change);
+                self.payload_result = Awaitable::Ready(PayloadResult::LifeState(change));
+                true
+            }
         }
     }
 
@@ -743,6 +759,9 @@ impl StepComponent {
                 ActionResultComponent::Displacement(displacement.and_then(|displacement| {
                     Self::apply_displacement(engine_state, action, target, displacement)
                 }))
+            }
+            PayloadResult::LifeState(change) => {
+                Self::apply_life_state(engine_state, action, target, resolution, change)
             }
         });
     }
@@ -859,6 +878,37 @@ impl StepComponent {
         let result = reaction.execute(engine_state, action);
 
         ActionResultComponent::Reaction(result)
+    }
+
+    fn apply_life_state(
+        engine_state: &mut EngineState,
+        action: &ActionData,
+        target: Entity,
+        resolution: &ActionConditionResolution,
+        change: Option<LifeStateChange>,
+    ) -> ActionResultComponent {
+        let new_life_state = change.and_then(|change| match change {
+            LifeStateChange::Stable => systems::health::stabilize(&mut engine_state.world, target),
+        });
+
+        if let Some(new_state) = new_life_state {
+            let event = Event::new(EventKind::LifeStateChanged {
+                entity: EntityIdentifier::from_world(&engine_state.world, target),
+                new_state,
+                actor: Some(action.actor.clone()),
+            })
+            .with_parent(
+                engine_state
+                    .event_log(action.actor.id())
+                    .action_event_id(&action.instance_id),
+            );
+            engine_state.process_event(event);
+        }
+
+        ActionResultComponent::LifeState(LifeStateResult {
+            resolution: resolution.clone(),
+            new_life_state,
+        })
     }
 
     fn apply_displacement(

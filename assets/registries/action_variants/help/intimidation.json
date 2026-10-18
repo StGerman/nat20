@@ -1,0 +1,30 @@
+{
+    "id": "nat20_core::variant.help.intimidation",
+    "description": "The ally has Advantage on their next Charisma (Intimidation) check.",
+    "usability": {
+        "skill_proficiency": "intimidation"
+    },
+    "phases": [
+        {
+            "payload": {
+                "components": [
+                    {
+                        "effect": {
+                            "effect_id": "nat20_core::effect.help.ability_check.intimidation",
+                            "lifetime": {
+                                "turn_boundary": {
+                                    "entity": "applier",
+                                    "boundary": "start",
+                                    "duration": {
+                                        "turns": 1
+                                    }
+                                }
+                            }
+                        }
+                    }
+                ],
+                "delivery": "immediate"
+            }
+        }
+    ]
+}

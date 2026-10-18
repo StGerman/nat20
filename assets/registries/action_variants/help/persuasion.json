@@ -1,0 +1,30 @@
+{
+    "id": "nat20_core::variant.help.persuasion",
+    "description": "The ally has Advantage on their next Charisma (Persuasion) check.",
+    "usability": {
+        "skill_proficiency": "persuasion"
+    },
+    "phases": [
+        {
+            "payload": {
+                "components": [
+                    {
+                        "effect": {
+                            "effect_id": "nat20_core::effect.help.ability_check.persuasion",
+                            "lifetime": {
+                                "turn_boundary": {
+                                    "entity": "applier",
+                                    "boundary": "start",
+                                    "duration": {
+                                        "turns": 1
+                                    }
+                                }
+                            }
+                        }
+                    }
+                ],
+                "delivery": "immediate"
+            }
+        }
+    ]
+}
