@@ -1,0 +1,30 @@
+{
+    "id": "nat20_core::variant.help.medicine",
+    "description": "The ally has Advantage on their next Wisdom (Medicine) check.",
+    "usability": {
+        "skill_proficiency": "medicine"
+    },
+    "phases": [
+        {
+            "payload": {
+                "components": [
+                    {
+                        "effect": {
+                            "effect_id": "nat20_core::effect.help.ability_check.medicine",
+                            "lifetime": {
+                                "turn_boundary": {
+                                    "entity": "applier",
+                                    "boundary": "start",
+                                    "duration": {
+                                        "turns": 1
+                                    }
+                                }
+                            }
+                        }
+                    }
+                ],
+                "delivery": "immediate"
+            }
+        }
+    ]
+}

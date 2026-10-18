@@ -10,6 +10,7 @@ use nat20_core::{
             targeting::{AreaShape, TargetingKind, TargetingRange},
         },
         d20::D20CheckDC,
+        health::life_state::LifeStateChange,
         id::{ActionId, ActionVariantId, EntityIdentifier, SpellId},
         items::equipment::weapon::MELEE_RANGE_DEFAULT,
         modifier::FlatModifiable,
@@ -196,6 +197,11 @@ impl ImguiRenderableWithContext<(&World, Entity, &ActionContext, Option<&ActionV
                     ActionPayloadComponent::Displacement(displacement) => {
                         displacement(world, entity, action_context).render(ui);
                     }
+                    ActionPayloadComponent::LifeState(change) => match change {
+                        LifeStateChange::Stable => {
+                            TextSegment::new("Stabilize", TextKind::Healing).render(ui)
+                        }
+                    },
                 }
             }
         }
@@ -539,6 +545,20 @@ impl ImguiRenderableWithContext<(&Option<&EntityIdentifier>, &str)> for ActionRe
                 TextSegment::new(verb, TextKind::Normal).render(ui);
                 ui.same_line();
                 TextSegment::new(target_name, TextKind::Target).render(ui);
+            }
+            ActionResultComponent::LifeState(life_state) => {
+                if life_state.new_life_state.is_some() {
+                    life_state.new_life_state.render_with_context(
+                        ui,
+                        (target_name, actor.as_ref().map(|p| p.name().as_str())),
+                    );
+                } else {
+                    TextSegments::new(vec![
+                        (target_name, TextKind::Target),
+                        ("was unaffected", TextKind::Normal),
+                    ])
+                    .render(ui);
+                }
             }
         }
     }

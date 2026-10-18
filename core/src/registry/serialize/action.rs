@@ -12,15 +12,18 @@ use crate::{
             ActionVariant, DamageOnFailure, PayloadDelivery, PhaseRequirement, PhaseTargets,
             TargetUsabilityFunction,
         },
+        health::life_state::LifeStateChange,
         id::{ActionId, ActionVariantId, ScriptId},
+        proficiency::ProficiencyLevel,
         resource::{RechargeRule, ResourceAmountMap},
+        skill::{Skill, SkillSet},
     },
     entities::projectile::ProjectileTemplate,
     registry::{
         registry::Registry,
         registry_validation::{ReferenceCollector, RegistryReference, RegistryReferenceCollector},
         serialize::{
-            d20::{AttackRollDefinition, SavingThrowDefinition},
+            d20::{AttackRollDefinition, SavingThrowDefinition, SkillCheckDefinition},
             dice::{DamageEquation, HealEquation},
             effect::EffectInstanceDefinition,
             parser::{Evaluable, EvaluationError},
@@ -76,14 +79,7 @@ impl RegistryReferenceCollector for ActionDefinition {
                 ScriptFunction::ReactionTrigger,
             ));
         }
-        if let Some(usability) = &self.usability
-            && let ActionUsabilityDefinition::Script(script_id) = usability
-        {
-            collector.add(RegistryReference::Script(
-                script_id.clone(),
-                ScriptFunction::ActionUsability,
-            ));
-        }
+        collect_usability_references(&self.usability, collector);
         if let Some(target_usability) = &self.target_usability
             && let TargetUsabilityDefinition::Script(script_id) = target_usability
         {
@@ -232,6 +228,9 @@ impl From<DamageOnFailureDefinition> for DamageOnFailure {
 pub enum ActionConditionDefinition {
     AttackRoll { attack_roll: AttackRollDefinition },
     SavingThrow { saving_throw: SavingThrowDefinition },
+    /// Made by the actor rather than the target, and succeeds when the check
+    /// does (e.g. Help's DC 10 Wisdom (Medicine) check to stabilize a creature)
+    SkillCheck { skill_check: SkillCheckDefinition },
 }
 
 impl From<ActionConditionDefinition> for ActionCondition {
@@ -242,6 +241,9 @@ impl From<ActionConditionDefinition> for ActionCondition {
             }
             ActionConditionDefinition::SavingThrow { saving_throw } => {
                 ActionCondition::SavingThrow(saving_throw.function)
+            }
+            ActionConditionDefinition::SkillCheck { skill_check } => {
+                ActionCondition::SkillCheck(skill_check.into())
             }
         }
     }
@@ -344,6 +346,10 @@ pub enum ActionPayloadComponentDefinition {
     Displacement {
         displacement: DisplacementTemplateDefinition,
     },
+    /// Changes the target's life state when the condition succeeds
+    LifeState {
+        life_state: LifeStateChange,
+    },
 }
 
 impl From<ActionPayloadComponentDefinition> for ActionPayloadComponent {
@@ -377,6 +383,9 @@ impl From<ActionPayloadComponentDefinition> for ActionPayloadComponent {
                             .unwrap()
                     },
                 ))
+            }
+            ActionPayloadComponentDefinition::LifeState { life_state } => {
+                ActionPayloadComponent::LifeState(life_state)
             }
         }
     }
@@ -455,11 +464,16 @@ pub struct ActionVariantDefinition {
     pub description: String,
     /// Appended to the parent's shared `phases`
     pub phases: Vec<ActionPhaseDefinition>,
+    /// Checked when this variant is chosen, on top of the parent's `usability`
+    /// (e.g. Help can only assist with a skill you are proficient in)
+    #[serde(default)]
+    pub usability: Option<ActionUsabilityDefinition>,
 }
 
 impl RegistryReferenceCollector for ActionVariantDefinition {
     fn collect_registry_references(&self, collector: &mut ReferenceCollector) {
         collect_phase_references(&self.phases, collector);
+        collect_usability_references(&self.usability, collector);
     }
 }
 
@@ -469,6 +483,7 @@ impl From<ActionVariantDefinition> for ActionVariant {
             id: value.id,
             description: value.description,
             phases: value.phases.into_iter().map(Into::into).collect(),
+            usability: value.usability.map(|usability| usability.function()),
         }
     }
 }
@@ -504,6 +519,18 @@ impl From<ActionKindDefinition> for ActionKind {
 
             ActionKindDefinition::Reaction { body } => ActionKind::Reaction { body: body.into() },
         }
+    }
+}
+
+fn collect_usability_references(
+    usability: &Option<ActionUsabilityDefinition>,
+    collector: &mut ReferenceCollector,
+) {
+    if let Some(ActionUsabilityDefinition::Script(script_id)) = usability {
+        collector.add(RegistryReference::Script(
+            script_id.clone(),
+            ScriptFunction::ActionUsability,
+        ));
     }
 }
 
@@ -556,6 +583,8 @@ impl RegistryReferenceCollector for ActionKindDefinition {
 #[serde(rename_all = "snake_case")]
 pub enum ActionUsabilityDefinition {
     Script(ScriptId),
+    /// The actor must be proficient in this skill
+    SkillProficiency(Skill),
 }
 
 impl ActionUsabilityDefinition {
@@ -571,6 +600,20 @@ impl ActionUsabilityDefinition {
                         action_id,
                         action_context,
                     )
+                }
+            }),
+
+            ActionUsabilityDefinition::SkillProficiency(skill) => Arc::new({
+                let skill = *skill;
+                move |engine_state, entity, _action_id, _action_context| {
+                    let skills =
+                        systems::helpers::get_component::<SkillSet>(&engine_state.world, entity);
+                    match skills.get(&skill).proficiency().level() {
+                        ProficiencyLevel::Proficient | ProficiencyLevel::Expertise => None,
+                        ProficiencyLevel::None | ProficiencyLevel::Half => {
+                            Some(format!("Requires proficiency in {}", skill))
+                        }
+                    }
                 }
             }),
         }

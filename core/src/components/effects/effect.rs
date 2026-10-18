@@ -14,7 +14,7 @@ use uuid::Uuid;
 use crate::{
     components::{
         actions::action::ActionConditionResolution,
-        d20::{D20CheckDC, D20CheckKindTag},
+        d20::{D20CheckDC, D20CheckKind, D20CheckKindTag},
         damage::AttackSource,
         effects::hooks::{
             ActionHook, ActionResultHook, ActionUsabilityHook, ApplyEffectHook, ArmorClassHook,
@@ -455,6 +455,8 @@ pub enum EffectEventFilter {
         /// Who the roll is made against. Only attack rolls have a target, so a
         /// filter with `against` never matches saving throws or skill checks.
         against: Option<EffectEntiyReference>,
+        /// Only checks made with this skill. `None` matches any skill.
+        skill: Option<Skill>,
     },
     Script {
         /// Event kinds this filter can match
@@ -497,8 +499,10 @@ impl EffectEventFilter {
                 kind,
                 roller,
                 against,
+                skill,
             } => {
                 let kind = *kind;
+                let skill = *skill;
                 let roller = roller.map(|entity| entity.resolve(applier, target));
                 let against = against.map(|entity| entity.resolve(applier, target));
                 EventFilter::new(move |event| {
@@ -511,6 +515,10 @@ impl EffectEventFilter {
                     }
 
                     if roller.is_some_and(|roller| roller != actor.id()) {
+                        return false;
+                    }
+
+                    if skill.is_some_and(|skill| dc.kind() != D20CheckKind::Skill(skill)) {
                         return false;
                     }
 

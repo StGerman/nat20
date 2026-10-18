@@ -1,7 +1,10 @@
 {
     "default_actions": [
         "nat20_core::action.dash",
-        "nat20_core::action.disengage"
+        "nat20_core::action.disengage",
+        "nat20_core::action.help.assist_ability_check",
+        "nat20_core::action.help.assist_attack_roll",
+        "nat20_core::action.help.stabilize"
     ],
     "loadout_attack_actions": [
         "nat20_core::action.melee_attack",

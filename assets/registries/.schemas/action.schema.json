@@ -168,6 +168,18 @@
                     "required": [
                         "saving_throw"
                     ]
+                },
+                {
+                    "description": "Made by the actor rather than the target, and succeeds when the check\ndoes (e.g. Help's DC 10 Wisdom (Medicine) check to stabilize a creature)",
+                    "type": "object",
+                    "properties": {
+                        "skill_check": {
+                            "$ref": "#/definitions/SkillCheckDefinition"
+                        }
+                    },
+                    "required": [
+                        "skill_check"
+                    ]
                 }
             ]
         },
@@ -386,6 +398,18 @@
                     "required": [
                         "displacement"
                     ]
+                },
+                {
+                    "description": "Changes the target's life state when the condition succeeds",
+                    "type": "object",
+                    "properties": {
+                        "life_state": {
+                            "$ref": "#/definitions/LifeStateChange"
+                        }
+                    },
+                    "required": [
+                        "life_state"
+                    ]
                 }
             ]
         },
@@ -502,6 +526,19 @@
                     "additionalProperties": false,
                     "required": [
                         "script"
+                    ]
+                },
+                {
+                    "description": "The actor must be proficient in this skill",
+                    "type": "object",
+                    "properties": {
+                        "skill_proficiency": {
+                            "$ref": "#/definitions/Skill"
+                        }
+                    },
+                    "additionalProperties": false,
+                    "required": [
+                        "skill_proficiency"
                     ]
                 }
             ]
@@ -904,6 +941,18 @@
                                         }
                                     ],
                                     "default": null
+                                },
+                                "skill": {
+                                    "description": "Only match checks made with this skill (e.g. Help's Advantage is spent\nby the next check with the chosen skill). Omit to match any skill.",
+                                    "anyOf": [
+                                        {
+                                            "$ref": "#/definitions/Skill"
+                                        },
+                                        {
+                                            "type": "null"
+                                        }
+                                    ],
+                                    "default": null
                                 }
                             },
                             "required": [
@@ -1239,6 +1288,16 @@
                 }
             ]
         },
+        "LifeStateChange": {
+            "description": "A change to a creature's life state that an action makes directly, rather\nthan through damage or healing.",
+            "oneOf": [
+                {
+                    "description": "\"A Stable creature doesn't make Death Saving Throws even though it has 0\nHit Points, but it still has the Unconscious condition.\" Only a creature\nthat is making Death Saving Throws can become Stable; any other creature\nis unaffected.",
+                    "type": "string",
+                    "const": "stable"
+                }
+            ]
+        },
         "LineOfSightDefinition": {
             "type": "object",
             "properties": {
@@ -1419,6 +1478,55 @@
             "description": "Registry id `[namespace::]script.<name>`, e.g. `nat20_core::script.example`. The namespace defaults to `nat20_core`.",
             "type": "string",
             "pattern": "^([A-Za-z0-9_]+::)?script[A-Za-z0-9_.]*$"
+        },
+        "Skill": {
+            "type": "string",
+            "enum": [
+                "athletics",
+                "acrobatics",
+                "sleight_of_hand",
+                "stealth",
+                "initiative",
+                "arcana",
+                "history",
+                "investigation",
+                "nature",
+                "religion",
+                "animal_handling",
+                "insight",
+                "medicine",
+                "perception",
+                "survival",
+                "deception",
+                "intimidation",
+                "performance",
+                "persuasion"
+            ]
+        },
+        "SkillCheckDefinition": {
+            "description": "A skill check the actor makes against a fixed DC, e.g. \"a successful DC 10\nWisdom (Medicine) check\" to stabilize a creature",
+            "type": "object",
+            "properties": {
+                "dc": {
+                    "description": "The DC the check has to meet or beat to succeed",
+                    "type": "integer",
+                    "format": "uint8",
+                    "maximum": 255,
+                    "minimum": 0
+                },
+                "skill": {
+                    "description": "The skill the actor makes the check with",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/Skill"
+                        }
+                    ]
+                }
+            },
+            "required": [
+                "skill",
+                "dc"
+            ]
         },
         "SpeciesId": {
             "description": "Registry id `[namespace::]species.<name>`, e.g. `nat20_core::species.example`. The namespace defaults to `nat20_core`.",

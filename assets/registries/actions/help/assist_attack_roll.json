@@ -1,0 +1,57 @@
+{
+    "id": "nat20_core::action.help.assist_attack_roll",
+    "description": "You momentarily distract an enemy within 5 feet of you, giving Advantage to the next attack roll by one of your allies against that enemy. This benefit expires at the start of your next turn.",
+    "kind": {
+        "standard": {
+            "phases": [
+                {
+                    "payload": {
+                        "components": [
+                            {
+                                "effect": {
+                                    "effect_id": "nat20_core::effect.help.attack_roll",
+                                    "lifetime": {
+                                        "turn_boundary": {
+                                            "entity": "applier",
+                                            "boundary": "start",
+                                            "duration": {
+                                                "turns": 1
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        ],
+                        "delivery": "immediate"
+                    }
+                }
+            ]
+        }
+    },
+    "targeting": {
+        "kind": "single",
+        "range": "5 feet",
+        "line_of_sight": {
+            "trajectory": "ray"
+        },
+        "allowed_targets": [
+            {
+                "attitudes": [
+                    "hostile"
+                ]
+            },
+            {
+                "life_states": [
+                    "normal"
+                ]
+            }
+        ]
+    },
+    "resource_cost": {
+        "nat20_core::resource.action": 1
+    },
+    "timeline": {
+        "total_duration": 1.0,
+        "perform_time": 0.5
+    }
+}

@@ -1,0 +1,22 @@
+{
+    "id": "nat20_core::effect.help.ability_check.sleight_of_hand",
+    "kind": "buff",
+    "description": "You have Advantage on your next Dexterity (Sleight of Hand) check. This benefit expires if you don't use it before the start of your helper's next turn.",
+    "modifiers": [
+        {
+            "skill": "sleight_of_hand advantage"
+        }
+    ],
+    "end_conditions": [
+        {
+            "event": {
+                "d20_check": {
+                    "kind": "skill",
+                    "skill": "sleight_of_hand",
+                    "roller": "target"
+                }
+            },
+            "on_trigger": "remove"
+        }
+    ]
+}

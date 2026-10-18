@@ -1,0 +1,50 @@
+{
+    "id": "nat20_core::action.help.stabilize",
+    "description": "You can take the Help action to try to stabilize a creature with 0 Hit Points, which requires a successful DC 10 Wisdom (Medicine) check. A Stable creature doesn't make Death Saving Throws even though it has 0 Hit Points, but it still has the Unconscious condition. If the creature takes damage, it stops being Stable and starts making Death Saving Throws again.",
+    "kind": {
+        "standard": {
+            "phases": [
+                {
+                    "condition": {
+                        "skill_check": {
+                            "skill": "medicine",
+                            "dc": 10
+                        }
+                    },
+                    "payload": {
+                        "components": [
+                            {
+                                "life_state": "stable"
+                            }
+                        ],
+                        "delivery": "immediate"
+                    }
+                }
+            ]
+        }
+    },
+    "targeting": {
+        "kind": "single",
+        "range": "5 feet",
+        "line_of_sight": {
+            "trajectory": "ray"
+        },
+        "allowed_targets": [
+            {
+                "life_states": [
+                    "normal",
+                    "stable",
+                    "dead"
+                ],
+                "invert": true
+            }
+        ]
+    },
+    "resource_cost": {
+        "nat20_core::resource.action": 1
+    },
+    "timeline": {
+        "total_duration": 1.0,
+        "perform_time": 0.5
+    }
+}

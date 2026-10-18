@@ -1686,6 +1686,10 @@ pub enum EffectEventFilterDefinition {
         /// filter with `against` never matches saving throws or skill checks.
         #[serde(default)]
         against: Option<EffectEntiyReference>,
+        /// Only match checks made with this skill (e.g. Help's Advantage is spent
+        /// by the next check with the chosen skill). Omit to match any skill.
+        #[serde(default)]
+        skill: Option<Skill>,
     },
     Script {
         /// Event kinds this filter can match
@@ -1704,10 +1708,12 @@ impl From<EffectEventFilterDefinition> for EffectEventFilter {
                 kind,
                 roller,
                 against,
+                skill,
             } => EffectEventFilter::D20Check {
                 kind,
                 roller,
                 against,
+                skill,
             },
             EffectEventFilterDefinition::Script { events, script } => {
                 EffectEventFilter::Script { events, script }

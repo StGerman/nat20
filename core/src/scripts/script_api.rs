@@ -914,6 +914,18 @@ impl UserData for EngineState {
             Ok(hp.max() as i64)
         });
 
+        // -- Factions --
+        methods.add_method(
+            "attitude",
+            |_, this, (entity, other): (ScriptEntity, ScriptEntity)| {
+                let attitude =
+                    systems::factions::attitude_from_to(&this.world, entity.into(), other.into());
+                serde_plain::to_string(&attitude).map_err(|e| {
+                    LuaError::RuntimeError(format!("Failed to serialize attitude: {e}"))
+                })
+            },
+        );
+
         // -- Ability modifier --
         methods.add_method(
             "ability_modifier",

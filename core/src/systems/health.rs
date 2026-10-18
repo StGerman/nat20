@@ -42,6 +42,18 @@ pub fn heal(world: &mut World, target: Entity, amount: u32) -> Option<LifeState>
     None
 }
 
+/// A creature at 0 HP that is making Death Saving Throws stops making them. Its
+/// saves start over if it takes damage and falls Unconscious again.
+pub fn stabilize(world: &mut World, target: Entity) -> Option<LifeState> {
+    if let Ok(mut life_state) = world.get::<&mut LifeState>(target)
+        && matches!(*life_state, LifeState::Unconscious(_))
+    {
+        *life_state = LifeState::Stable;
+        return Some(LifeState::Stable);
+    }
+    None
+}
+
 pub fn heal_full(world: &mut World, target: Entity) -> Option<LifeState> {
     // TODO: Bit of a convoluted way to get avoid repeating the life state logic
     let hit_point_max = if let Ok(hit_points) = world.get::<&HitPoints>(target) {
