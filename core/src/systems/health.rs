@@ -108,9 +108,10 @@ pub fn damage(
         {
             // Track any changes to the life state of the target
             let mut new_life_state = None;
-            // Check if the target is already at 0 HP
+            // Check if the target is already at 0 HP. Damage that mitigation brings
+            // down to zero is no damage, so it costs no Death Saving Throw
             let hp_before_damage = hit_points.current();
-            if hit_points.current() == 0 {
+            if hit_points.current() == 0 && mitigation_result.total > 0 {
                 match life_state {
                     LifeState::Stable => {
                         // "If the creature takes damage, it stops being Stable and starts making
