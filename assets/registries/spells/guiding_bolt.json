@@ -1,6 +1,7 @@
 {
     "id": "nat20_core::spell.guiding_bolt",
     "description": "You hurl a bolt of light toward a creature within range. Make a ranged spell attack against the target. On a hit, it takes 4d6 Radiant damage, and the next attack roll made against it before the end of your next turn has Advantage.",
+    "_comment": "The Advantage lasts until the end of the caster's next turn: 2 turn ends, counting the one it is cast in.",
     "base_level": 1,
     "school": "evocation",
     "flags": [
@@ -27,7 +28,7 @@
                                             "entity": "applier",
                                             "boundary": "end",
                                             "duration": {
-                                                "turns": 1
+                                                "turns": 2
                                             }
                                         }
                                     }

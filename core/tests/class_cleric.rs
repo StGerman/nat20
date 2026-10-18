@@ -356,6 +356,39 @@ fn guiding_bolt_gives_the_next_attack_against_the_target_advantage() {
 }
 
 #[test]
+fn guiding_bolt_lasts_until_the_end_of_the_casters_next_turn() {
+    let mut scenario = chapel();
+    scenario
+        .spawn("brute", "hero.barbarian")
+        .level(10)
+        .position([1.0, 0.0, 1.2], false)
+        .spawn();
+    scenario
+        .encounter()
+        .initiative_order(vec!["cleric", "brute", "fighter", "goblin"])
+        .build();
+    scenario.probe("cleric").d20_force_outcome(
+        D20CheckKind::AttackRoll(AttackSource::Spell),
+        D20CheckOutcome::Success,
+    );
+    scenario
+        .act("cleric", "action.guiding_bolt")
+        .context_spell_level(1)
+        .target_entity("brute")
+        .perform();
+    for handle in ["cleric", "brute", "fighter", "goblin"] {
+        scenario.probe(handle).end_turn();
+        scenario
+            .probe("brute")
+            .assert_effect("effect.spell.guiding_bolt");
+    }
+    scenario.probe("cleric").end_turn();
+    scenario
+        .probe("brute")
+        .assert_no_effect("effect.spell.guiding_bolt");
+}
+
+#[test]
 fn shield_of_faith_adds_2_to_armor_class() {
     let mut scenario = chapel();
     let ac = |scenario: &Scenario, handle: &str| {
