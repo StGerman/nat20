@@ -17,7 +17,7 @@ use crate::{
         id::ItemId,
         items::{
             equipment::{
-                armor::{Armor, ArmorClass, ArmorDexterityBonus},
+                armor::{Armor, ArmorClass, ArmorDexterityBonus, ArmorTrainingSet, ArmorType},
                 slots::{EquipmentSlot, SlotProvider},
                 weapon::{
                     MELEE_RANGE_DEFAULT, Weapon, WeaponKind, WeaponProficiencyMap, WeaponProperties,
@@ -25,7 +25,7 @@ use crate::{
             },
             inventory::ItemInstance,
         },
-        modifier::{Modifiable, ModifierMap, ModifierSource},
+        modifier::{FlatModifiable, Modifiable, ModifierMap, ModifierSource},
         proficiency::{Proficiency, ProficiencyLevel},
         saving_throw::SavingThrowKind,
     },
@@ -224,6 +224,19 @@ impl Loadout {
         }
     }
 
+    /// The Shield carried in the off hand, if any.
+    pub fn shield(&self) -> Option<&Armor> {
+        if let Some(shield_id) = self.equipment.get(&EquipmentSlot::MeleeOffHand)
+            && let Some(shield) = ItemsRegistry::get(shield_id)
+            && let ItemInstance::Armor(shield) = shield
+            && shield.armor_type == ArmorType::Shield
+        {
+            Some(shield)
+        } else {
+            None
+        }
+    }
+
     pub fn armor_class(&self, engine_state: &EngineState, entity: Entity) -> ArmorClass {
         let mut armor_class = if let Some(armor) = &self.armor() {
             let ability_scores =
@@ -233,6 +246,19 @@ impl Loadout {
             // TODO: Not sure if this is the right way to handle unarmored characters
             ArmorClass::new(10, ModifierSource::Base, ArmorDexterityBonus::Unlimited)
         };
+
+        // A Shield's bonus counts only with Shield training (SRD 5.2.1, Armor Training).
+        if let Some(shield) = self.shield()
+            && engine_state
+                .world
+                .get::<&ArmorTrainingSet>(entity)
+                .is_ok_and(|training| training.contains(&ArmorType::Shield))
+        {
+            armor_class.add_modifier(
+                ModifierSource::Item(shield.item.id.clone()),
+                shield.armor_class,
+            );
+        }
 
         systems::effects::effects(&engine_state.world, entity).armor_class(
             engine_state,
@@ -268,13 +294,13 @@ impl Loadout {
         if let Some(main_hand_weapon) = self.weapon_in_hand(&main_hand_slot) {
             // Check that:
             // 1. The main hand weapon is two-handed or versatile.
-            // 2. The off hand is empty
+            // 2. The off hand is empty: no weapon, and no Shield either
             return (main_hand_weapon.has_property(&WeaponProperties::TwoHanded)
                 || main_hand_weapon
                     .properties()
                     .iter()
                     .any(|p| matches!(p, WeaponProperties::Versatile(_))))
-                && !self.has_weapon_in_hand(&off_hand_slot);
+                && self.item_in_slot(&off_hand_slot).is_none();
         }
         false
     }

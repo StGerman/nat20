@@ -26,6 +26,9 @@ pub enum ArmorType {
     Light,
     Medium,
     Heavy,
+    /// Carried in the off hand. Its `armor_class` is the bonus it adds to the
+    /// wearer's Armor Class, and Dexterity plays no part in it.
+    Shield,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
@@ -205,7 +208,10 @@ impl Armor {
 
 impl SlotProvider for Armor {
     fn valid_slots(&self) -> &'static [EquipmentSlot] {
-        &[EquipmentSlot::Armor]
+        match self.armor_type {
+            ArmorType::Shield => &[EquipmentSlot::MeleeOffHand],
+            _ => &[EquipmentSlot::Armor],
+        }
     }
 }
 
