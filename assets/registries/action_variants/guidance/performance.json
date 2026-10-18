@@ -1,0 +1,27 @@
+{
+    "id": "nat20_core::variant.guidance.performance",
+    "description": "The creature adds 1d4 to any ability check using Performance.",
+    "phases": [
+        {
+            "payload": {
+                "components": [
+                    {
+                        "effect": {
+                            "effect_id": "nat20_core::effect.spell.guidance.performance",
+                            "lifetime": {
+                                "turn_boundary": {
+                                    "entity": "applier",
+                                    "boundary": "start",
+                                    "duration": {
+                                        "time": "1 min"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                ],
+                "delivery": "immediate"
+            }
+        }
+    ]
+}

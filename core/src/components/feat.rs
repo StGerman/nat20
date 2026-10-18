@@ -1,4 +1,4 @@
-use std::sync::Arc;
+use std::{collections::HashSet, sync::Arc};
 
 use hecs::{Entity, World};
 use serde::Deserialize;
@@ -6,6 +6,7 @@ use serde::Deserialize;
 use crate::{
     components::{
         id::{EffectId, FeatId, IdProvider},
+        items::equipment::{armor::ArmorType, weapon::WeaponCategory},
         level_up::LevelUpPrompt,
     },
     registry::serialize::feat::FeatDefinition,
@@ -28,6 +29,10 @@ pub struct Feat {
     /// Most feats are single-use, but some can be taken multiple times.
     /// This mostly applies to Ability Score Improvement.
     repeatable: bool,
+    /// Armor training the feat grants, e.g. Heavy armor for the Cleric's Protector.
+    armor_training: HashSet<ArmorType>,
+    /// Weapon proficiencies the feat grants, e.g. Martial weapons for the Protector.
+    weapon_proficiencies: HashSet<WeaponCategory>,
 }
 
 impl Feat {
@@ -46,7 +51,28 @@ impl Feat {
             effects,
             prompts,
             repeatable,
+            armor_training: HashSet::new(),
+            weapon_proficiencies: HashSet::new(),
         }
+    }
+
+    /// Adds armor training and weapon proficiencies the feat grants.
+    pub fn with_training(
+        mut self,
+        armor_training: HashSet<ArmorType>,
+        weapon_proficiencies: HashSet<WeaponCategory>,
+    ) -> Self {
+        self.armor_training = armor_training;
+        self.weapon_proficiencies = weapon_proficiencies;
+        self
+    }
+
+    pub fn armor_training(&self) -> &HashSet<ArmorType> {
+        &self.armor_training
+    }
+
+    pub fn weapon_proficiencies(&self) -> &HashSet<WeaponCategory> {
+        &self.weapon_proficiencies
     }
 
     pub fn id(&self) -> &FeatId {

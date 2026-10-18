@@ -1,0 +1,10 @@
+{
+    "id": "nat20_core::effect.spell.shield_of_faith",
+    "kind": "buff",
+    "description": "A shimmering field surrounds you, granting a +2 bonus to AC.",
+    "on_armor_class": [
+        {
+            "modifier": "+2"
+        }
+    ]
+}

@@ -8,6 +8,7 @@ use crate::{
         ability::Ability,
         d20::{AdvantageType, D20Check, D20CheckOutcome},
         damage::{AttackSource, DamageType, MitigationOperation},
+        dice::DiceSet,
         items::equipment::weapon::WeaponKind,
         modifier::{Modifiable, ModifierSource},
         saving_throw::SavingThrowKind,
@@ -64,6 +65,8 @@ macro_rules! impl_display_roundtrip_spec {
 pub enum D20Modifier {
     Advantage(AdvantageType),
     Flat(i32),
+    /// Dice added to the roll, rolled each time, e.g. Bless's `+1d4`.
+    Dice(DiceSet),
     ForceOutcome(D20CheckOutcome),
     CritThreshold(u8),
 }
@@ -79,6 +82,7 @@ impl Display for D20Modifier {
                     write!(f, "{}", n)
                 }
             }
+            D20Modifier::Dice(dice) => write!(f, "+{}", dice),
             D20Modifier::ForceOutcome(o) => {
                 write!(f, "{}", serde_plain::to_string(o).unwrap())
             }
@@ -111,9 +115,9 @@ impl_string_schema!(
     D20Modifier,
     "D20Modifier",
     "description": "A d20 roll modifier: `advantage`, `disadvantage`, a flat bonus/penalty \
-         (`+2`, `-1`), a forced outcome (`success`, `failure`, `critical_success`, \
+         (`+2`, `-1`), dice added to the roll (`+1d4`), a forced outcome (`success`, `failure`, `critical_success`, \
          `critical_failure`) or a lowered crit threshold (`crit(-N)`).",
-    "examples": ["advantage", "+2", "crit(-1)"]
+    "examples": ["advantage", "+2", "+1d4", "crit(-1)"]
 );
 
 impl D20Modifier {
@@ -121,6 +125,9 @@ impl D20Modifier {
         match self {
             D20Modifier::Flat(delta) => {
                 check.add_modifier(source, *delta);
+            }
+            D20Modifier::Dice(dice) => {
+                check.add_modifier(source, *dice);
             }
             D20Modifier::Advantage(advantage) => {
                 check.advantage_tracker_mut().add(*advantage, source)
@@ -134,7 +141,7 @@ impl D20Modifier {
 
     pub fn remove(&self, check: &mut D20Check, source: &ModifierSource) {
         match self {
-            D20Modifier::Flat(_) => {
+            D20Modifier::Flat(_) | D20Modifier::Dice(_) => {
                 check.remove_modifier(source);
             }
             D20Modifier::Advantage(_) => check.advantage_tracker_mut().remove(source),
@@ -452,6 +459,12 @@ fn parse_d20_modifier(modifier_str: &str, full_input: &str) -> Result<D20Modifie
         "failure" => Ok(D20Modifier::ForceOutcome(D20CheckOutcome::Failure)),
         "critical_success" => Ok(D20Modifier::ForceOutcome(D20CheckOutcome::CriticalSuccess)),
         "critical_failure" => Ok(D20Modifier::ForceOutcome(D20CheckOutcome::CriticalFailure)),
+        _ if modifier_str.contains('d') => modifier_str
+            .trim_start_matches('+')
+            .trim()
+            .parse::<DiceSet>()
+            .map(D20Modifier::Dice)
+            .map_err(|_| format!("Invalid modifier in '{}'", full_input)),
         _ => {
             let delta: i32 = modifier_str
                 .parse()

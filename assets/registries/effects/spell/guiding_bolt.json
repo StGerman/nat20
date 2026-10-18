@@ -1,0 +1,23 @@
+{
+    "id": "nat20_core::effect.spell.guiding_bolt",
+    "kind": "debuff",
+    "description": "The next attack roll made against you before the end of the caster's next turn has Advantage.",
+    "on_attacked": [
+        {
+            "script": "nat20_core::script.effect.spell.guiding_bolt"
+        }
+    ],
+    "end_conditions": [
+        {
+            "event": {
+                "script": {
+                    "events": [
+                        "d20_check_performed"
+                    ],
+                    "script": "nat20_core::script.effect.spell.guiding_bolt"
+                }
+            },
+            "on_trigger": "remove"
+        }
+    ]
+}

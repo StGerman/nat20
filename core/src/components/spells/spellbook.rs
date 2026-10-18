@@ -31,7 +31,7 @@ use crate::{
         class::{CastingReadinessModel, ClassAndSubclass, SpellAccessModel},
         d20::{D20Check, D20CheckDC, D20CheckKind},
         damage::AttackSource,
-        id::{EffectId, FeatId, ItemId, ResourceId, SpeciesId, SpellId},
+        id::{ClassId, EffectId, FeatId, ItemId, ResourceId, SpeciesId, SpellId},
         modifier::{Modifiable, ModifierKind, ModifierMap, ModifierSource},
         proficiency::{Proficiency, ProficiencyLevel},
         resource::{ResourceAmount, ResourceAmountMap, ResourceBudgetKind, ResourceMap},
@@ -814,7 +814,34 @@ impl SavingThrowProvider for Spellbook {
             .as_ref()
             .expect("Action context must contain spell metadata")
             .source;
+        self.saving_throw_for_source(world, entity, source, kind)
+    }
+}
 
+impl Spellbook {
+    /// The spell save DC of a class's Spellcasting feature, for class features that use it
+    /// outside a spell, e.g. the Cleric's Channel Divinity.
+    pub fn class_saving_throw(
+        &self,
+        world: &World,
+        entity: Entity,
+        class: &ClassId,
+        kind: SavingThrowKind,
+    ) -> D20CheckDC {
+        let source = SpellSource::Class(ClassAndSubclass {
+            class: class.clone(),
+            subclass: None,
+        });
+        self.saving_throw_for_source(world, entity, &source, kind)
+    }
+
+    fn saving_throw_for_source(
+        &self,
+        world: &World,
+        entity: Entity,
+        source: &SpellSource,
+        kind: SavingThrowKind,
+    ) -> D20CheckDC {
         let ability_scores = systems::helpers::get_component::<AbilityScoreMap>(world, entity);
         let spellcasting_ability = self.spellcasting_ability(world, entity, source);
         let proficiency_bonus = systems::helpers::level(world, entity)

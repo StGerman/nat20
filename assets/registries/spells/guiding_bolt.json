@@ -1,0 +1,70 @@
+{
+    "id": "nat20_core::spell.guiding_bolt",
+    "description": "You hurl a bolt of light toward a creature within range. Make a ranged spell attack against the target. On a hit, it takes 4d6 Radiant damage, and the next attack roll made against it before the end of your next turn has Advantage.",
+    "base_level": 1,
+    "school": "evocation",
+    "flags": [
+        "verbal",
+        "somatic"
+    ],
+    "kind": {
+        "standard": {
+            "phases": [
+                {
+                    "condition": {
+                        "attack_roll": "spell_attack_roll"
+                    },
+                    "payload": {
+                        "components": [
+                            {
+                                "damage": "(3 + spell_level)d6;radiant"
+                            },
+                            {
+                                "effect": {
+                                    "effect_id": "nat20_core::effect.spell.guiding_bolt",
+                                    "lifetime": {
+                                        "turn_boundary": {
+                                            "entity": "applier",
+                                            "boundary": "end",
+                                            "duration": {
+                                                "turns": 1
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        ],
+                        "delivery": {
+                            "projectile": {
+                                "trajectory": "ray",
+                                "velocity": "40 m/s"
+                            }
+                        }
+                    }
+                }
+            ]
+        }
+    },
+    "resource_cost": {
+        "nat20_core::resource.action": 1
+    },
+    "targeting": {
+        "kind": "single",
+        "range": "120 feet",
+        "line_of_sight": {
+            "trajectory": "ray"
+        },
+        "allowed_targets": [
+            {
+                "life_states": [
+                    "dead"
+                ],
+                "invert": true
+            }
+        ]
+    },
+    "timeline": {
+        "total_duration": 1.0,
+        "perform_time": 0.5
+    }
+}

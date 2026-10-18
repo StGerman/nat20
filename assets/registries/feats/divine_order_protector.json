@@ -1,0 +1,10 @@
+{
+    "id": "nat20_core::feat.divine_order.protector",
+    "description": "Trained for battle, you gain proficiency with Martial weapons and training with Heavy armor.",
+    "armor_training": [
+        "heavy"
+    ],
+    "weapon_proficiencies": [
+        "martial"
+    ]
+}

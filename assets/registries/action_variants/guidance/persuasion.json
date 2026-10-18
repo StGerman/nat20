@@ -1,0 +1,27 @@
+{
+    "id": "nat20_core::variant.guidance.persuasion",
+    "description": "The creature adds 1d4 to any ability check using Persuasion.",
+    "phases": [
+        {
+            "payload": {
+                "components": [
+                    {
+                        "effect": {
+                            "effect_id": "nat20_core::effect.spell.guidance.persuasion",
+                            "lifetime": {
+                                "turn_boundary": {
+                                    "entity": "applier",
+                                    "boundary": "start",
+                                    "duration": {
+                                        "time": "1 min"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                ],
+                "delivery": "immediate"
+            }
+        }
+    ]
+}

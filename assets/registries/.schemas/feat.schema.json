@@ -3,6 +3,14 @@
     "title": "FeatDefinition",
     "type": "object",
     "properties": {
+        "armor_training": {
+            "description": "Armor training the feat grants.",
+            "type": "array",
+            "items": {
+                "$ref": "#/definitions/ArmorType"
+            },
+            "uniqueItems": true
+        },
         "description": {
             "type": "string"
         },
@@ -37,6 +45,14 @@
         "repeatable": {
             "type": "boolean",
             "default": false
+        },
+        "weapon_proficiencies": {
+            "description": "Weapon proficiencies the feat grants.",
+            "type": "array",
+            "items": {
+                "$ref": "#/definitions/WeaponCategory"
+            },
+            "uniqueItems": true
         }
     },
     "required": [
@@ -48,6 +64,24 @@
             "description": "Registry id `[namespace::]action.<name>`, e.g. `nat20_core::action.example`. The namespace defaults to `nat20_core`.",
             "type": "string",
             "pattern": "^([A-Za-z0-9_]+::)?action[A-Za-z0-9_.]*$"
+        },
+        "ArmorType": {
+            "oneOf": [
+                {
+                    "type": "string",
+                    "enum": [
+                        "clothing",
+                        "light",
+                        "medium",
+                        "heavy"
+                    ]
+                },
+                {
+                    "description": "Carried in the off hand. Its `armor_class` is the bonus it adds to the\nwearer's Armor Class, and Dexterity plays no part in it.",
+                    "type": "string",
+                    "const": "shield"
+                }
+            ]
         },
         "BackgroundId": {
             "description": "Registry id `[namespace::]background.<name>`, e.g. `nat20_core::background.example`. The namespace defaults to `nat20_core`.",
@@ -636,6 +670,13 @@
             "description": "Registry id `[namespace::]subspecies.<name>`, e.g. `nat20_core::subspecies.example`. The namespace defaults to `nat20_core`.",
             "type": "string",
             "pattern": "^([A-Za-z0-9_]+::)?subspecies[A-Za-z0-9_.]*$"
+        },
+        "WeaponCategory": {
+            "type": "string",
+            "enum": [
+                "simple",
+                "martial"
+            ]
         }
     }
 }

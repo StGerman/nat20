@@ -1,0 +1,47 @@
+{
+    "id": "nat20_core::spell.healing_word",
+    "description": "A creature of your choice that you can see within range regains Hit Points equal to 2d4 plus your spellcasting ability modifier.",
+    "base_level": 1,
+    "school": "abjuration",
+    "flags": [
+        "verbal"
+    ],
+    "kind": {
+        "standard": {
+            "phases": [
+                {
+                    "payload": {
+                        "components": [
+                            {
+                                "healing": "(2 * spell_level)d4 + spellcasting_modifier"
+                            }
+                        ],
+                        "delivery": "immediate"
+                    }
+                }
+            ]
+        }
+    },
+    "resource_cost": {
+        "nat20_core::resource.bonus_action": 1
+    },
+    "targeting": {
+        "kind": "single",
+        "range": "60 feet",
+        "line_of_sight": {
+            "trajectory": "ray"
+        },
+        "allowed_targets": [
+            {
+                "life_states": [
+                    "dead"
+                ],
+                "invert": true
+            }
+        ]
+    },
+    "timeline": {
+        "total_duration": 1.0,
+        "perform_time": 0.5
+    }
+}

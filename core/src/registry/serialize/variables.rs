@@ -11,6 +11,7 @@ use crate::{
         ability::{Ability, AbilityScoreMap},
         actions::action::ActionContext,
         level::CharacterLevels,
+        spells::spellbook::Spellbook,
     },
     registry::registry::ClassesRegistry,
     systems,
@@ -32,6 +33,19 @@ pub static PARSER_VARIABLES: LazyLock<VariableMap> = LazyLock::new(|| {
             "caster_level".to_string(),
             Arc::new(|world: &World, entity: Entity, _context: &ActionContext| {
                 systems::spells::spellcaster_levels(world, entity) as i32
+            }) as Arc<VariableFunction>,
+        ),
+        (
+            "spellcasting_modifier".to_string(),
+            Arc::new(|world: &World, entity: Entity, context: &ActionContext| {
+                // The modifier of the casting class's spellcasting ability; 0 outside a spell
+                context.spell.as_ref().map_or(0, |spell| {
+                    let ability = systems::helpers::get_component::<Spellbook>(world, entity)
+                        .spellcasting_ability(world, entity, &spell.source);
+                    systems::helpers::get_component::<AbilityScoreMap>(world, entity)
+                        .ability_modifier(&ability)
+                        .total()
+                })
             }) as Arc<VariableFunction>,
         ),
         (
@@ -59,7 +73,8 @@ pub static PARSER_VARIABLES: LazyLock<VariableMap> = LazyLock::new(|| {
     }
 
     for ability in Ability::iter() {
-        let variable_name = format!("{}.modifier", ability);
+        // e.g. `wisdom.modifier`, lowercase like the rest of the registry
+        let variable_name = format!("{}.modifier", ability.to_string().to_lowercase());
         map.insert(
             variable_name,
             Arc::new(
