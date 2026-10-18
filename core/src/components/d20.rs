@@ -503,6 +503,11 @@ impl D20CheckResult {
         let result = modifier.evaluate();
         self.check.add_modifier(source.clone(), modifier);
         self.modifier_result.add_modifier_result(source, result);
+
+        // The total changed, so an outcome decided against the DC no longer holds
+        self.outcome = self
+            .check
+            .determine_outcome(self.selected_roll, self.crit_threshold);
     }
 
     pub fn reroll(&self) -> D20CheckResult {
