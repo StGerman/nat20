@@ -6,7 +6,7 @@ use uuid::Uuid;
 use crate::{
     components::{
         actions::targeting::EntityFilter,
-        d20::{D20CheckDC, D20CheckResult},
+        d20::{AdvantageAware, AdvantageType, D20CheckDC, D20CheckResult},
         health::life_state::{DEATH_SAVING_THROW_DC, LifeState},
         modifier::{ModifierMap, ModifierSource},
         saving_throw::SavingThrowKind,
@@ -35,9 +35,11 @@ pub struct Encounter {
 }
 
 impl Encounter {
+    /// `surprised` participants roll Initiative with Disadvantage (SRD 5.2.1 Surprise)
     pub fn new(
         engine_state: &mut EngineState,
         participants: HashSet<Entity>,
+        surprised: &HashSet<Entity>,
         id: EncounterId,
     ) -> Self {
         let mut encounter = Self {
@@ -48,7 +50,7 @@ impl Encounter {
             initiative_order: Vec::new(),
             event_log: EventLog::new(),
         };
-        encounter.roll_initiative(engine_state);
+        encounter.roll_initiative(engine_state, surprised);
         encounter.start_turn(engine_state);
         encounter
             .event_log
@@ -59,7 +61,7 @@ impl Encounter {
         encounter
     }
 
-    fn roll_initiative(&mut self, engine_state: &EngineState) {
+    fn roll_initiative(&mut self, engine_state: &EngineState, surprised: &HashSet<Entity>) {
         // Roll in a fixed order rather than HashSet order, so a seeded run gets
         // the same initiative every time (ties also keep this order).
         let mut participants: Vec<&Entity> = self.participants.iter().collect();
@@ -68,9 +70,17 @@ impl Encounter {
         let mut indexed_rolls: Vec<(Entity, D20CheckResult)> = participants
             .into_iter()
             .map(|entity| {
-                let roll =
+                let mut check =
                     systems::helpers::get_component::<SkillSet>(&engine_state.world, *entity)
-                        .check(&Skill::Initiative, engine_state, *entity);
+                        .get(&Skill::Initiative)
+                        .clone();
+                if surprised.contains(entity) {
+                    check.add_advantage(
+                        AdvantageType::Disadvantage,
+                        ModifierSource::Custom("Surprised".to_string()),
+                    );
+                }
+                let roll = check.roll_hooks(engine_state, *entity);
                 (*entity, roll)
             })
             .collect();
