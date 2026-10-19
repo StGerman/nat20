@@ -4,7 +4,9 @@ use crate::{
     components::{
         actions::action::ActionCooldownMap,
         id::ResourceId,
-        resource::{RechargeRule, ResourceAmountMap, ResourceError, ResourceMap},
+        resource::{
+            RechargeRule, ResourceAmountMap, ResourceBudgetKind, ResourceError, ResourceMap,
+        },
     },
     registry::registry::{ResourcesRegistry, rules},
     systems,
@@ -21,10 +23,21 @@ pub fn recharge(world: &mut World, entity: Entity, rest_type: &RechargeRule) {
     for (resource_id, resource) in
         systems::helpers::get_component_mut::<ResourceMap>(world, entity).iter_mut()
     {
-        if let Some(resource_definition) = ResourcesRegistry::get(resource_id)
-            && resource_definition.recharge.is_recharged_by(rest_type)
-        {
+        let Some(resource_definition) = ResourcesRegistry::get(resource_id) else {
+            continue;
+        };
+        if resource_definition.recharge.is_recharged_by(rest_type) {
             resource.recharge_full();
+        } else if let ResourceBudgetKind::Flat(budget) = resource
+            && let Some(uses) = resource_definition
+                .partial_recharge
+                .iter()
+                .filter(|partial| partial.on.is_recharged_by(rest_type))
+                .map(|partial| partial.uses)
+                .max()
+        {
+            // Restoring caps at the maximum, so it can't fail
+            let _ = budget.restore(uses);
         }
     }
 
