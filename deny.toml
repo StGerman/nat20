@@ -1,0 +1,60 @@
+# cargo-deny for fork branch `demo`: the same policy as nat20-table's deny.toml (its CLAUDE.md
+# Rule 7: no copyleft; decision 0024). Covers nat20_core, the crate nat20-table builds. The GUI is
+# excluded on the command line (`cargo deny --exclude nat20_gui check`): it has no licence field,
+# takes imgui from git and pulls two unmaintained crates, and nothing of ours builds it.
+
+[graph]
+all-features = true
+
+[advisories]
+yanked = "deny"
+# Every ignore names the advisory, the path that pulls it in, and why it is tolerated.
+ignore = [
+    # paste is unmaintained (no vulnerability). A direct dependency of core, and reached through
+    # nalgebra/simba. Replacing it is in nat20-table's TASKS.md UPS-16.
+    { id = "RUSTSEC-2024-0436", reason = "unmaintained, no vulnerability; core and simba" },
+    # smartstring is unmaintained (no vulnerability). Reached through rhai. Revisit when rhai
+    # drops it.
+    { id = "RUSTSEC-2026-0249", reason = "unmaintained, no vulnerability; via rhai" },
+]
+
+[licenses]
+confidence-threshold = 0.93
+unused-allowed-license = "allow"
+# Permissive licences only. GPL, LGPL-only, AGPL and CC-BY-SA are absent on purpose.
+allow = [
+    "0BSD",
+    "Apache-2.0",
+    "Apache-2.0 WITH LLVM-exception",
+    "BSD-2-Clause",
+    "BSD-3-Clause",
+    "CC0-1.0",
+    "ISC",
+    "MIT",
+    "Unicode-3.0",
+    "Unlicense",
+    "Zlib",
+]
+exceptions = [
+    # File-level (weak) copyleft, reached through rhai (unconditional dependency, no feature to
+    # drop it). Allowed only for an unmodified third-party crate; any other MPL crate needs its
+    # own exception here, reviewed in its PR.
+    { crate = "smartstring", allow = ["MPL-2.0"] },
+]
+
+# The repository is MIT (LICENSE at the root) but core/Cargo.toml has no `license` field.
+[[licenses.clarify]]
+crate = "nat20_core"
+expression = "MIT"
+license-files = []
+
+[bans]
+multiple-versions = "allow"
+wildcards = "deny"
+allow-wildcard-paths = true
+
+[sources]
+unknown-registry = "deny"
+unknown-git = "deny"
+# No git dependencies. A new one must come from our own repos, pinned by rev (decision 0024).
+allow-git = []
