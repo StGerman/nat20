@@ -1916,7 +1916,6 @@ dependencies = [
  "mlua",
  "obj-rs",
  "parry3d",
- "paste",
  "polyanya",
  "rand 0.9.5",
  "rerecast",

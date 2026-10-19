@@ -10,9 +10,9 @@ all-features = true
 yanked = "deny"
 # Every ignore names the advisory, the path that pulls it in, and why it is tolerated.
 ignore = [
-    # paste is unmaintained (no vulnerability). A direct dependency of core, and reached through
-    # nalgebra/simba. Replacing it is in nat20-table's TASKS.md UPS-16.
-    { id = "RUSTSEC-2024-0436", reason = "unmaintained, no vulnerability; core and simba" },
+    # paste is unmaintained (no vulnerability). Reached through parry3d's nalgebra/simba; it leaves
+    # with parry3d 0.26+, which drops nalgebra (nat20-table TASKS.md UPS-24).
+    { id = "RUSTSEC-2024-0436", reason = "unmaintained, no vulnerability; via parry3d's simba" },
     # smartstring is unmaintained (no vulnerability). Reached through rhai. Revisit when rhai
     # drops it.
     { id = "RUSTSEC-2026-0249", reason = "unmaintained, no vulnerability; via rhai" },
