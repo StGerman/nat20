@@ -322,9 +322,11 @@ fn guidance_adds_a_d4_to_checks_with_the_chosen_skill() {
         .target_entity("fighter")
         .perform();
 
+    // DC 1 so the check always succeeds: a failed check opens the Fighter's Tactical Mind
+    // reaction window, and the check's resolved event waits on it.
     let check = |skill| D20CheckDC::Skill {
         skill,
-        dc: ModifierMap::from(ModifierSource::Custom("Test check".to_string()), 10).evaluate(),
+        dc: ModifierMap::from(ModifierSource::Custom("Test check".to_string()), 1).evaluate(),
     };
     scenario
         .probe("fighter")

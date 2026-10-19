@@ -1,0 +1,95 @@
+# Our CI for fork branch `demo` (nat20-table decision 0024, TASKS.md UPS-13). Upstream's rust.yml
+# is left as he wrote it; it runs only on `main`, where it checks his code.
+#
+#   test ─┬─ ci-ok   (the one check to require on `demo`)
+#   deny ─┘
+#   advisories       (not gating, as in nat20-table's decision 0022; also daily)
+#
+# Scoped to nat20_core, the crate nat20-table builds. His GUI adds about 90 s of X11 and imgui
+# builds and fails the licence policy, and nothing of ours depends on it.
+name: demo-ci
+
+on:
+  push:
+    branches: [demo]
+  pull_request:
+    branches: [demo]
+  # Scheduled runs use the default branch's copy of this file, so this needs `demo` as default.
+  schedule:
+    - cron: "23 4 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+env:
+  CARGO_TERM_COLOR: always
+  CARGO_INCREMENTAL: 0
+  # Debug info only slows the build and bloats the cache here; panics still name file and line.
+  CARGO_PROFILE_DEV_DEBUG: line-tables-only
+  CARGO_PROFILE_TEST_DEBUG: line-tables-only
+  RUST_BACKTRACE: 1
+
+jobs:
+  test:
+    name: test
+    if: github.event_name != 'schedule'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Rust release pinned in rust-toolchain.toml
+        run: rustup toolchain install
+      - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
+        with:
+          shared-key: core-test
+          save-if: ${{ github.ref == 'refs/heads/demo' }}
+      - name: Build core's tests
+        run: cargo test --locked -p nat20_core --no-run
+      - name: Core tests, including the registry schema freshness test
+        run: cargo test --locked -p nat20_core
+
+  deny:
+    name: deny
+    if: github.event_name != 'schedule'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Licences, bans and dependency sources (deny.toml, nat20-table's policy)
+        uses: EmbarkStudios/cargo-deny-action@3c6349835b2b7b196a839186cb8b78e02f7b5f25 # v2.1.1
+        with:
+          arguments: --all-features --exclude nat20_gui
+          command: check bans licenses sources
+
+  # Not gating: a new RustSec advisory can land on any day, unrelated to the PR.
+  # A red scheduled run gets a P0 row in TASKS.md the same day.
+  advisories:
+    name: advisories
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: EmbarkStudios/cargo-deny-action@3c6349835b2b7b196a839186cb8b78e02f7b5f25 # v2.1.1
+        with:
+          arguments: --all-features --exclude nat20_gui
+          command: check advisories
+
+  # The only check branch protection needs: green when every gating job passed.
+  ci-ok:
+    name: ci-ok
+    if: always() && github.event_name != 'schedule'
+    needs: [test, deny]
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Every gating job passed
+        env:
+          NEEDS: ${{ toJSON(needs) }}
+        run: |
+          echo "$NEEDS" | jq -r 'to_entries[] | "\(.key): \(.value.result)"'
+          echo "$NEEDS" | jq -e 'all(.[]; .result == "success")' > /dev/null
