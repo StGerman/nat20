@@ -1,0 +1,60 @@
+# Dependabot for fork branch `demo` (nat20-table decision 0024, TASKS.md UPS-14). Dependabot reads
+# this file from the default branch only, so it runs once `demo` is the fork's default branch, and
+# its PRs then target `demo`. CI on `demo` is the gate (demo.yml, `ci-ok`).
+#
+# Cooldown: 3 days after a patch release, 7 after a minor or major one. Security updates skip it.
+version: 2
+updates:
+  - package-ecosystem: cargo
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 5
+    cooldown:
+      default-days: 7
+      semver-major-days: 7
+      semver-minor-days: 7
+      semver-patch-days: 3
+    ignore:
+      # Used only by his GUI, which nothing of ours builds or tests. Leaving them as he set them
+      # keeps gui/Cargo.toml identical to upstream, so syncs don't conflict there.
+      - dependency-name: bytemuck
+      - dependency-name: chrono
+      - dependency-name: glow
+      - dependency-name: glutin
+      - dependency-name: glutin-winit
+      - dependency-name: image
+      - dependency-name: "imgui*"
+      - dependency-name: memoffset
+      - dependency-name: raw-window-handle
+      - dependency-name: winit
+    groups:
+      # Patch only: Dependabot reads a 0.x minor (a breaking bump under Cargo semver) as minor, so
+      # every cargo minor gets its own PR (nat20-table CLAUDE.md Rule 9).
+      cargo-patch:
+        update-types: [patch]
+
+  - package-ecosystem: github-actions
+    directory: /
+    # Upstream's workflow keeps his tag pins, so syncs don't conflict (decision 0024).
+    exclude-paths:
+      - .github/workflows/rust.yml
+    schedule:
+      interval: weekly
+      day: monday
+    # Actions have no semver levels for Dependabot, so one wait covers every bump.
+    cooldown:
+      default-days: 7
+    groups:
+      actions:
+        patterns: ["*"]
+
+  # rust-toolchain.toml: each new stable release becomes its own PR, with any fixes it needs.
+  - package-ecosystem: rust-toolchain
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+    cooldown:
+      default-days: 7
