@@ -24,6 +24,7 @@ pub static CREATURE_TEMPLATES: LazyLock<BTreeMap<&'static str, CreatureTemplateF
                 "hero.barbarian",
                 heroes::barbarian as CreatureTemplateFunction,
             ),
+            ("hero.cleric", heroes::cleric as CreatureTemplateFunction),
             ("hero.fighter", heroes::fighter as CreatureTemplateFunction),
             ("hero.wizard", heroes::wizard as CreatureTemplateFunction),
             ("hero.warlock", heroes::warlock as CreatureTemplateFunction),

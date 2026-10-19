@@ -1,0 +1,13 @@
+{
+    "id": "nat20_core::effect.spell.bless",
+    "kind": "buff",
+    "description": "Whenever you make an attack roll or a saving throw, you add 1d4 to the attack roll or save.",
+    "modifiers": [
+        {
+            "attack_roll_modifier": "+1d4"
+        },
+        {
+            "saving_throw": "all +1d4"
+        }
+    ]
+}

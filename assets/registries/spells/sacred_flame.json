@@ -1,0 +1,51 @@
+{
+    "id": "nat20_core::spell.sacred_flame",
+    "description": "Flame-like radiance descends on a creature that you can see within range. The target must succeed on a Dexterity saving throw or take 1d8 Radiant damage. The target gains no benefit from Half Cover or Three-Quarters Cover for this save.",
+    "base_level": 0,
+    "school": "evocation",
+    "flags": [
+        "verbal",
+        "somatic"
+    ],
+    "kind": {
+        "standard": {
+            "phases": [
+                {
+                    "condition": {
+                        "saving_throw": "spell_save_dc;dexterity"
+                    },
+                    "payload": {
+                        "components": [
+                            {
+                                "damage": "(1 + (character_level + 1) / 6)d8;radiant"
+                            }
+                        ],
+                        "delivery": "immediate"
+                    }
+                }
+            ]
+        }
+    },
+    "resource_cost": {
+        "nat20_core::resource.action": 1
+    },
+    "targeting": {
+        "kind": "single",
+        "range": "60 feet",
+        "line_of_sight": {
+            "trajectory": "ray"
+        },
+        "allowed_targets": [
+            {
+                "life_states": [
+                    "dead"
+                ],
+                "invert": true
+            }
+        ]
+    },
+    "timeline": {
+        "total_duration": 1.0,
+        "perform_time": 0.5
+    }
+}

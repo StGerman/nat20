@@ -1,0 +1,16 @@
+{
+    "id": "nat20_core::variant.divine_spark.heal",
+    "description": "The creature regains Hit Points equal to 1d8 plus your Wisdom modifier.",
+    "phases": [
+        {
+            "payload": {
+                "components": [
+                    {
+                        "healing": "1d8 + wisdom.modifier"
+                    }
+                ],
+                "delivery": "immediate"
+            }
+        }
+    ]
+}

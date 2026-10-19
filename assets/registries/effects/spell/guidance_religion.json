@@ -1,0 +1,10 @@
+{
+    "id": "nat20_core::effect.spell.guidance.religion",
+    "kind": "buff",
+    "description": "You add 1d4 to any ability check using Religion.",
+    "modifiers": [
+        {
+            "skill": "religion +1d4"
+        }
+    ]
+}

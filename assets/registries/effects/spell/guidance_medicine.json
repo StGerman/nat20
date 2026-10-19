@@ -1,0 +1,10 @@
+{
+    "id": "nat20_core::effect.spell.guidance.medicine",
+    "kind": "buff",
+    "description": "You add 1d4 to any ability check using Medicine.",
+    "modifiers": [
+        {
+            "skill": "medicine +1d4"
+        }
+    ]
+}

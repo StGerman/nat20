@@ -1,0 +1,20 @@
+{
+    "id": "nat20_core::variant.divine_spark.radiant",
+    "description": "The creature makes a Constitution saving throw, taking Radiant damage equal to 1d8 plus your Wisdom modifier on a failed save, or half as much on a successful one.",
+    "phases": [
+        {
+            "condition": {
+                "saving_throw": "spell_save_dc(nat20_core::class.cleric);constitution"
+            },
+            "payload": {
+                "components": [
+                    {
+                        "damage": "1d8 + wisdom.modifier;radiant",
+                        "damage_on_failure": "half"
+                    }
+                ],
+                "delivery": "immediate"
+            }
+        }
+    ]
+}

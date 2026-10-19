@@ -1,0 +1,11 @@
+{
+    "id": "nat20_core::resource.cleric.channel_divinity",
+    "kind": "flat",
+    "recharge": "long_rest",
+    "partial_recharge": [
+        {
+            "on": "short_rest",
+            "uses": 1
+        }
+    ]
+}

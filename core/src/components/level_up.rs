@@ -11,7 +11,7 @@ use serde::{Deserialize, Serialize};
 use crate::{
     components::{
         ability::Ability,
-        class::ClassAndSubclass,
+        class::{ClassAndSubclass, SpellAccessModel},
         id::{
             ActionId, BackgroundId, ClassId, EffectId, FeatId, ItemId, SpeciesId, SpellId,
             SubclassId, SubspeciesId,
@@ -268,9 +268,18 @@ impl LevelUpPrompt {
         {
             let spellbook = systems::helpers::get_component::<Spellbook>(world, entity);
             let resources = systems::helpers::get_component::<ResourceMap>(world, entity);
-            let known_spells = spellbook
-                .known_spells_for_class(class_and_subclass, &resources)
-                .unwrap();
+            // A class that knows its entire list chooses among the cantrips it hasn't
+            // picked and the spells it hasn't prepared
+            let known_spells =
+                if spellcasting_rules.access_model == SpellAccessModel::EntireClassList {
+                    spellbook
+                        .castable_spells_for_class(class_and_subclass, &resources)
+                        .unwrap()
+                } else {
+                    spellbook
+                        .known_spells_for_class(class_and_subclass, &resources)
+                        .unwrap()
+                };
 
             let options = spellcasting_rules
                 .spell_list

@@ -347,11 +347,12 @@
                             "default": null
                         },
                         "modifier": {
-                            "description": "A d20 roll modifier: `advantage`, `disadvantage`, a flat bonus/penalty (`+2`, `-1`), a forced outcome (`success`, `failure`, `critical_success`, `critical_failure`) or a lowered crit threshold (`crit(-N)`).",
+                            "description": "A d20 roll modifier: `advantage`, `disadvantage`, a flat bonus/penalty (`+2`, `-1`), dice added to the roll (`+1d4`), a forced outcome (`success`, `failure`, `critical_success`, `critical_failure`) or a lowered crit threshold (`crit(-N)`).",
                             "type": "string",
                             "examples": [
                                 "advantage",
                                 "+2",
+                                "+1d4",
                                 "crit(-1)"
                             ]
                         }
@@ -680,11 +681,12 @@
                     "type": "object",
                     "properties": {
                         "attack_roll_modifier": {
-                            "description": "A d20 roll modifier: `advantage`, `disadvantage`, a flat bonus/penalty (`+2`, `-1`), a forced outcome (`success`, `failure`, `critical_success`, `critical_failure`) or a lowered crit threshold (`crit(-N)`).",
+                            "description": "A d20 roll modifier: `advantage`, `disadvantage`, a flat bonus/penalty (`+2`, `-1`), dice added to the roll (`+1d4`), a forced outcome (`success`, `failure`, `critical_success`, `critical_failure`) or a lowered crit threshold (`crit(-N)`).",
                             "type": "string",
                             "examples": [
                                 "advantage",
                                 "+2",
+                                "+1d4",
                                 "crit(-1)"
                             ]
                         },

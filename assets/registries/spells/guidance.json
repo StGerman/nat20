@@ -1,0 +1,57 @@
+{
+    "id": "nat20_core::spell.guidance",
+    "description": "You touch a willing creature and choose a skill. Until the spell ends, the creature adds 1d4 to any ability check using the chosen skill.",
+    "base_level": 0,
+    "school": "divination",
+    "flags": [
+        "verbal",
+        "somatic",
+        "concentration"
+    ],
+    "kind": {
+        "variant": {
+            "variants": [
+                "nat20_core::variant.guidance.acrobatics",
+                "nat20_core::variant.guidance.animal_handling",
+                "nat20_core::variant.guidance.arcana",
+                "nat20_core::variant.guidance.athletics",
+                "nat20_core::variant.guidance.deception",
+                "nat20_core::variant.guidance.history",
+                "nat20_core::variant.guidance.insight",
+                "nat20_core::variant.guidance.intimidation",
+                "nat20_core::variant.guidance.investigation",
+                "nat20_core::variant.guidance.medicine",
+                "nat20_core::variant.guidance.nature",
+                "nat20_core::variant.guidance.perception",
+                "nat20_core::variant.guidance.performance",
+                "nat20_core::variant.guidance.persuasion",
+                "nat20_core::variant.guidance.religion",
+                "nat20_core::variant.guidance.sleight_of_hand",
+                "nat20_core::variant.guidance.stealth",
+                "nat20_core::variant.guidance.survival"
+            ]
+        }
+    },
+    "resource_cost": {
+        "nat20_core::resource.action": 1
+    },
+    "targeting": {
+        "kind": "single",
+        "range": "5 feet",
+        "line_of_sight": {
+            "trajectory": "ray"
+        },
+        "allowed_targets": [
+            {
+                "life_states": [
+                    "dead"
+                ],
+                "invert": true
+            }
+        ]
+    },
+    "timeline": {
+        "total_duration": 1.0,
+        "perform_time": 0.5
+    }
+}

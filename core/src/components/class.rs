@@ -165,17 +165,20 @@ impl Class {
         // NOTE: *DON'T* make a helper method in LevelUpPrompt for subclass prompts.
         // you've done it twice, and every time it creates a lookup in the class
         // registry while it's being initialized, so it just creates an infinite loop.
-        prompts_by_level
-            .entry(subclass_level)
-            .or_default()
-            .push(LevelUpPrompt::Choice(ChoiceSpec::single(
-                "Subclass",
-                subclasses
-                    .clone()
-                    .into_iter()
-                    .map(ChoiceItem::Subclass)
-                    .collect(),
-            )));
+        // A class whose subclasses aren't in the registry yet asks nothing.
+        if !subclasses.is_empty() {
+            prompts_by_level
+                .entry(subclass_level)
+                .or_default()
+                .push(LevelUpPrompt::Choice(ChoiceSpec::single(
+                    "Subclass",
+                    subclasses
+                        .clone()
+                        .into_iter()
+                        .map(ChoiceItem::Subclass)
+                        .collect(),
+                )));
+        }
 
         // TODO: What if the subclass triggers its own prompts?
 

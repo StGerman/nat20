@@ -1,4 +1,4 @@
-use std::sync::Arc;
+use std::{collections::HashSet, sync::Arc};
 
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
@@ -7,6 +7,7 @@ use crate::{
     components::{
         feat::{Feat, FeatPrerequisite},
         id::{EffectId, FeatId},
+        items::equipment::{armor::ArmorType, weapon::WeaponCategory},
         level::CharacterLevels,
         level_up::LevelUpPrompt,
     },
@@ -52,6 +53,12 @@ pub struct FeatDefinition {
     pub prompts: Vec<LevelUpPrompt>,
     #[serde(default)]
     pub repeatable: bool,
+    /// Armor training the feat grants.
+    #[serde(default, skip_serializing_if = "HashSet::is_empty")]
+    pub armor_training: HashSet<ArmorType>,
+    /// Weapon proficiencies the feat grants.
+    #[serde(default, skip_serializing_if = "HashSet::is_empty")]
+    pub weapon_proficiencies: HashSet<WeaponCategory>,
 }
 
 impl From<FeatDefinition> for Feat {
@@ -64,5 +71,6 @@ impl From<FeatDefinition> for Feat {
             value.prompts,
             value.repeatable,
         )
+        .with_training(value.armor_training, value.weapon_proficiencies)
     }
 }

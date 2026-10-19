@@ -1,0 +1,10 @@
+{
+    "id": "nat20_core::effect.spell.guidance.insight",
+    "kind": "buff",
+    "description": "You add 1d4 to any ability check using Insight.",
+    "modifiers": [
+        {
+            "skill": "insight +1d4"
+        }
+    ]
+}

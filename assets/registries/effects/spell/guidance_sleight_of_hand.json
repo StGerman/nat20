@@ -1,0 +1,10 @@
+{
+    "id": "nat20_core::effect.spell.guidance.sleight_of_hand",
+    "kind": "buff",
+    "description": "You add 1d4 to any ability check using Sleight of Hand.",
+    "modifiers": [
+        {
+            "skill": "sleight_of_hand +1d4"
+        }
+    ]
+}

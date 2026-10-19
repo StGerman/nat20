@@ -1,0 +1,27 @@
+{
+    "id": "nat20_core::variant.guidance.sleight_of_hand",
+    "description": "The creature adds 1d4 to any ability check using Sleight of Hand.",
+    "phases": [
+        {
+            "payload": {
+                "components": [
+                    {
+                        "effect": {
+                            "effect_id": "nat20_core::effect.spell.guidance.sleight_of_hand",
+                            "lifetime": {
+                                "turn_boundary": {
+                                    "entity": "applier",
+                                    "boundary": "start",
+                                    "duration": {
+                                        "time": "1 min"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                ],
+                "delivery": "immediate"
+            }
+        }
+    ]
+}

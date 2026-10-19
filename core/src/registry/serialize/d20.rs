@@ -11,6 +11,7 @@ use crate::{
             SavingThrowProvider,
         },
         d20::D20CheckDC,
+        id::ClassId,
         modifier::{ModifierMap, ModifierSource},
         saving_throw::SavingThrowKind,
         skill::Skill,
@@ -33,9 +34,14 @@ impl_string_schema!(
 impl_string_schema!(
     SavingThrowDefinition,
     "SavingThrowDefinition",
-    "description": "`<dc provider>;<ability>` where the DC provider is `spell_save_dc` or \
-         `weapon_save_dc`, e.g. `spell_save_dc;dexterity`.",
-    "examples": ["spell_save_dc;dexterity", "weapon_save_dc;constitution"]
+    "description": "`<dc provider>;<ability>` where the DC provider is `spell_save_dc`, \
+         `weapon_save_dc`, or `spell_save_dc(<class id>)` for a class feature that uses that \
+         class's spell save DC outside a spell, e.g. `spell_save_dc;dexterity`.",
+    "examples": [
+        "spell_save_dc;dexterity",
+        "weapon_save_dc;constitution",
+        "spell_save_dc(nat20_core::class.cleric);constitution"
+    ]
 );
 
 #[derive(Clone, Serialize, Deserialize)]
@@ -148,8 +154,19 @@ impl FromStr for SavingThrowDefinition {
                         }
                     }) as Arc<SavingThrowFunction>
                 }
-                _ => {
-                    return Err(format!("Unknown SavingThrowDefinition: {}", s));
+                provider => {
+                    let class: ClassId = provider
+                        .strip_prefix("spell_save_dc(")
+                        .and_then(|rest| rest.strip_suffix(')'))
+                        .ok_or_else(|| format!("Unknown SavingThrowDefinition: {}", s))?
+                        .parse()
+                        .map_err(|_| format!("Invalid class id in SavingThrowDefinition: {}", s))?;
+                    Arc::new({
+                        move |world: &World, entity: Entity, _action_context: &ActionContext| {
+                            systems::helpers::get_component::<Spellbook>(world, entity)
+                                .class_saving_throw(world, entity, &class, kind)
+                        }
+                    }) as Arc<SavingThrowFunction>
                 }
             };
 

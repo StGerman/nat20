@@ -624,6 +624,109 @@ pub mod creatures {
             EntityIdentifier::from_world(&engine_state.world, entity)
         }
 
+        /// A Cleric with Divine Order: Protector and every Cleric spell core has prepared
+        /// (four at level 1, the fifth at level 2). Built for levels 1 and 2.
+        pub fn cleric(
+            engine_state: &mut EngineState,
+            levels: u8,
+            id: Option<Entity>,
+        ) -> EntityIdentifier {
+            let name = Name::new("Jimmy Cleric");
+            let character = Character::new(name.clone());
+            let entity = spawn_entity(engine_state, character, id);
+            let cleric = ClassId::new("nat20_core", "class.cleric");
+            let spell = |id: &str| SpellId::new("nat20_core", id);
+            systems::level_up::apply_level_up_decision(
+                engine_state,
+                entity,
+                levels,
+                vec![
+                    // Level 1
+                    LevelUpDecision::single_choice(ChoiceItem::Species(SpeciesId::new(
+                        "nat20_core",
+                        "species.dragonborn",
+                    ))),
+                    LevelUpDecision::single_choice(ChoiceItem::Subspecies(SubspeciesId::new(
+                        "nat20_core",
+                        "subspecies.dragonborn.white",
+                    ))),
+                    LevelUpDecision::single_choice(ChoiceItem::Background(BackgroundId::new(
+                        "nat20_core",
+                        "background.acolyte",
+                    ))),
+                    LevelUpDecision::single_choice(ChoiceItem::Class(cleric.clone())),
+                    LevelUpDecision::AbilityScores(
+                        ClassesRegistry::get(&cleric)
+                            .unwrap()
+                            .default_abilities
+                            .clone(),
+                    ),
+                    LevelUpDecision::SkillProficiency(HashSet::from([
+                        Skill::Medicine,
+                        Skill::Persuasion,
+                    ])),
+                    LevelUpDecision::single_choice_with_id(
+                        "choice.divine_order",
+                        ChoiceItem::Feat(FeatId::new("nat20_core", "feat.divine_order.protector")),
+                    ),
+                    LevelUpDecision::single_choice_with_id(
+                        "choice.starting_equipment.cleric",
+                        ChoiceItem::Equipment {
+                            items: vec![
+                                (1, ItemId::new("nat20_core", "item.shield")),
+                                (1, ItemId::new("nat20_core", "item.mace")),
+                            ],
+                            money: "7 GP".to_string(),
+                        },
+                    ),
+                    LevelUpDecision::single_choice_with_id(
+                        "choice.starting_equipment.acolyte",
+                        ChoiceItem::Equipment {
+                            items: Vec::new(),
+                            money: "50 GP".to_string(),
+                        },
+                    ),
+                    LevelUpDecision::spells(
+                        "choice.cantrips",
+                        &cleric,
+                        &None,
+                        vec![
+                            spell("spell.guidance"),
+                            spell("spell.sacred_flame"),
+                            spell("spell.spare_the_dying"),
+                        ],
+                    ),
+                    LevelUpDecision::spells(
+                        "choice.spells",
+                        &cleric,
+                        &None,
+                        vec![
+                            spell("spell.bless"),
+                            spell("spell.cure_wounds"),
+                            spell("spell.guiding_bolt"),
+                            spell("spell.healing_word"),
+                        ],
+                    ),
+                    // Level 2
+                    LevelUpDecision::single_choice(ChoiceItem::Class(cleric.clone())),
+                    LevelUpDecision::spells(
+                        "choice.spells",
+                        &cleric,
+                        &None,
+                        vec![spell("spell.shield_of_faith")],
+                    ),
+                ],
+            );
+
+            let _ = systems::loadout::equip(
+                engine_state,
+                entity,
+                &ItemId::new("nat20_core", "item.mace"),
+            );
+
+            EntityIdentifier::from_world(&engine_state.world, entity)
+        }
+
         pub fn warlock(
             engine_state: &mut EngineState,
             levels: u8,
