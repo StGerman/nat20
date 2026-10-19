@@ -14,7 +14,8 @@ use nat20_core::{
 fn reexported_crates_are_the_ones_core_uses() {
     let _: fn(&World, Entity) -> Option<Point3<f32>> = get_foot_position;
     let _: fn(&World, Entity, Point3<f32>) -> Option<Length> = distance_entity_point;
-    let _: fn(&str, &Config) -> WorldGeometry = WorldGeometry::from_obj_path::<&str>;
+    let _: fn(&str, &Config) -> WorldGeometry =
+        |path, config| WorldGeometry::from_obj_path(path, config);
     let _: Config = ConfigBuilder::default().build();
 
     let mut world = World::new();
