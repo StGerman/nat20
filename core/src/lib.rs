@@ -1,5 +1,4 @@
 extern crate rand;
-extern crate rstest;
 extern crate strum;
 extern crate uuid;
 
