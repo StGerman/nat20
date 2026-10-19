@@ -193,11 +193,14 @@ impl Armor {
             ModifierSource::Item(self.item.id.clone()),
             self.dexterity_bonus,
         );
-        let dex_bonus = ability_scores
-            .get(&Ability::Dexterity)
-            .ability_modifier()
-            .total();
-        armor_class.add_modifier(ModifierSource::Ability(Ability::Dexterity), dex_bonus);
+        // Heavy armour's AC is flat: the Dexterity modifier counts neither up nor down.
+        if self.armor_type != ArmorType::Heavy {
+            let dex_bonus = ability_scores
+                .get(&Ability::Dexterity)
+                .ability_modifier()
+                .total();
+            armor_class.add_modifier(ModifierSource::Ability(Ability::Dexterity), dex_bonus);
+        }
         armor_class
     }
 
@@ -290,5 +293,17 @@ mod tests {
 
         // Should not add any dex bonus
         assert_eq!(armor_class.total(), 16);
+    }
+
+    #[test]
+    fn heavy_armor_no_dexterity_penalty() {
+        let mut ability_scores = AbilityScoreMap::new();
+        ability_scores.set(Ability::Dexterity, AbilityScore::new(Ability::Dexterity, 8)); // -1
+
+        let armor = Armor::heavy(Item::default(), 16, vec![]);
+        assert_eq!(armor.armor_class(&ability_scores).total(), 16);
+
+        let armor = Armor::medium(Item::default(), 14, false, vec![]);
+        assert_eq!(armor.armor_class(&ability_scores).total(), 13);
     }
 }
