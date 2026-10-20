@@ -1,1 +1,261 @@
-{}
+{
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "title": "MonsterDefinition",
+    "type": "object",
+    "properties": {
+        "abilities": {
+            "$ref": "#/definitions/MonsterAbilityScores"
+        },
+        "challenge_rating": {
+            "description": "Challenge Rating: `0`, `1/8`, `1/4`, `1/2` or a whole number up to `30`.",
+            "type": "string",
+            "examples": [
+                "1/4",
+                "1",
+                "5"
+            ]
+        },
+        "creature_type": {
+            "$ref": "#/definitions/CreatureType"
+        },
+        "effects": {
+            "description": "Permanent effects, e.g. traits.",
+            "type": "array",
+            "default": [],
+            "items": {
+                "$ref": "#/definitions/EffectId"
+            }
+        },
+        "factions": {
+            "type": "array",
+            "items": {
+                "$ref": "#/definitions/FactionId"
+            }
+        },
+        "gear": {
+            "description": "Items equipped in this order, each in the slot core picks for it. The\nmonster is trained in all of its armour and proficient with all of its\nweapons.",
+            "type": "array",
+            "default": [],
+            "items": {
+                "$ref": "#/definitions/ItemId"
+            }
+        },
+        "hit_points": {
+            "$ref": "#/definitions/MonsterHitPoints"
+        },
+        "id": {
+            "$ref": "#/definitions/MonsterId"
+        },
+        "name": {
+            "type": "string"
+        },
+        "saving_throws": {
+            "description": "Saving throw proficiencies, e.g. `\"dexterity\": \"proficient\"`.",
+            "type": "object",
+            "additionalProperties": {
+                "$ref": "#/definitions/ProficiencyLevel"
+            },
+            "default": {}
+        },
+        "size": {
+            "$ref": "#/definitions/CreatureSize"
+        },
+        "skills": {
+            "description": "Skill proficiencies, e.g. `\"stealth\": \"expertise\"`.",
+            "type": "object",
+            "properties": {
+                "acrobatics": {
+                    "$ref": "#/definitions/ProficiencyLevel"
+                },
+                "animal_handling": {
+                    "$ref": "#/definitions/ProficiencyLevel"
+                },
+                "arcana": {
+                    "$ref": "#/definitions/ProficiencyLevel"
+                },
+                "athletics": {
+                    "$ref": "#/definitions/ProficiencyLevel"
+                },
+                "deception": {
+                    "$ref": "#/definitions/ProficiencyLevel"
+                },
+                "history": {
+                    "$ref": "#/definitions/ProficiencyLevel"
+                },
+                "initiative": {
+                    "$ref": "#/definitions/ProficiencyLevel"
+                },
+                "insight": {
+                    "$ref": "#/definitions/ProficiencyLevel"
+                },
+                "intimidation": {
+                    "$ref": "#/definitions/ProficiencyLevel"
+                },
+                "investigation": {
+                    "$ref": "#/definitions/ProficiencyLevel"
+                },
+                "medicine": {
+                    "$ref": "#/definitions/ProficiencyLevel"
+                },
+                "nature": {
+                    "$ref": "#/definitions/ProficiencyLevel"
+                },
+                "perception": {
+                    "$ref": "#/definitions/ProficiencyLevel"
+                },
+                "performance": {
+                    "$ref": "#/definitions/ProficiencyLevel"
+                },
+                "persuasion": {
+                    "$ref": "#/definitions/ProficiencyLevel"
+                },
+                "religion": {
+                    "$ref": "#/definitions/ProficiencyLevel"
+                },
+                "sleight_of_hand": {
+                    "$ref": "#/definitions/ProficiencyLevel"
+                },
+                "stealth": {
+                    "$ref": "#/definitions/ProficiencyLevel"
+                },
+                "survival": {
+                    "$ref": "#/definitions/ProficiencyLevel"
+                }
+            },
+            "additionalProperties": false,
+            "default": {}
+        },
+        "speed": {
+            "description": "`<integer expression> <unit>` (e.g. `10 + spell_level ft` for a length) where the unit is one of `m`/`meter(s)`, `ft`/`foot`/`feet`. Expressions may use the variables `spell_level`, `caster_level`, `character_level` and `<class>.level` (e.g. `class.wizard.level`).",
+            "type": "string"
+        }
+    },
+    "required": [
+        "id",
+        "name",
+        "size",
+        "creature_type",
+        "challenge_rating",
+        "hit_points",
+        "speed",
+        "abilities",
+        "factions"
+    ],
+    "definitions": {
+        "CreatureSize": {
+            "type": "string",
+            "enum": [
+                "tiny",
+                "small",
+                "medium",
+                "large",
+                "huge",
+                "gargantuan"
+            ]
+        },
+        "CreatureType": {
+            "type": "string",
+            "enum": [
+                "aberration",
+                "beast",
+                "celestial",
+                "construct",
+                "dragon",
+                "elemental",
+                "fey",
+                "fiend",
+                "giant",
+                "humanoid",
+                "monstrosity",
+                "ooze",
+                "plant",
+                "undead"
+            ]
+        },
+        "EffectId": {
+            "description": "Registry id `[namespace::]effect.<name>`, e.g. `nat20_core::effect.example`. The namespace defaults to `nat20_core`.",
+            "type": "string",
+            "pattern": "^([A-Za-z0-9_]+::)?effect[A-Za-z0-9_.]*$"
+        },
+        "FactionId": {
+            "description": "Registry id `[namespace::]faction.<name>`, e.g. `nat20_core::faction.example`. The namespace defaults to `nat20_core`.",
+            "type": "string",
+            "pattern": "^([A-Za-z0-9_]+::)?faction[A-Za-z0-9_.]*$"
+        },
+        "ItemId": {
+            "description": "Registry id `[namespace::]item.<name>`, e.g. `nat20_core::item.example`. The namespace defaults to `nat20_core`.",
+            "type": "string",
+            "pattern": "^([A-Za-z0-9_]+::)?item[A-Za-z0-9_.]*$"
+        },
+        "MonsterAbilityScores": {
+            "type": "object",
+            "properties": {
+                "charisma": {
+                    "type": "integer",
+                    "format": "int32"
+                },
+                "constitution": {
+                    "type": "integer",
+                    "format": "int32"
+                },
+                "dexterity": {
+                    "type": "integer",
+                    "format": "int32"
+                },
+                "intelligence": {
+                    "type": "integer",
+                    "format": "int32"
+                },
+                "strength": {
+                    "type": "integer",
+                    "format": "int32"
+                },
+                "wisdom": {
+                    "type": "integer",
+                    "format": "int32"
+                }
+            },
+            "required": [
+                "strength",
+                "dexterity",
+                "constitution",
+                "intelligence",
+                "wisdom",
+                "charisma"
+            ]
+        },
+        "MonsterHitPoints": {
+            "description": "The stat block's Hit Points: the fixed average the monster spawns with, and\nthe dice it comes from.",
+            "type": "object",
+            "properties": {
+                "average": {
+                    "type": "integer",
+                    "format": "uint32",
+                    "minimum": 0
+                },
+                "dice": {
+                    "description": "The Hit Point dice as the stat block writes them, e.g. `2d8 + 2`.",
+                    "type": "string"
+                }
+            },
+            "required": [
+                "average",
+                "dice"
+            ]
+        },
+        "MonsterId": {
+            "description": "Registry id `[namespace::]monster.<name>`, e.g. `nat20_core::monster.example`. The namespace defaults to `nat20_core`.",
+            "type": "string",
+            "pattern": "^([A-Za-z0-9_]+::)?monster[A-Za-z0-9_.]*$"
+        },
+        "ProficiencyLevel": {
+            "type": "string",
+            "enum": [
+                "none",
+                "proficient",
+                "expertise",
+                "half"
+            ]
+        }
+    }
+}
