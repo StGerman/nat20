@@ -948,7 +948,7 @@ impl UserData for EngineState {
                 let range = Length::new::<foot>(feet);
                 let mut creatures = this
                     .world
-                    .query::<&CreatureSize>()
+                    .query::<(Entity, &CreatureSize)>()
                     .iter()
                     .map(|(other, _)| other)
                     .filter(|other| *other != entity)
