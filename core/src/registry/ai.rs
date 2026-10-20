@@ -5,7 +5,7 @@ use std::{
 
 use hecs::Entity;
 use rand::{
-    Rng,
+    RngExt,
     seq::{IndexedRandom, IteratorRandom},
 };
 use tracing::{debug, error};
@@ -170,7 +170,7 @@ impl AIController for RandomController {
                                         let chosen_targets = if allow_duplicates {
                                             possible_targets
                                                 .iter()
-                                                .choose_multiple(rng, max_targets)
+                                                .sample(rng, max_targets)
                                         } else {
                                             let max_unique_targets =
                                                 max_targets.min(possible_targets.len());
