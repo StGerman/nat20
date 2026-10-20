@@ -17,7 +17,7 @@ use crate::{
         },
         activity::ActivityState,
         id::{ActionId, ActionVariantId, EntityIdentifier, ResourceId},
-        items::equipment::loadout::Loadout,
+        items::{equipment::loadout::Loadout, inventory::Inventory},
         resource::{RechargeRule, ResourceAmountMap},
         spells::{concentration::ConcentrationError, spell::SpellFlag, spellbook::Spellbook},
     },
@@ -108,6 +108,10 @@ pub fn all_actions(engine_state: &EngineState, entity: Entity) -> ActionMap {
         systems::helpers::get_component::<Loadout>(&engine_state.world, entity)
             .actions(&engine_state.world, entity),
     );
+    // Not every creature carries an inventory (e.g. monsters)
+    if let Ok(inventory) = engine_state.world.get::<&Inventory>(entity) {
+        merge_action_maps(&mut actions, inventory.actions(&engine_state.world, entity));
+    }
 
     // Make sure we have the correct resource costs
     actions
@@ -235,6 +239,12 @@ pub fn action_usable(
     }
 
     if !action.contexts.is_empty() && !action.contexts.contains(action_context) {
+        return Err(ActionUsabilityError::InvalidContext(action_context.clone()));
+    }
+
+    if let Some(item) = &action_context.item
+        && systems::inventory::item_count(&engine_state.world, actor, item) == 0
+    {
         return Err(ActionUsabilityError::InvalidContext(action_context.clone()));
     }
 
@@ -449,6 +459,11 @@ pub fn perform_action(engine_state: &mut EngineState, action_data: &ActionData) 
             &action_data.action_id,
             cooldown,
         );
+    }
+
+    // A consumable is used up as its action starts
+    if let Some(item) = &action_data.context.item {
+        systems::inventory::use_up_item(&mut engine_state.world, action_data.actor.id(), item);
     }
 
     let phases = action.perform(engine_state, action_data);
