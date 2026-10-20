@@ -198,6 +198,18 @@
                     ],
                     "default": null
                 },
+                "item": {
+                    "description": "The carried item the action uses up, e.g. a potion",
+                    "anyOf": [
+                        {
+                            "$ref": "#/definitions/ItemId"
+                        },
+                        {
+                            "type": "null"
+                        }
+                    ],
+                    "default": null
+                },
                 "spell": {
                     "anyOf": [
                         {

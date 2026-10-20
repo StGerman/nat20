@@ -37,6 +37,17 @@ pub fn remove_item(world: &mut World, entity: Entity, index: usize) -> Option<It
     systems::helpers::get_component_mut::<Inventory>(world, entity).remove_item(index)
 }
 
+/// How many of this item the entity carries; none without an inventory
+pub fn item_count(world: &World, entity: Entity, item: &ItemId) -> usize {
+    world
+        .get::<&Inventory>(entity)
+        .map_or(0, |inventory| inventory.count(item))
+}
+
+pub fn use_up_item(world: &mut World, entity: Entity, item: &ItemId) -> bool {
+    systems::helpers::get_component_mut::<Inventory>(world, entity).use_up(item)
+}
+
 pub fn add_money(world: &mut World, entity: Entity, amount: MonetaryValue) {
     systems::helpers::get_component_mut::<Inventory>(world, entity).add_money(amount);
 }

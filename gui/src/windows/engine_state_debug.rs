@@ -1,3 +1,4 @@
+use hecs::Entity;
 use imgui::TreeNodeFlags;
 use nat20_core::{
     components::{
@@ -65,7 +66,7 @@ impl RenderableMutWithContext<&mut EngineState> for EngineStateDebugWindow {
                 if ui.collapsing_header("Entities", TreeNodeFlags::empty()) {
                     let entities = engine_state
                         .world
-                        .query::<&EntityKind>()
+                        .query::<(Entity, &EntityKind)>()
                         .iter()
                         .filter_map(|(entity, kind)| {
                             if kind.is_creature() {
@@ -194,8 +195,10 @@ impl RenderableMutWithContext<&mut EngineState> for EngineStateDebugWindow {
                 // TODO: Since these are no longer stored on the EngineState, should
                 // they live somewhere else?
                 if ui.collapsing_header("Action Executions", TreeNodeFlags::empty()) {
-                    for (actor, (execution,)) in
-                        engine_state.world.query::<(&ActionExecution,)>().iter()
+                    for (actor, execution) in engine_state
+                        .world
+                        .query::<(Entity, &ActionExecution)>()
+                        .iter()
                     {
                         ui.indent();
                         if ui.collapsing_header(
@@ -209,8 +212,10 @@ impl RenderableMutWithContext<&mut EngineState> for EngineStateDebugWindow {
                 }
 
                 if ui.collapsing_header("Execution Mailbox", TreeNodeFlags::empty()) {
-                    for (actor, (mailbox,)) in
-                        engine_state.world.query::<(&ExecutionMailbox,)>().iter()
+                    for (actor, mailbox) in engine_state
+                        .world
+                        .query::<(Entity, &ExecutionMailbox)>()
+                        .iter()
                     {
                         ui.indent();
                         if ui.collapsing_header(

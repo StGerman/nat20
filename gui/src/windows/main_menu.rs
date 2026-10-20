@@ -1,5 +1,6 @@
 use std::{fs::File, io::BufReader};
 
+use hecs::Entity;
 use imgui::{ChildFlags, MouseButton};
 use nat20_core::{
     components::{
@@ -335,7 +336,7 @@ impl MainMenuWindow {
 
                 let mut entities = engine_state
                     .world
-                    .query::<&Name>()
+                    .query::<(Entity, &Name)>()
                     .into_iter()
                     .map(|(entity, name)| (entity, name.clone()))
                     .collect::<Vec<_>>();
@@ -554,7 +555,7 @@ impl MainMenuWindow {
         }
 
         // TODO: I feel like this should be somewhere else
-        for (entity, pose) in engine_state.world.query::<&Pose>().iter() {
+        for (entity, pose) in engine_state.world.query::<(Entity, &Pose)>().iter() {
             systems::geometry::get_shape(&engine_state.world, entity).map(|(shape, shape_pose)| {
                 let key = format!("{:#?}", shape);
                 if let Some(mesh) = gui_state.mesh_cache.get(&key) {
@@ -600,7 +601,7 @@ impl MainMenuWindow {
         }
 
         // TODO: Can it just live here?
-        for (_, projectile) in engine_state.world.query::<&ProjectileData>().iter() {
+        for projectile in engine_state.world.query::<&ProjectileData>().iter() {
             let mesh = shapes::build_sphere_mesh(gui_state.ig_renderer.gl_context(), 8, 8, 0.15);
 
             mesh.draw(
@@ -623,7 +624,7 @@ impl MainMenuWindow {
     }
 
     fn render_creature_labels(ui: &imgui::Ui, engine_state: &EngineState, camera: &OrbitCamera) {
-        for (entity, name) in engine_state.world.query::<&Name>().iter() {
+        for (entity, name) in engine_state.world.query::<(Entity, &Name)>().iter() {
             if let Ok(pose) = engine_state.world.get::<&Pose>(entity) {
                 let translation = pose.translation.vector;
                 let pos = camera.world_to_screen(&Point3::new(
