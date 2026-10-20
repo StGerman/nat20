@@ -28,6 +28,6 @@
         "nat20_core::item.shortbow"
     ],
     "factions": [
-        "nat20_core::faction.goblins"
+        "nat20_core::faction.monsters"
     ]
 }

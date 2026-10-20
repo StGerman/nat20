@@ -1,0 +1,8 @@
+{
+    "id": "nat20_core::faction.monsters",
+    "name": "Monsters",
+    "_comment": "Default faction of the monster stat blocks in monsters/: friendly to each other, hostile to everyone else. A Goblin and its Wolves are allies, which Pack Tactics needs.",
+    "attitudes": {},
+    "default_cross_attitude": "hostile",
+    "default_intra_attitude": "friendly"
+}
