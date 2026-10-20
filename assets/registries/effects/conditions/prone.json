@@ -10,12 +10,12 @@
     ],
     "on_attacked": [
         {
-            "script": "nat20_core::script.effect.conditions.prone"
+            "script": "nat20_core::script.effect.condition.prone"
         }
     ],
     "on_turn_start": [
         {
-            "script": "nat20_core::script.effect.conditions.prone"
+            "script": "nat20_core::script.effect.condition.prone"
         }
     ]
 }
