@@ -243,8 +243,17 @@ impl Loadout {
                 systems::helpers::get_component::<AbilityScoreMap>(&engine_state.world, entity);
             armor.armor_class(&ability_scores)
         } else {
-            // TODO: Not sure if this is the right way to handle unarmored characters
-            ArmorClass::new(10, ModifierSource::Base, ArmorDexterityBonus::Unlimited)
+            // Without armour the base Armor Class is 10 plus the Dexterity modifier (SRD 5.2.1,
+            // Rules Glossary, Armor Class).
+            let mut armor_class =
+                ArmorClass::new(10, ModifierSource::Base, ArmorDexterityBonus::Unlimited);
+            let dexterity =
+                systems::helpers::get_component::<AbilityScoreMap>(&engine_state.world, entity)
+                    .get(&Ability::Dexterity)
+                    .ability_modifier()
+                    .total();
+            armor_class.add_modifier(ModifierSource::Ability(Ability::Dexterity), dexterity);
+            armor_class
         };
 
         // A Shield's bonus counts only with Shield training (SRD 5.2.1, Armor Training).
