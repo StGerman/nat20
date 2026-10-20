@@ -29,6 +29,20 @@ updates:
       - dependency-name: memoffset
       - dependency-name: raw-window-handle
       - dependency-name: winit
+      # The geometry stack moves together in one hand-written PR, because these crates exchange
+      # glam types and a lone bump builds two glams (nat20-table TASKS.md UPS-24, UPS-25).
+      # Patch releases inside the current minor still come through the patch group.
+      # UPS-24 (parry3d 0.27, rerecast 0.4, polyanya 0.17, glam 0.32) narrows these to the
+      # glam 0.33 releases: parry3d >= 0.28, glam >= 0.33. UPS-25 removes what is left once
+      # rerecast and polyanya release on glam 0.33.
+      - dependency-name: parry3d
+        versions: [">= 0.25"]
+      - dependency-name: rerecast
+        versions: [">= 0.3"]
+      - dependency-name: polyanya
+        versions: [">= 0.17"]
+      - dependency-name: glam
+        versions: [">= 0.31"]
     groups:
       # Patch only: Dependabot reads a 0.x minor (a breaking bump under Cargo semver) as minor, so
       # every cargo minor gets its own PR (nat20-table CLAUDE.md Rule 9).
