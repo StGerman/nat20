@@ -3,7 +3,7 @@ use std::{
     str::FromStr,
 };
 
-use rand::Rng;
+use rand::RngExt;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 

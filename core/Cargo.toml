@@ -6,7 +6,7 @@ edition = "2024"
 [dependencies]
 enum-iterator = "2.1.0"
 hecs = { version = "0.10.5", features = ["std", "macros", "serde"] }
-rand = "0.9.1"
+rand = "0.10.3"
 strum = { version = "0.27.1", features = ["derive"] }
 uuid = { version = "1.16.0", features = ["v4", "serde"] }
 parry3d = { version = "0.24", features = ["serde-serialize"] }

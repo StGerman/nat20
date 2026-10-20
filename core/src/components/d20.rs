@@ -2,7 +2,7 @@ use std::{cmp::max, collections::HashMap, hash::Hash};
 
 use hecs::Entity;
 use indexmap::IndexMap;
-use rand::Rng;
+use rand::RngExt;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 use strum::{Display, EnumDiscriminants, IntoEnumIterator};
