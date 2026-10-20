@@ -22,7 +22,8 @@ use crate::{
         feat::Feat,
         id::{
             ActionId, ActionVariantId, BackgroundId, ClassId, EffectId, FactionId, FeatId,
-            IdProvider, ItemId, ResourceId, ScriptId, SpeciesId, SpellId, SubclassId, SubspeciesId,
+            IdProvider, ItemId, MonsterId, ResourceId, ScriptId, SpeciesId, SpellId, SubclassId,
+            SubspeciesId,
         },
         items::inventory::ItemInstance,
         resource::Resource,
@@ -36,6 +37,7 @@ use crate::{
             action::{ActionDefinition, ActionVariantDefinition},
             class::ClassDefinition,
             effect::EffectDefinition,
+            monster::MonsterDefinition,
             species::{SpeciesDefinition, SubspeciesDefinition},
             spell::SpellDefinition,
         },
@@ -341,6 +343,7 @@ pub struct RegistrySet {
     pub factions: Registry<FactionId, Faction, Faction>,
     pub feats: Registry<FeatId, Feat, Feat>,
     pub items: Registry<ItemId, ItemInstance, ItemInstance>,
+    pub monsters: Registry<MonsterId, MonsterDefinition, MonsterDefinition>,
     pub resources: Registry<ResourceId, Resource, Resource>,
     pub scripts: Registry<ScriptId, Script, Script>,
     pub species: Registry<SpeciesId, Species, SpeciesDefinition>,
@@ -364,6 +367,7 @@ impl RegistrySet {
         let factions_directory = root_directory.join("factions");
         let feats_directory = root_directory.join("feats");
         let items_directory = root_directory.join("items");
+        let monsters_directory = root_directory.join("monsters");
         let resources_directory = root_directory.join("resources");
         let species_directory = root_directory.join("species");
         let spells_directory = root_directory.join("spells");
@@ -399,6 +403,7 @@ impl RegistrySet {
         let factions = Registry::load_registry(&factions_directory, &mut errors);
         let feats = Registry::load_registry(&feats_directory, &mut errors);
         let items = Registry::load_registry(&items_directory, &mut errors);
+        let monsters = Registry::load_registry(&monsters_directory, &mut errors);
         let resources = Registry::load_registry(&resources_directory, &mut errors);
         let species = Registry::load_registry(&species_directory, &mut errors);
         let spells = Registry::load_registry(&spells_directory, &mut errors);
@@ -422,6 +427,7 @@ impl RegistrySet {
             factions: factions.expect("validated"),
             feats: feats.expect("validated"),
             items: items.expect("validated"),
+            monsters: monsters.expect("validated"),
             resources: resources.expect("validated"),
             scripts: Registry {
                 entries: scripts_map,
@@ -442,6 +448,7 @@ impl RegistrySet {
         Self::validate_registry_references(&mut errors, &set.factions, &set);
         Self::validate_registry_references(&mut errors, &set.feats, &set);
         Self::validate_registry_references(&mut errors, &set.items, &set);
+        Self::validate_registry_references(&mut errors, &set.monsters, &set);
         Self::validate_registry_references(&mut errors, &set.resources, &set);
         Self::validate_registry_references(&mut errors, &set.species, &set);
         Self::validate_registry_references(&mut errors, &set.spells, &set);
@@ -751,6 +758,7 @@ define_registry!(EffectsRegistry, EffectId, Effect, effects);
 define_registry!(FactionsRegistry, FactionId, Faction, factions);
 define_registry!(FeatsRegistry, FeatId, Feat, feats);
 define_registry!(ItemsRegistry, ItemId, ItemInstance, items);
+define_registry!(MonstersRegistry, MonsterId, MonsterDefinition, monsters);
 define_registry!(ResourcesRegistry, ResourceId, Resource, resources);
 define_registry!(ScriptsRegistry, ScriptId, Script, scripts);
 define_registry!(SpeciesRegistry, SpeciesId, Species, species);

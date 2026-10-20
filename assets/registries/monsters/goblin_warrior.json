@@ -1,0 +1,33 @@
+{
+    "id": "nat20_core::monster.goblin_warrior",
+    "name": "Goblin Warrior",
+    "_comment": "SRD 5.2.1 (CC-BY-4.0), Goblin Warrior. AC 15 comes from the gear (Leather Armor 11 + Dex 2 + Shield 2); to-hit +4 and 1d6 + 2 damage from Dexterity, PB +2 and the weapons. Not yet modelled: the extra 1d4 damage on an attack roll with Advantage and Nimble Escape (both Milestone 5, U22); Darkvision, Hide and the senses (out of scope).",
+    "size": "small",
+    "creature_type": "fey",
+    "challenge_rating": "1/4",
+    "hit_points": {
+        "average": 10,
+        "dice": "3d6"
+    },
+    "speed": "30 feet",
+    "abilities": {
+        "strength": 8,
+        "dexterity": 15,
+        "constitution": 10,
+        "intelligence": 10,
+        "wisdom": 8,
+        "charisma": 8
+    },
+    "skills": {
+        "stealth": "expertise"
+    },
+    "gear": [
+        "nat20_core::item.leather_armor",
+        "nat20_core::item.scimitar",
+        "nat20_core::item.shield",
+        "nat20_core::item.shortbow"
+    ],
+    "factions": [
+        "nat20_core::faction.goblins"
+    ]
+}

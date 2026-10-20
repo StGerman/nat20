@@ -15,6 +15,7 @@ pub mod helpers;
 pub mod inventory;
 pub mod level_up;
 pub mod loadout;
+pub mod monsters;
 pub mod movement;
 pub mod resources;
 pub mod scripts;

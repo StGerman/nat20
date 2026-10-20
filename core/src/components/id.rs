@@ -142,6 +142,7 @@ macro_rules! id_newtypes {
 }
 
 id_newtypes!(
+    MonsterId => "monster",
     ClassId => "class",
     SubclassId => "subclass",
     ItemId => "item",
