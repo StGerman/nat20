@@ -1,7 +1,5 @@
 ---@type ArmorClassHookFn
 local function armor_class_hook(engine_state, entity, modifiers)
-    -- The base AC without armour (or in clothing) already adds the Dexterity
-    -- modifier, so Unarmored Defense only adds Constitution on top
     local armor_type = engine_state:armor_type(entity)
     if armor_type == "None" or armor_type == "Clothing" then
         -- The unarmoured base already counts the Dexterity modifier.
