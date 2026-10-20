@@ -1,4 +1,4 @@
-use std::{collections::HashMap, sync::LazyLock};
+use std::{collections::HashMap, fmt, str::FromStr, sync::LazyLock};
 
 use crate::{
     components::id::{ClassId, SubclassId},
@@ -56,27 +56,97 @@ static EXPERIENCE_BY_CHALLENGE_RATING: LazyLock<HashMap<u8, u32>> = LazyLock::ne
     ])
 });
 
-// The SRD supports fractional challenge ratings, but that's a bit more complex
-// to handle, so we'll stick with whole numbers for now
-#[derive(Debug, Clone)]
-pub struct ChallengeRating(u8);
+/// A monster's Challenge Rating: 0, 1/8, 1/4, 1/2 or a whole number. Stat
+/// blocks write it as `"1/4"` or `"3"`, which is what [`FromStr`] and
+/// [`fmt::Display`] use.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct ChallengeRating {
+    // `numerator / denominator`; the denominator is 1, 2, 4 or 8
+    numerator: u8,
+    denominator: u8,
+}
 
 impl ChallengeRating {
+    /// A whole-number Challenge Rating, 0 included.
     pub fn new(level: u8) -> Self {
-        if level == 0 {
-            panic!("Creature level cannot be zero");
+        Self {
+            numerator: level,
+            denominator: 1,
         }
-        Self(level)
     }
 
+    /// Challenge Rating 1/8.
+    pub const EIGHTH: Self = Self {
+        numerator: 1,
+        denominator: 8,
+    };
+    /// Challenge Rating 1/4.
+    pub const QUARTER: Self = Self {
+        numerator: 1,
+        denominator: 4,
+    };
+    /// Challenge Rating 1/2.
+    pub const HALF: Self = Self {
+        numerator: 1,
+        denominator: 2,
+    };
+
+    /// The XP the monster is worth, per the SRD's Experience Points by
+    /// Challenge Rating table. CR 0 is worth 0 (the table allows 0 or 10).
     pub fn experience(&self) -> u32 {
-        *EXPERIENCE_BY_CHALLENGE_RATING.get(&self.0).unwrap_or(&0)
+        match self.denominator {
+            8 => 25,
+            4 => 50,
+            2 => 100,
+            _ => *EXPERIENCE_BY_CHALLENGE_RATING
+                .get(&self.numerator)
+                .unwrap_or(&0),
+        }
     }
 }
 
 impl Level for ChallengeRating {
+    /// The whole part of the Challenge Rating, so 0 for CR 0 to 1/2.
     fn total_level(&self) -> u8 {
-        self.0
+        self.numerator / self.denominator
+    }
+
+    /// The SRD gives every monster from CR 0 to 4 a Proficiency Bonus of +2;
+    /// from CR 5 up it follows the same steps as character level.
+    fn proficiency_bonus(&self) -> u8 {
+        let challenge_rating = self.total_level();
+        if challenge_rating < 5 {
+            return 2;
+        }
+        (challenge_rating - 1) / 4 + 2
+    }
+}
+
+impl FromStr for ChallengeRating {
+    type Err = String;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s.trim() {
+            "1/8" => Ok(Self::EIGHTH),
+            "1/4" => Ok(Self::QUARTER),
+            "1/2" => Ok(Self::HALF),
+            whole => whole
+                .parse::<u8>()
+                .ok()
+                .filter(|cr| EXPERIENCE_BY_CHALLENGE_RATING.contains_key(cr))
+                .map(Self::new)
+                .ok_or_else(|| format!("Invalid challenge rating: {s}")),
+        }
+    }
+}
+
+impl fmt::Display for ChallengeRating {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        if self.denominator == 1 {
+            write!(f, "{}", self.numerator)
+        } else {
+            write!(f, "{}/{}", self.numerator, self.denominator)
+        }
     }
 }
 
@@ -250,9 +320,11 @@ mod tests {
     use super::*;
 
     #[test]
-    #[should_panic(expected = "Creature level cannot be zero")]
-    fn creature_level_zero_panics() {
-        ChallengeRating::new(0);
+    fn challenge_rating_zero() {
+        let cr = ChallengeRating::new(0);
+        assert_eq!(cr.total_level(), 0);
+        assert_eq!(cr.proficiency_bonus(), 2);
+        assert_eq!(cr.experience(), 0);
     }
 
     #[test]
