@@ -6,6 +6,7 @@ use mlua::{
     Value::{self},
     prelude::{LuaError, LuaResult},
 };
+use uom::si::{f32::Length, length::foot};
 
 use crate::{
     components::{
@@ -39,6 +40,7 @@ use crate::{
         resource::{ResourceAmount, ResourceAmountMap, ResourceMap},
         saving_throw::SavingThrowKind,
         scratchpad::{ScratchValue, Scratchpad},
+        species::CreatureSize,
         speed::Speed,
         time::{TimeDuration, TurnBoundary},
     },
@@ -722,6 +724,15 @@ impl UserData for ActionConditionResolution {
         methods.add_method("is_saving_throw", |_, this, ()| Ok(this.is_saving_throw()));
         methods.add_method("is_success", |_, this, ()| Ok(this.is_success()));
         methods.add_method("is_crit", |_, this, ()| Ok(this.is_crit()));
+        // The roll's net state: false when Advantage and Disadvantage cancelled
+        methods.add_method("had_advantage", |_, this, ()| {
+            Ok(match this {
+                ActionConditionResolution::Conditional { result, .. } => {
+                    result.advantage_tracker().roll_mode() == RollMode::Advantage
+                }
+                ActionConditionResolution::Unconditional => false,
+            })
+        });
     }
 }
 
@@ -917,6 +928,63 @@ impl UserData for EngineState {
             let hp = systems::helpers::get_component::<HitPoints>(&this.world, entity.into());
             Ok(hp.max() as i64)
         });
+
+        // -- Geometry and size --
+        methods.add_method(
+            "distance_ft",
+            |_, this, (entity, other): (ScriptEntity, ScriptEntity)| {
+                Ok(systems::geometry::distance_between_entities(
+                    &this.world,
+                    entity.into(),
+                    other.into(),
+                )
+                .map(|distance| distance.get::<foot>()))
+            },
+        );
+        methods.add_method(
+            "creatures_within",
+            |_, this, (entity, feet): (ScriptEntity, f32)| {
+                let entity: Entity = entity.into();
+                let range = Length::new::<foot>(feet);
+                let mut creatures = this
+                    .world
+                    .query::<(Entity, &CreatureSize)>()
+                    .iter()
+                    .map(|(other, _)| other)
+                    .filter(|other| *other != entity)
+                    .filter(|other| {
+                        systems::geometry::distance_between_entities(&this.world, entity, *other)
+                            .is_some_and(|distance| distance <= range)
+                    })
+                    .collect::<Vec<_>>();
+                // Same order on every run, so scripts stay deterministic under a seed
+                creatures.sort_by_key(|creature| creature.to_bits());
+                Ok(creatures
+                    .into_iter()
+                    .map(ScriptEntity::from)
+                    .collect::<Vec<_>>())
+            },
+        );
+        methods.add_method("size", |_, this, entity: ScriptEntity| {
+            let size = systems::helpers::get_component::<CreatureSize>(&this.world, entity.into());
+            serde_plain::to_string(&*size)
+                .map_err(|e| LuaError::RuntimeError(format!("Failed to serialize size: {e}")))
+        });
+
+        // -- Movement --
+        methods.add_method("speed_ft", |_, this, entity: ScriptEntity| {
+            Ok(systems::movement::speed(this, entity.into())
+                .total_speed()
+                .get::<foot>())
+        });
+        methods.add_method_mut(
+            "spend_movement",
+            |_, this, (entity, feet): (ScriptEntity, f32)| {
+                systems::helpers::get_component_mut::<Speed>(&mut this.world, entity.into())
+                    .record_movement(Length::new::<foot>(feet));
+                Ok(())
+            },
+        );
 
         // -- Factions --
         methods.add_method(
