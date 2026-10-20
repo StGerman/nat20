@@ -80,7 +80,7 @@ impl RenderableMutWithContext<&mut EngineState> for EncounterWindow {
 
                         engine_state
                             .world
-                            .query::<&Name>()
+                            .query::<(Entity, &Name)>()
                             .into_iter()
                             .for_each(|(entity, name)| {
                                 let is_selected = participants.contains(&entity);
