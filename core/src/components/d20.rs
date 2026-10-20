@@ -171,6 +171,8 @@ pub struct D20Check {
     advantage_tracker: AdvantageTracker,
     forced_outcome: Option<(ModifierSource, D20CheckOutcome)>,
     crit_threshold_reduction: FlatModifierMap,
+    /// The creature an attack roll is made against, so the attacker's hooks can see it
+    target: Option<Entity>,
 }
 
 impl D20Check {
@@ -185,6 +187,7 @@ impl D20Check {
             advantage_tracker: AdvantageTracker::new(),
             forced_outcome: None,
             crit_threshold_reduction: FlatModifierMap::default(),
+            target: None,
         }
     }
 
@@ -198,6 +201,14 @@ impl D20Check {
 
     pub fn set_action(&mut self, action: ActionId) {
         self.action = Some(action);
+    }
+
+    pub fn target(&self) -> Option<Entity> {
+        self.target
+    }
+
+    pub fn set_target(&mut self, target: Entity) {
+        self.target = Some(target);
     }
 
     pub fn ability(&self) -> Option<Ability> {

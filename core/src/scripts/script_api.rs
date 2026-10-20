@@ -389,6 +389,9 @@ impl UserData for D20Check {
         fields.add_field_method_get("action_id", |_, this| {
             Ok(this.action().map(|action| action.to_string()))
         });
+        fields.add_field_method_get("target", |_, this| {
+            Ok(this.target().map(ScriptEntity::from))
+        });
     }
 
     fn add_methods<M: UserDataMethods<Self>>(methods: &mut M) {

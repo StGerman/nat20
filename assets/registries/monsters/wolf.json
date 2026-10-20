@@ -1,7 +1,7 @@
 {
     "id": "nat20_core::monster.wolf",
     "name": "Wolf",
-    "_comment": "SRD 5.2.1 (CC-BY-4.0), Wolf. AC 12 is 10 + Dex 2 with no armour; Bite +4 and 1d6 + 2 from Strength and PB +2. Not yet modelled: Pack Tactics and the Bite knocking a Medium or smaller target Prone (Milestone 5, U22). Darkvision and the senses are out of scope.",
+    "_comment": "SRD 5.2.1 (CC-BY-4.0), Wolf. AC 12 is 10 + Dex 2 with no armour; Bite +4 and 1d6 + 2 from Strength and PB +2. Pack Tactics is effect.monster.pack_tactics; the Bite knocking a Medium or smaller target Prone is effect.monster.knock_prone_on_bite. Darkvision and the senses are out of scope.",
     "size": "medium",
     "creature_type": "beast",
     "challenge_rating": "1/4",
@@ -24,6 +24,10 @@
     },
     "gear": [
         "nat20_core::item.wolf_bite"
+    ],
+    "effects": [
+        "nat20_core::effect.monster.pack_tactics",
+        "nat20_core::effect.monster.knock_prone_on_bite"
     ],
     "factions": [
         "nat20_core::faction.monsters"

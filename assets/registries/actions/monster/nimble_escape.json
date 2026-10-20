@@ -1,0 +1,40 @@
+{
+    "id": "nat20_core::action.monster.nimble_escape",
+    "description": "The creature takes the Disengage action as a Bonus Action: its movement doesn't provoke Opportunity Attacks for the rest of the turn.",
+    "_comment": "SRD 5.2.1 (CC-BY-4.0), Goblin Warrior and Goblin Boss, Nimble Escape: Disengage or Hide as a Bonus Action. Only the Disengage half is modelled; Hide is out of scope.",
+    "kind": {
+        "standard": {
+            "phases": [
+                {
+                    "payload": {
+                        "components": [
+                            {
+                                "effect": {
+                                    "effect_id": "nat20_core::effect.disengage",
+                                    "lifetime": {
+                                        "turn_boundary": {
+                                            "entity": "applier",
+                                            "boundary": "start",
+                                            "duration": {
+                                                "turns": 1
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        ],
+                        "delivery": "immediate"
+                    }
+                }
+            ]
+        }
+    },
+    "targeting": "self",
+    "resource_cost": {
+        "nat20_core::resource.bonus_action": 1
+    },
+    "timeline": {
+        "total_duration": 1.0,
+        "perform_time": 0.5
+    }
+}

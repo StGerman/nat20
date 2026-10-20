@@ -110,6 +110,7 @@ pub fn preview_attack_roll(
     target: Entity,
     check: &mut D20Check,
 ) {
+    check.set_target(target);
     systems::effects::effects(&engine_state.world, target)
         .on_attacked(engine_state, target, attacker, check);
 

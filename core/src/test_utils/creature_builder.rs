@@ -5,7 +5,7 @@ use parry3d::na::Point3;
 
 use crate::{
     components::{
-        id::EntityIdentifier,
+        id::{EntityIdentifier, MonsterId},
         resource::RechargeRule,
         time::{EntityClock, TimeMode},
     },
@@ -32,8 +32,72 @@ pub static CREATURE_TEMPLATES: LazyLock<BTreeMap<&'static str, CreatureTemplateF
                 "monster.goblin_warrior",
                 monsters::goblin_warrior as CreatureTemplateFunction,
             ),
+            (
+                "stat_block.goblin_warrior",
+                stat_block_goblin_warrior as CreatureTemplateFunction,
+            ),
+            (
+                "stat_block.goblin_boss",
+                stat_block_goblin_boss as CreatureTemplateFunction,
+            ),
+            (
+                "stat_block.wolf",
+                stat_block_wolf as CreatureTemplateFunction,
+            ),
+            (
+                "stat_block.giant_rat",
+                stat_block_giant_rat as CreatureTemplateFunction,
+            ),
         ])
     });
+
+/// Spawns a monster from its registry stat block, so the level is ignored
+fn stat_block(
+    engine_state: &mut EngineState,
+    id: &str,
+    entity: Option<Entity>,
+) -> EntityIdentifier {
+    assert!(
+        entity.is_none(),
+        "A stat block monster can't be spawned at a given entity"
+    );
+    let monster_id = MonsterId::new("nat20_core", id);
+    let entity = systems::monsters::spawn(engine_state, &monster_id)
+        .unwrap_or_else(|error| panic!("Failed to spawn {monster_id}: {error}"));
+    EntityIdentifier::from_world(&engine_state.world, entity)
+}
+
+fn stat_block_goblin_warrior(
+    engine_state: &mut EngineState,
+    _: u8,
+    entity: Option<Entity>,
+) -> EntityIdentifier {
+    stat_block(engine_state, "monster.goblin_warrior", entity)
+}
+
+fn stat_block_goblin_boss(
+    engine_state: &mut EngineState,
+    _: u8,
+    entity: Option<Entity>,
+) -> EntityIdentifier {
+    stat_block(engine_state, "monster.goblin_boss", entity)
+}
+
+fn stat_block_wolf(
+    engine_state: &mut EngineState,
+    _: u8,
+    entity: Option<Entity>,
+) -> EntityIdentifier {
+    stat_block(engine_state, "monster.wolf", entity)
+}
+
+fn stat_block_giant_rat(
+    engine_state: &mut EngineState,
+    _: u8,
+    entity: Option<Entity>,
+) -> EntityIdentifier {
+    stat_block(engine_state, "monster.giant_rat", entity)
+}
 
 // TODO: Not sure where this should live
 pub struct CreatureBuilder {

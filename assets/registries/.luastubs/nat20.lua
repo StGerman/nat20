@@ -192,6 +192,7 @@ function D20CheckKind:attack_roll() end
 ---@field modifiers ModifierMap
 ---@field roll_mode string -- normal/advantage/disadvantage
 ---@field action_id string?
+---@field target ScriptEntity? -- the creature an attack roll is made against
 local D20Check = {}
 ---@param advantage string -- advantage/disadvantage
 ---@param source string

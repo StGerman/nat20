@@ -1,7 +1,7 @@
 {
     "id": "nat20_core::monster.goblin_warrior",
     "name": "Goblin Warrior",
-    "_comment": "SRD 5.2.1 (CC-BY-4.0), Goblin Warrior. AC 15 comes from the gear (Leather Armor 11 + Dex 2 + Shield 2); to-hit +4 and 1d6 + 2 damage from Dexterity, PB +2 and the weapons. Not yet modelled: the extra 1d4 damage on an attack roll with Advantage and Nimble Escape (both Milestone 5, U22); Darkvision, Hide and the senses (out of scope).",
+    "_comment": "SRD 5.2.1 (CC-BY-4.0), Goblin Warrior. AC 15 comes from the gear (Leather Armor 11 + Dex 2 + Shield 2); to-hit +4 and 1d6 + 2 damage from Dexterity, PB +2 and the weapons. The extra 1d4 on an attack roll with Advantage is effect.monster.advantage_rider; Nimble Escape (Disengage half) is effect.monster.nimble_escape. Darkvision, Hide and the senses are out of scope.",
     "size": "small",
     "creature_type": "fey",
     "challenge_rating": "1/4",
@@ -26,6 +26,10 @@
         "nat20_core::item.scimitar",
         "nat20_core::item.shield",
         "nat20_core::item.shortbow"
+    ],
+    "effects": [
+        "nat20_core::effect.monster.advantage_rider",
+        "nat20_core::effect.monster.nimble_escape"
     ],
     "factions": [
         "nat20_core::faction.monsters"
