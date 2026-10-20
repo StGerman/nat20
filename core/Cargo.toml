@@ -9,7 +9,7 @@ hecs = { version = "0.10.5", features = ["std", "macros", "serde"] }
 rand = "0.10.3"
 strum = { version = "0.27.1", features = ["derive"] }
 uuid = { version = "1.16.0", features = ["v4", "serde"] }
-parry3d = { version = "0.24", features = ["serde-serialize"] }
+parry3d = { version = "0.31", features = ["serde-serialize"] }
 obj-rs = "0.7.4"
 rerecast = { version = "0.2.0", features = ["serialize"] }
 glam = "0.30.8"
