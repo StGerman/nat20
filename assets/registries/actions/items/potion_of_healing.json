@@ -1,0 +1,47 @@
+{
+    "id": "nat20_core::action.potion_of_healing",
+    "description": "As a Bonus Action, you drink a Potion of Healing or administer it to another creature within 5 feet of yourself. The creature that drinks it regains 2d4 + 2 Hit Points.",
+    "kind": {
+        "standard": {
+            "phases": [
+                {
+                    "payload": {
+                        "components": [
+                            {
+                                "healing": "2d4 + 2"
+                            }
+                        ],
+                        "delivery": "immediate"
+                    }
+                }
+            ]
+        }
+    },
+    "contexts": [
+        {
+            "item": "nat20_core::item.potion_of_healing"
+        }
+    ],
+    "resource_cost": {
+        "nat20_core::resource.bonus_action": 1
+    },
+    "targeting": {
+        "kind": "single",
+        "range": "5 feet",
+        "line_of_sight": {
+            "trajectory": "ray"
+        },
+        "allowed_targets": [
+            {
+                "life_states": [
+                    "dead"
+                ],
+                "invert": true
+            }
+        ]
+    },
+    "timeline": {
+        "total_duration": 1.0,
+        "perform_time": 0.5
+    }
+}

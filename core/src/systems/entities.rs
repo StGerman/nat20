@@ -41,7 +41,7 @@ pub fn update(engine_state: &mut EngineState, delta_time: f32) {
 fn get_entities_to_update(engine_state: &EngineState) -> Vec<(Entity, EntityKind)> {
     let mut entities = engine_state
         .world
-        .query::<&EntityKind>()
+        .query::<(Entity, &EntityKind)>()
         .iter()
         .filter_map(|(entity, kind)| {
             if should_update(engine_state, entity, kind) {

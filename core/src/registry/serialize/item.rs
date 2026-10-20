@@ -140,6 +140,9 @@ impl RegistryReferenceCollector for ItemInstance {
             ItemInstance::Equipment(equipment_item) => {
                 equipment_item.collect_registry_references(collector);
             }
+            ItemInstance::Consumable(consumable) => {
+                collector.add(RegistryReference::Action(consumable.action.clone()));
+            }
         }
     }
 }
