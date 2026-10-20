@@ -13,6 +13,9 @@
         },
         {
             "$ref": "#/definitions/EquipmentItem"
+        },
+        {
+            "$ref": "#/definitions/ConsumableItem"
         }
     ],
     "definitions": {
@@ -93,6 +96,22 @@
                     "type": "string",
                     "const": "shield"
                 }
+            ]
+        },
+        "ConsumableItem": {
+            "description": "An item used up when its action is performed, e.g. a Potion of Healing.\nCarrying one grants its action, with the item in the action's context.",
+            "type": "object",
+            "properties": {
+                "action": {
+                    "$ref": "#/definitions/ActionId"
+                },
+                "item": {
+                    "$ref": "#/definitions/ItemDefinition"
+                }
+            },
+            "required": [
+                "item",
+                "action"
             ]
         },
         "DamageType": {
