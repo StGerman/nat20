@@ -69,6 +69,21 @@ impl ConcentrationTracker {
         }
     }
 
+    /// Drops the instance for one effect, e.g. when it runs out. Once none is
+    /// left the creature is no longer concentrating.
+    pub fn remove_effect_instance(&mut self, entity: Entity, instance_id: &EffectInstanceId) {
+        self.instances.retain(|instance| match instance {
+            ConcentrationInstance::Effect {
+                entity: e,
+                instance,
+                ..
+            } => !(*e == entity && instance == instance_id),
+        });
+        if self.instances.is_empty() {
+            self.action_instance = None;
+        }
+    }
+
     pub fn is_concentrating(&self) -> bool {
         !self.instances.is_empty()
     }

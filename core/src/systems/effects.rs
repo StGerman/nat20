@@ -16,7 +16,7 @@ use crate::{
         },
         id::{EffectId, EntityIdentifier},
         modifier::ModifierSource,
-        spells::spellbook::{GrantedSpellSource, SpellSource},
+        spells::spellbook::{GrantedSpellSource, SpellSource, Spellbook},
         time::TimeDuration,
     },
     engine::{
@@ -326,6 +326,16 @@ pub fn remove_effect(
                     );
                 }
             }
+        }
+
+        // An effect the applier concentrates on no longer holds its concentration
+        // once it's gone, whether it ran out or was removed
+        if let Some(applier) = effect_instance.applier
+            && let Ok(spellbook) = engine_state.world.query_one_mut::<&mut Spellbook>(applier)
+        {
+            spellbook
+                .concentration_tracker_mut()
+                .remove_effect_instance(entity, instance_id);
         }
 
         engine_state
