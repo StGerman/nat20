@@ -20,7 +20,7 @@ use crate::{
         damage::{AttackSource, DamageMitigationResult, DamageRoll, DamageRollResult},
         effects::effect::EffectInstanceTemplate,
         health::life_state::{LifeState, LifeStateChange},
-        id::{ActionId, ActionVariantId, EffectId, EntityIdentifier, IdProvider, SpellId},
+        id::{ActionId, ActionVariantId, EffectId, EntityIdentifier, IdProvider, ItemId, SpellId},
         items::equipment::slots::EquipmentSlot,
         modifier::{ModifierMap, ModifierResult},
         resource::{RechargeRule, ResourceAmountMap},
@@ -353,6 +353,9 @@ pub struct ActionContext {
     pub attack: Option<ActionAttackContext>,
     #[serde(default)]
     pub spell: Option<ActionSpellContext>,
+    /// The carried item the action uses up, e.g. a potion
+    #[serde(default)]
+    pub item: Option<ItemId>,
 }
 
 impl ActionContext {
@@ -364,6 +367,7 @@ impl ActionContext {
         Self {
             attack: Some(ActionAttackContext::melee_weapon(slot)),
             spell: None,
+            item: None,
         }
     }
 
@@ -371,6 +375,7 @@ impl ActionContext {
         Self {
             attack: Some(ActionAttackContext::ranged_weapon(slot)),
             spell: None,
+            item: None,
         }
     }
 
@@ -378,6 +383,7 @@ impl ActionContext {
         Self {
             attack: Some(ActionAttackContext::unarmed()),
             spell: None,
+            item: None,
         }
     }
 
@@ -385,11 +391,24 @@ impl ActionContext {
         Self {
             attack: None,
             spell: Some(ActionSpellContext { id, source, level }),
+            item: None,
+        }
+    }
+
+    pub fn item(id: ItemId) -> Self {
+        Self {
+            attack: None,
+            spell: None,
+            item: Some(id),
         }
     }
 
     pub fn is_spell(&self) -> bool {
         self.spell.is_some()
+    }
+
+    pub fn is_item(&self) -> bool {
+        self.item.is_some()
     }
 
     pub fn is_attack_action(&self) -> bool {
