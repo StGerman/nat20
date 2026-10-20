@@ -39,8 +39,9 @@ updates:
         versions: [">= 0.25"]
       - dependency-name: rerecast
         versions: [">= 0.3"]
+      # polyanya from 0.16.1, not 0.17: its 0.16.1 patch moved to rerecast 0.3 (core #33).
       - dependency-name: polyanya
-        versions: [">= 0.17"]
+        versions: [">= 0.16.1"]
       - dependency-name: glam
         versions: [">= 0.31"]
     groups:
