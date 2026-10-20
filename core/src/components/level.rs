@@ -58,7 +58,7 @@ static EXPERIENCE_BY_CHALLENGE_RATING: LazyLock<HashMap<u8, u32>> = LazyLock::ne
 
 /// A monster's Challenge Rating: 0, 1/8, 1/4, 1/2 or a whole number. Stat
 /// blocks write it as `"1/4"` or `"3"`, which is what [`FromStr`] and
-/// [`Display`] use.
+/// [`fmt::Display`] use.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct ChallengeRating {
     // `numerator / denominator`; the denominator is 1, 2, 4 or 8
