@@ -243,18 +243,16 @@ impl Loadout {
                 systems::helpers::get_component::<AbilityScoreMap>(&engine_state.world, entity);
             armor.armor_class(&ability_scores)
         } else {
-            // Unarmored: 10 + Dexterity modifier (SRD 5.2.1, Rules Glossary > Armor Class)
+            // Without armour the base Armor Class is 10 plus the Dexterity modifier (SRD 5.2.1,
+            // Rules Glossary, Armor Class).
             let mut armor_class =
                 ArmorClass::new(10, ModifierSource::Base, ArmorDexterityBonus::Unlimited);
-            let dexterity_modifier =
+            let dexterity =
                 systems::helpers::get_component::<AbilityScoreMap>(&engine_state.world, entity)
                     .get(&Ability::Dexterity)
                     .ability_modifier()
                     .total();
-            armor_class.add_modifier(
-                ModifierSource::Ability(Ability::Dexterity),
-                dexterity_modifier,
-            );
+            armor_class.add_modifier(ModifierSource::Ability(Ability::Dexterity), dexterity);
             armor_class
         };
 
