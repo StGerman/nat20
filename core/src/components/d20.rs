@@ -93,16 +93,20 @@ impl AdvantageTracker {
     }
 
     pub fn roll_mode(&self) -> RollMode {
-        let forgone = self.forgone.is_some();
-        match self.sources.iter().fold(0, |acc, (_, advantage)| {
-            acc + match *advantage {
-                AdvantageType::Advantage if forgone => 0,
-                AdvantageType::Advantage => 1,
-                AdvantageType::Disadvantage => -1,
-            }
-        }) {
-            n if n > 0 => RollMode::Advantage,
-            n if n < 0 => RollMode::Disadvantage,
+        // Advantage and Disadvantage cancel however many sources each has
+        // (SRD 5.2.1, D20 Tests > Advantage/Disadvantage).
+        let advantage = self.forgone.is_none()
+            && self
+                .sources
+                .values()
+                .any(|advantage| *advantage == AdvantageType::Advantage);
+        let disadvantage = self
+            .sources
+            .values()
+            .any(|advantage| *advantage == AdvantageType::Disadvantage);
+        match (advantage, disadvantage) {
+            (true, false) => RollMode::Advantage,
+            (false, true) => RollMode::Disadvantage,
             _ => RollMode::Normal,
         }
     }
@@ -327,8 +331,11 @@ impl D20Check {
             self.proficiency.bonus(proficiency_bonus) as i32,
         );
 
-        systems::effects::effects(&engine_state.world, entity)
-            .pre_d20_check(engine_state, entity, self);
+        systems::effects::effects(&engine_state.world, entity).pre_d20_check(
+            engine_state,
+            entity,
+            self,
+        );
     }
 
     pub fn roll_hooks(&self, engine_state: &EngineState, entity: Entity) -> D20CheckResult {
