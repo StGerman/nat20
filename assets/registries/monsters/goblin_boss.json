@@ -1,0 +1,33 @@
+{
+    "id": "nat20_core::monster.goblin_boss",
+    "name": "Goblin Boss",
+    "_comment": "SRD 5.2.1 (CC-BY-4.0), Goblin Boss. AC 17 comes from the gear (Chain Shirt 13 + Dex 2 + Shield 2); to-hit +4 and 1d6 + 2 damage from Dexterity, PB +2 and the weapons. Not yet modelled: Multiattack, the extra 1d4 damage on an attack roll with Advantage and Nimble Escape (Milestone 5, U22). Redirect Attack is deferred (nat20-table TASKS.md MON-7, P2). Darkvision, Hide and the senses are out of scope.",
+    "size": "small",
+    "creature_type": "fey",
+    "challenge_rating": "1",
+    "hit_points": {
+        "average": 21,
+        "dice": "6d6"
+    },
+    "speed": "30 feet",
+    "abilities": {
+        "strength": 10,
+        "dexterity": 15,
+        "constitution": 10,
+        "intelligence": 10,
+        "wisdom": 8,
+        "charisma": 10
+    },
+    "skills": {
+        "stealth": "expertise"
+    },
+    "gear": [
+        "nat20_core::item.chain_shirt",
+        "nat20_core::item.scimitar",
+        "nat20_core::item.shield",
+        "nat20_core::item.shortbow"
+    ],
+    "factions": [
+        "nat20_core::faction.monsters"
+    ]
+}

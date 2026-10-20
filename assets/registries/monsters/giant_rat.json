@@ -1,0 +1,33 @@
+{
+    "id": "nat20_core::monster.giant_rat",
+    "name": "Giant Rat",
+    "_comment": "SRD 5.2.1 (CC-BY-4.0), Giant Rat. AC 13 is 10 + Dex 3 with no armour; the finesse Bite is +5 and 1d4 + 3 from Dexterity and PB +2. Not yet modelled: Pack Tactics (Milestone 5, U22). Climb Speed, Darkvision and the senses are out of scope.",
+    "size": "small",
+    "creature_type": "beast",
+    "challenge_rating": "1/8",
+    "hit_points": {
+        "average": 7,
+        "dice": "2d6"
+    },
+    "speed": "30 feet",
+    "abilities": {
+        "strength": 7,
+        "dexterity": 16,
+        "constitution": 11,
+        "intelligence": 2,
+        "wisdom": 10,
+        "charisma": 4
+    },
+    "skills": {
+        "perception": "proficient"
+    },
+    "saving_throws": {
+        "dexterity": "proficient"
+    },
+    "gear": [
+        "nat20_core::item.giant_rat_bite"
+    ],
+    "factions": [
+        "nat20_core::faction.monsters"
+    ]
+}
