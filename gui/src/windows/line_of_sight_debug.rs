@@ -148,7 +148,7 @@ impl RenderableMutWithContext<&mut EngineState> for LineOfSightDebugWindow {
 
                 let width_token = ui.push_item_width(200.0);
 
-                let mut query = engine_state.world.query::<&Name>();
+                let mut query = engine_state.world.query::<(Entity, &Name)>();
                 let all_entities = query.iter().collect::<Vec<_>>();
 
                 Self::render_line_of_sight_target(&mut self.from, "From", ui, &all_entities);

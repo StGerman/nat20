@@ -1,0 +1,11 @@
+{
+  "item": {
+    "id": "nat20_core::item.potion_of_healing",
+    "name": "Potion of Healing",
+    "description": "A vial of magical red fluid. The creature that drinks it regains 2d4 + 2 Hit Points. Weighs 1/2 lb (weights are whole pounds here).",
+    "weight": "0 lb",
+    "value": "50 GP",
+    "rarity": "common"
+  },
+  "action": "nat20_core::action.potion_of_healing"
+}

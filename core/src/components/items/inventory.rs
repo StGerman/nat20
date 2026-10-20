@@ -1,18 +1,25 @@
+use hecs::{Entity, World};
 use schemars::JsonSchema;
 use serde::Deserialize;
 
-use crate::components::{
-    id::{EffectId, IdProvider, ItemId},
-    items::{
-        equipment::{
-            armor::Armor,
-            equipment::EquipmentItem,
-            slots::{EquipmentSlot, SlotProvider},
-            weapon::Weapon,
+use crate::{
+    components::{
+        actions::action::{ActionMap, ActionProvider},
+        id::{EffectId, IdProvider, ItemId},
+        items::{
+            consumable::ConsumableItem,
+            equipment::{
+                armor::Armor,
+                equipment::EquipmentItem,
+                slots::{EquipmentSlot, SlotProvider},
+                weapon::Weapon,
+            },
+            item::Item,
+            money::{MonetaryValue, MonetaryValueError},
         },
-        item::Item,
-        money::{MonetaryValue, MonetaryValueError},
     },
+    registry::registry::ItemsRegistry,
+    systems,
 };
 
 #[derive(Debug, Clone, PartialEq, Deserialize, JsonSchema)]
@@ -22,6 +29,7 @@ pub enum ItemInstance {
     Armor(Armor),
     Weapon(Weapon),
     Equipment(EquipmentItem),
+    Consumable(ConsumableItem),
 }
 
 impl ItemInstance {
@@ -71,6 +79,7 @@ impl IdProvider for ItemInstance {
             ItemInstance::Armor(armor) => &armor.item.id,
             ItemInstance::Weapon(weapon) => &weapon.item().id,
             ItemInstance::Equipment(equipment) => &equipment.item.id,
+            ItemInstance::Consumable(consumable) => &consumable.item.id,
         }
     }
 }
@@ -86,6 +95,7 @@ impl ItemContainer for ItemInstance {
             ItemInstance::Armor(armor) => &armor.item,
             ItemInstance::Weapon(weapon) => weapon.item(),
             ItemInstance::Equipment(equipment) => &equipment.item,
+            ItemInstance::Consumable(consumable) => &consumable.item,
         }
     }
 }
@@ -107,6 +117,7 @@ impl_into_item_instance! {
     Armor => Armor,
     Weapon => Weapon,
     EquipmentItem => Equipment,
+    ConsumableItem => Consumable,
 }
 
 #[derive(Debug, Clone)]
@@ -145,6 +156,22 @@ impl Inventory {
         &self.items
     }
 
+    /// How many of this item are carried
+    pub fn count(&self, item: &ItemId) -> usize {
+        self.items.iter().filter(|carried| *carried == item).count()
+    }
+
+    /// Removes one of this item, returning false if none is carried
+    pub fn use_up(&mut self, item: &ItemId) -> bool {
+        match self.items.iter().position(|carried| carried == item) {
+            Some(index) => {
+                self.items.remove(index);
+                true
+            }
+            None => false,
+        }
+    }
+
     /// Optional: find by name
     // pub fn find_by_name(&self, name: &str) -> Option<&ItemInstance> {
     //     self.items.iter().find(|i| i.item().name == name)
@@ -165,5 +192,37 @@ impl Inventory {
             self.money.remove(currency, value)?;
         }
         Ok(())
+    }
+}
+
+/// Each consumable carried grants its action, once per distinct item, in the
+/// action's context for that item. Using the last one removes the action.
+impl ActionProvider for Inventory {
+    fn actions(&self, _world: &World, _entity: Entity) -> ActionMap {
+        let mut action_map = ActionMap::new();
+
+        for (index, item_id) in self.items.iter().enumerate() {
+            if self.items[..index].contains(item_id) {
+                continue;
+            }
+            let Some(ItemInstance::Consumable(consumable)) = ItemsRegistry::get(item_id) else {
+                continue;
+            };
+            let Some(action) = systems::actions::get_action(&consumable.action) else {
+                continue;
+            };
+            for context in &action.contexts {
+                if context.item.as_ref() == Some(item_id) {
+                    systems::actions::add_action_to_map(
+                        &mut action_map,
+                        &consumable.action,
+                        context,
+                        &action.resource_cost,
+                    );
+                }
+            }
+        }
+
+        action_map
     }
 }

@@ -83,7 +83,7 @@ pub fn get_eye_position_at_point(
 }
 
 pub fn get_entity_at_point(world: &World, point: Point3<f32>) -> Option<Entity> {
-    for (entity, _) in world.query::<&Pose>().iter() {
+    for (entity, _) in world.query::<(Entity, &Pose)>().iter() {
         if let Some((shape, shape_pose)) = get_shape(world, entity)
             && shape.contains_point(&shape_pose, &point)
         {
@@ -361,7 +361,7 @@ pub fn raycast_with_toi(
                            excluded_creatures: &Vec<Entity>,
                            outcomes: &mut Vec<RaycastHit>| {
         let entity_result = world
-            .query::<&Pose>()
+            .query::<(Entity, &Pose)>()
             .iter()
             .filter_map(|(entity, _)| {
                 if let Some((shape, shape_pose)) = get_shape(world, entity)
@@ -934,7 +934,7 @@ pub fn entities_in_shape(
 ) -> Vec<Entity> {
     let mut entities = vec![];
 
-    for (entity, _) in world.query::<&Pose>().iter() {
+    for (entity, _) in world.query::<(Entity, &Pose)>().iter() {
         if let Some((creature_shape, creature_shape_pose)) = get_shape(world, entity) {
             let intersects = parry3d::query::intersection_test(
                 shape_pose,
