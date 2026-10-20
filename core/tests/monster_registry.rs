@@ -135,15 +135,11 @@ mod tests {
         let _ = fs::remove_dir_all(&root);
         copy_dir(&registry_root(None), &root);
 
-        let goblin = fs::read_to_string(root.join("monsters/goblin_warrior.json")).unwrap();
-        fs::write(
-            root.join("monsters/goblin_warrior.json"),
-            goblin.replace(
-                "\"skills\"",
-                "\"effects\": [\"nat20_core::effect.monster.does_not_exist\"],\n    \"skills\"",
-            ),
-        )
-        .unwrap();
+        let path = root.join("monsters/goblin_warrior.json");
+        let mut goblin: serde_json::Value =
+            serde_json::from_str(&fs::read_to_string(&path).unwrap()).unwrap();
+        goblin["effects"] = serde_json::json!(["nat20_core::effect.monster.does_not_exist"]);
+        fs::write(&path, serde_json::to_string_pretty(&goblin).unwrap()).unwrap();
 
         let result = RegistrySet::load_from_root_directory(&root);
         fs::remove_dir_all(root.parent().unwrap()).unwrap();
