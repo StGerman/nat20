@@ -276,7 +276,7 @@ impl Encounter {
         // time down as it passes, so only the ones whose time passes in turns
         let outsiders: Vec<Entity> = engine_state
             .world
-            .query::<(&EffectManager, &EntityClock)>()
+            .query::<(Entity, (&EffectManager, &EntityClock))>()
             .iter()
             .filter(|(entity, (_, clock))| {
                 !self.participants.contains(entity) && clock.mode() != TimeMode::RealTime

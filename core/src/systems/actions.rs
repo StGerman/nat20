@@ -537,7 +537,7 @@ pub fn projectile_impact(engine_state: &mut EngineState, entity: Entity) {
 pub fn resume_waiting_executions(engine_state: &mut EngineState, scope: PromptScopeId) {
     let waiting: Vec<Entity> = engine_state
         .world
-        .query::<&Option<ActionExecution>>()
+        .query::<(Entity, &Option<ActionExecution>)>()
         .iter()
         .filter(|(entity, execution)| {
             let Some(execution) = execution else {
