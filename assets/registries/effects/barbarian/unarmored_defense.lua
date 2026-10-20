@@ -4,6 +4,7 @@ local function armor_class_hook(engine_state, entity, modifiers)
     -- modifier, so Unarmored Defense only adds Constitution on top
     local armor_type = engine_state:armor_type(entity)
     if armor_type == "None" or armor_type == "Clothing" then
+        -- The unarmoured base already counts the Dexterity modifier.
         modifiers:add_modifier("constitution", engine_state:ability_modifier(entity, "constitution").total)
     end
 end

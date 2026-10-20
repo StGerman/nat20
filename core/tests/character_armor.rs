@@ -81,7 +81,7 @@ mod tests {
             systems::loadout::unequip(&mut engine_state, character, &EquipmentSlot::Armor).unwrap();
         let armor_class = systems::loadout::armor_class(&engine_state, character);
         println!("Un-equipped {:?}", armor);
-        // Check if the armor class is updated: unarmored is 10 + Dex mod 3
+        // Without armour: 10 + 3 (Dex mod), SRD 5.2.1 Rules Glossary, Armor Class
         println!("{:?}", armor_class);
         assert_eq!(13, armor_class.total());
     }
