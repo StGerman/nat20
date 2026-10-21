@@ -472,6 +472,7 @@
             "pattern": "^([A-Za-z0-9_]+::)?class[A-Za-z0-9_.]*$"
         },
         "ClassResourceDefinition": {
+            "description": "A resource a class, subclass or species grants at a level, with its budget.",
             "type": "object",
             "properties": {
                 "budget": {

@@ -5,14 +5,15 @@ use serde::{Deserialize, Serialize};
 
 use crate::{
     components::{
-        id::{ActionId, EffectId, SpeciesId, SubspeciesId},
+        id::{ActionId, EffectId, ResourceId, SpeciesId, SubspeciesId},
         level_up::LevelUpPrompt,
+        resource::ResourceBudgetKind,
         species::{CreatureSize, CreatureType, Species, SpeciesBase, Subspecies},
         speed::Speed,
     },
     registry::{
         registry_validation::{ReferenceCollector, RegistryReference, RegistryReferenceCollector},
-        serialize::quantity::LengthExpressionDefinition,
+        serialize::{class::ClassResourceDefinition, quantity::LengthExpressionDefinition},
     },
 };
 
@@ -25,6 +26,9 @@ pub struct SpeciesDefinition {
     pub effects_by_level: HashMap<u8, Vec<EffectId>>,
     #[serde(default)]
     pub actions_by_level: HashMap<u8, Vec<ActionId>>,
+    /// Resources granted at each level, e.g. uses of a species feature.
+    #[serde(default)]
+    pub resources_by_level: HashMap<u8, Vec<ClassResourceDefinition>>,
     pub subspecies: HashSet<SubspeciesId>,
     pub speed: LengthExpressionDefinition,
     /// Choices the species asks for when it is picked, e.g. a skill or an origin feat.
@@ -39,6 +43,7 @@ impl From<SpeciesDefinition> for Species {
             base: SpeciesBase {
                 effects_by_level: value.effects_by_level,
                 actions_by_level: value.actions_by_level,
+                resources_by_level: resource_grants(value.resources_by_level),
             },
             subspecies: value.subspecies,
             creature_type: value.creature_type,
@@ -61,6 +66,11 @@ impl RegistryReferenceCollector for SpeciesDefinition {
                 collector.add(RegistryReference::Action(action.clone()));
             }
         }
+        for resources in self.resources_by_level.values() {
+            for resource in resources {
+                collector.add(RegistryReference::Resource(resource.id.clone()));
+            }
+        }
         for subspecies in &self.subspecies {
             collector.add(RegistryReference::Subspecies(subspecies.clone()));
         }
@@ -77,6 +87,9 @@ pub struct SubspeciesDefinition {
     pub effects_by_level: HashMap<u8, Vec<EffectId>>,
     #[serde(default)]
     pub actions_by_level: HashMap<u8, Vec<ActionId>>,
+    /// Resources granted at each level, e.g. uses of a species feature.
+    #[serde(default)]
+    pub resources_by_level: HashMap<u8, Vec<ClassResourceDefinition>>,
 }
 
 impl From<SubspeciesDefinition> for Subspecies {
@@ -86,6 +99,7 @@ impl From<SubspeciesDefinition> for Subspecies {
             base: SpeciesBase {
                 effects_by_level: value.effects_by_level,
                 actions_by_level: value.actions_by_level,
+                resources_by_level: resource_grants(value.resources_by_level),
             },
         }
     }
@@ -103,5 +117,27 @@ impl RegistryReferenceCollector for SubspeciesDefinition {
                 collector.add(RegistryReference::Action(action.clone()));
             }
         }
+        for resources in self.resources_by_level.values() {
+            for resource in resources {
+                collector.add(RegistryReference::Resource(resource.id.clone()));
+            }
+        }
     }
+}
+
+fn resource_grants(
+    resources_by_level: HashMap<u8, Vec<ClassResourceDefinition>>,
+) -> HashMap<u8, Vec<(ResourceId, ResourceBudgetKind, bool)>> {
+    resources_by_level
+        .into_iter()
+        .map(|(level, resources)| {
+            (
+                level,
+                resources
+                    .into_iter()
+                    .map(ClassResourceDefinition::into_grant)
+                    .collect(),
+            )
+        })
+        .collect()
 }

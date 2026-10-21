@@ -182,11 +182,20 @@ impl AIController for RandomController {
                                         }
                                     }
 
-                                    TargetingKind::Area {
-                                        shape,
-                                        fixed_on_actor,
-                                        filters,
-                                    } => todo!(),
+                                    TargetingKind::Area { .. } => {
+                                        // The random AI can't aim an area yet, so it picks
+                                        // again among the other actions rather than panic
+                                        // (a Dragonborn's Breath Weapon is open to every
+                                        // Dragonborn, whatever its class)
+                                        debug!(
+                                            "AI actor {:?} can't aim area action: {:?}",
+                                            actor, action.action_id
+                                        );
+                                        unusable.insert(action.action_id.clone());
+                                        action_builder =
+                                            ActionBuilder::available(engine_state, *actor);
+                                        continue;
+                                    }
                                 }
                             }
                         },

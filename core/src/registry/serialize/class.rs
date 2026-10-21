@@ -19,7 +19,7 @@ use crate::{
     },
 };
 
-#[derive(Clone, Serialize, Deserialize, JsonSchema)]
+#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 #[serde(untagged)]
 pub enum ResourceBudgetKindDefinition {
     Flat(ResourceBudget),
@@ -28,12 +28,33 @@ pub enum ResourceBudgetKindDefinition {
     Tiered(BTreeMap<String, ResourceBudget>),
 }
 
-#[derive(Clone, Serialize, Deserialize, JsonSchema)]
+/// A resource a class, subclass or species grants at a level, with its budget.
+#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 pub struct ClassResourceDefinition {
     pub id: ResourceId,
     pub budget: ResourceBudgetKindDefinition,
     #[serde(default, rename(deserialize = "override"))]
     pub override_existing: bool,
+}
+
+impl ClassResourceDefinition {
+    /// The resource, its budget and whether it replaces an existing budget.
+    pub fn into_grant(self) -> (ResourceId, ResourceBudgetKind, bool) {
+        let budget = match self.budget {
+            ResourceBudgetKindDefinition::Flat(resource_budget) => {
+                ResourceBudgetKind::Flat(resource_budget)
+            }
+            ResourceBudgetKindDefinition::Tiered(btree_map) => {
+                let mut tiered_map = BTreeMap::new();
+                for (tier_str, budget) in btree_map {
+                    let tier: u8 = tier_str.parse().unwrap_or(0);
+                    tiered_map.insert(tier, budget);
+                }
+                ResourceBudgetKind::Tiered(tiered_map)
+            }
+        };
+        (self.id, budget, self.override_existing)
+    }
 }
 
 #[derive(Clone, Serialize, Deserialize, JsonSchema)]
@@ -68,25 +89,7 @@ impl From<ClassDefinition> for Class {
                     level,
                     resources
                         .into_iter()
-                        .map(|res_def| {
-                            (
-                                res_def.id,
-                                match res_def.budget {
-                                    ResourceBudgetKindDefinition::Flat(resource_budget) => {
-                                        ResourceBudgetKind::Flat(resource_budget)
-                                    }
-                                    ResourceBudgetKindDefinition::Tiered(btree_map) => {
-                                        let mut tiered_map = BTreeMap::new();
-                                        for (tier_str, budget) in btree_map {
-                                            let tier: u8 = tier_str.parse().unwrap_or(0);
-                                            tiered_map.insert(tier, budget);
-                                        }
-                                        ResourceBudgetKind::Tiered(tiered_map)
-                                    }
-                                },
-                                res_def.override_existing,
-                            )
-                        })
+                        .map(ClassResourceDefinition::into_grant)
                         .collect(),
                 )
             })

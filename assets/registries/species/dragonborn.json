@@ -2,7 +2,7 @@
     "id": "nat20_core::species.dragonborn",
     "creature_type": "humanoid",
     "size": "medium",
-    "_comment": "Missing breath weapon, darkvision and draconic flight!",
+    "_comment": "Missing darkvision and draconic flight! Breath Weapon uses equal the Proficiency Bonus, but species traits are applied at level 1 only, so the budget stays 2 (right through level 4).",
     "effects_by_level": {},
     "action_by_level": {},
     "_todo_species": [
@@ -19,5 +19,13 @@
         "nat20_core::subspecies.dragonborn.red",
         "nat20_core::subspecies.dragonborn.white"
     ],
-    "speed": "30 feet"
+    "speed": "30 feet",
+    "resources_by_level": {
+        "1": [
+            {
+                "id": "nat20_core::resource.dragonborn.breath_weapon",
+                "budget": "2"
+            }
+        ]
+    }
 }

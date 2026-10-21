@@ -1,0 +1,61 @@
+{
+    "id": "nat20_core::action.dragonborn.breath_weapon.black.line",
+    "description": "You exhale magical energy in a 30-foot Line that is 5 feet wide. Each creature in that area makes a Dexterity saving throw (DC 8 plus your Constitution modifier and Proficiency Bonus), taking 1d10 Acid damage on a failed save, or half as much on a successful one. The damage increases by 1d10 at character levels 5, 11 and 17.",
+    "_comment": "Breath Weapon replaces one attack of the Attack action. Extra Attack is not modelled with it: it costs the Action, which is the whole Attack action until a character has Extra Attack.",
+    "kind": {
+        "standard": {
+            "phases": [
+                {
+                    "condition": {
+                        "saving_throw": "ability_save_dc(constitution);dexterity"
+                    },
+                    "payload": {
+                        "components": [
+                            {
+                                "damage": "(1 + (character_level + 1) / 6)d10;acid",
+                                "damage_on_failure": "half"
+                            }
+                        ],
+                        "delivery": "immediate"
+                    }
+                }
+            ]
+        }
+    },
+    "targeting": {
+        "kind": {
+            "area": {
+                "shape": {
+                    "line": {
+                        "length": "30 feet",
+                        "width": "5 feet"
+                    }
+                },
+                "fixed_on_actor": true
+            }
+        },
+        "range": "30 feet",
+        "line_of_sight": {
+            "trajectory": "ray"
+        },
+        "allowed_targets": [
+            {
+                "life_states": [
+                    "dead"
+                ],
+                "invert": true
+            },
+            {
+                "tag": "not_self"
+            }
+        ]
+    },
+    "resource_cost": {
+        "nat20_core::resource.action": 1,
+        "nat20_core::resource.dragonborn.breath_weapon": 1
+    },
+    "timeline": {
+        "total_duration": 1.0,
+        "perform_time": 0.5
+    }
+}

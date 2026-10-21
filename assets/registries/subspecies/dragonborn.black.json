@@ -4,5 +4,11 @@
         "1": [
             "nat20_core::effect.dragonborn.draconic_ancestry.black"
         ]
+    },
+    "actions_by_level": {
+        "1": [
+            "nat20_core::action.dragonborn.breath_weapon.black.cone",
+            "nat20_core::action.dragonborn.breath_weapon.black.line"
+        ]
     }
 }

@@ -6,8 +6,9 @@ use strum::Display;
 
 use crate::{
     components::{
-        id::{ActionId, EffectId, IdProvider, SpeciesId, SubspeciesId},
+        id::{ActionId, EffectId, IdProvider, ResourceId, SpeciesId, SubspeciesId},
         level_up::LevelUpPrompt,
+        resource::ResourceBudgetKind,
         speed::Speed,
     },
     registry::serialize::species::{SpeciesDefinition, SubspeciesDefinition},
@@ -61,6 +62,8 @@ pub enum CreatureSize {
 pub struct SpeciesBase {
     pub effects_by_level: HashMap<u8, Vec<EffectId>>,
     pub actions_by_level: HashMap<u8, Vec<ActionId>>,
+    /// Resources the species grants, e.g. the Dragonborn's Breath Weapon uses.
+    pub resources_by_level: HashMap<u8, Vec<(ResourceId, ResourceBudgetKind, bool)>>,
 }
 
 #[derive(Debug, Clone, Deserialize)]

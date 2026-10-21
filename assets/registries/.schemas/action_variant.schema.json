@@ -57,12 +57,13 @@
                     "type": "object",
                     "properties": {
                         "saving_throw": {
-                            "description": "`<dc provider>;<ability>` where the DC provider is `spell_save_dc`, `weapon_save_dc`, or `spell_save_dc(<class id>)` for a class feature that uses that class's spell save DC outside a spell, e.g. `spell_save_dc;dexterity`.",
+                            "description": "`<dc provider>;<ability>` where the DC provider is `spell_save_dc`, `weapon_save_dc`, `spell_save_dc(<class id>)` for a class feature that uses that class's spell save DC outside a spell, or `ability_save_dc(<ability>)` for 8 plus that ability's modifier and the Proficiency Bonus (e.g. a Dragonborn's Breath Weapon), e.g. `spell_save_dc;dexterity`.",
                             "type": "string",
                             "examples": [
                                 "spell_save_dc;dexterity",
                                 "weapon_save_dc;constitution",
-                                "spell_save_dc(nat20_core::class.cleric);constitution"
+                                "spell_save_dc(nat20_core::class.cleric);constitution",
+                                "ability_save_dc(constitution);dexterity"
                             ]
                         }
                     },
