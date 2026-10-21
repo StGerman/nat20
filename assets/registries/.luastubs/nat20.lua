@@ -148,6 +148,11 @@ function ActionConditionResolution:is_success() end
 ---@return boolean
 function ActionConditionResolution:is_crit() end
 
+--- The roll's net state: true only if it was made with Advantage (false when
+--- Advantage and Disadvantage cancelled, and for an unconditional resolution)
+---@return boolean
+function ActionConditionResolution:had_advantage() end
+
 ---@class ActionResult
 ---@field target ScriptEntity
 local ActionResult = {}
@@ -187,6 +192,7 @@ function D20CheckKind:attack_roll() end
 ---@field modifiers ModifierMap
 ---@field roll_mode string -- normal/advantage/disadvantage
 ---@field action_id string?
+---@field target ScriptEntity? -- the creature an attack roll is made against
 local D20Check = {}
 ---@param advantage string -- advantage/disadvantage
 ---@param source string
@@ -368,6 +374,32 @@ function EngineState:hp_current(entity) end
 ---@param entity ScriptEntity
 ---@return integer
 function EngineState:hp_max(entity) end
+
+--- Distance in feet between the two creatures' shapes (0 when touching)
+---@param entity ScriptEntity
+---@param other ScriptEntity
+---@return number?
+function EngineState:distance_ft(entity, other) end
+
+--- Every other creature within `feet` of `entity`, in a fixed order
+---@param entity ScriptEntity
+---@param feet number
+---@return ScriptEntity[]
+function EngineState:creatures_within(entity, feet) end
+
+---@param entity ScriptEntity
+---@return string  -- "tiny" | "small" | "medium" | "large" | "huge" | "gargantuan"
+function EngineState:size(entity) end
+
+--- Speed in feet with every effect applied
+---@param entity ScriptEntity
+---@return number
+function EngineState:speed_ft(entity) end
+
+--- Use up `feet` of this turn's movement
+---@param entity ScriptEntity
+---@param feet number
+function EngineState:spend_movement(entity, feet) end
 
 --- How `entity` regards `other`
 ---@param entity ScriptEntity

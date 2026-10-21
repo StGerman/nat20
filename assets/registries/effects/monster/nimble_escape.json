@@ -1,0 +1,11 @@
+{
+    "id": "nat20_core::effect.monster.nimble_escape",
+    "kind": "buff",
+    "description": "The creature can take the Disengage or Hide action as a Bonus Action.",
+    "_comment": "SRD 5.2.1 (CC-BY-4.0), Goblin Warrior and Goblin Boss. Grants the Disengage half only; Hide is out of scope.",
+    "actions": [
+        {
+            "id": "nat20_core::action.monster.nimble_escape"
+        }
+    ]
+}

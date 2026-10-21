@@ -1,0 +1,5 @@
+{
+    "id": "nat20_core::resource.dragonborn.breath_weapon",
+    "kind": "flat",
+    "recharge": "long_rest"
+}

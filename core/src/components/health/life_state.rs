@@ -87,14 +87,13 @@ impl DeathSavingThrows {
 
     pub fn update(&mut self, check_result: &D20CheckResult) {
         match check_result.outcome {
-            Some(D20CheckOutcome::CriticalSuccess) => {
-                self.record_success(2);
+            // A natural 20 restores 1 Hit Point instead; the encounter handles that before it
+            // gets here, so it only counts as a success when the creature can't be healed
+            Some(D20CheckOutcome::CriticalSuccess) | Some(D20CheckOutcome::Success) => {
+                self.record_success(1);
             }
             Some(D20CheckOutcome::CriticalFailure) => {
                 self.record_failure(2);
-            }
-            Some(D20CheckOutcome::Success) => {
-                self.record_success(1);
             }
             _ => {
                 self.record_failure(1);

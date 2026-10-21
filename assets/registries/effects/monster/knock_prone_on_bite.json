@@ -1,0 +1,11 @@
+{
+    "id": "nat20_core::effect.monster.knock_prone_on_bite",
+    "kind": "buff",
+    "description": "If the creature hits a Medium or smaller target with its Bite, the target has the Prone condition.",
+    "_comment": "SRD 5.2.1 (CC-BY-4.0), Wolf, Bite. Any melee weapon hit counts, so give this effect only to a creature whose one melee weapon is its Bite.",
+    "on_action_result": [
+        {
+            "script": "nat20_core::script.effect.monster.knock_prone_on_bite"
+        }
+    ]
+}

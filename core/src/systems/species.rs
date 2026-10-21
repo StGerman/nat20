@@ -5,6 +5,7 @@ use crate::{
         id::{SpeciesId, SubspeciesId},
         level_up::LevelUpPrompt,
         modifier::ModifierSource,
+        resource::ResourceMap,
         species::{CreatureSize, CreatureType, SpeciesBase},
         speed::Speed,
     },
@@ -121,6 +122,16 @@ fn apply_species_base(
             &id.modifier_source(),
             None,
         );
+    }
+    if let Some(resources_for_level) = base.resources_by_level.get(&level) {
+        let resources =
+            systems::helpers::get_component_mut::<ResourceMap>(&mut engine_state.world, entity);
+        for (resource, amount, override_existing) in resources_for_level {
+            if *override_existing {
+                resources.remove(resource);
+            }
+            resources.add(resource.clone(), amount.clone(), false);
+        }
     }
     if let Some(actions) = base.actions_by_level.get(&level) {
         for action in actions {

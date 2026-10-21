@@ -6,6 +6,7 @@ pub mod effect;
 pub mod feat;
 pub mod item;
 pub mod modifier;
+pub mod monster;
 pub mod parser;
 pub mod quantity;
 pub mod reaction;

@@ -10,9 +10,11 @@ use crate::{
             ActionContext, AttackRollFunction, AttackRollProvider, SavingThrowFunction,
             SavingThrowProvider,
         },
+        ability::{Ability, AbilityScoreMap},
         d20::D20CheckDC,
         id::ClassId,
         modifier::{ModifierMap, ModifierSource},
+        proficiency::ProficiencyLevel,
         saving_throw::SavingThrowKind,
         skill::Skill,
         spells::spellbook::Spellbook,
@@ -35,12 +37,15 @@ impl_string_schema!(
     SavingThrowDefinition,
     "SavingThrowDefinition",
     "description": "`<dc provider>;<ability>` where the DC provider is `spell_save_dc`, \
-         `weapon_save_dc`, or `spell_save_dc(<class id>)` for a class feature that uses that \
-         class's spell save DC outside a spell, e.g. `spell_save_dc;dexterity`.",
+         `weapon_save_dc`, `spell_save_dc(<class id>)` for a class feature that uses that \
+         class's spell save DC outside a spell, or `ability_save_dc(<ability>)` for 8 plus that \
+         ability's modifier and the Proficiency Bonus (e.g. a Dragonborn's Breath Weapon), \
+         e.g. `spell_save_dc;dexterity`.",
     "examples": [
         "spell_save_dc;dexterity",
         "weapon_save_dc;constitution",
-        "spell_save_dc(nat20_core::class.cleric);constitution"
+        "spell_save_dc(nat20_core::class.cleric);constitution",
+        "ability_save_dc(constitution);dexterity"
     ]
 );
 
@@ -154,6 +159,18 @@ impl FromStr for SavingThrowDefinition {
                         }
                     }) as Arc<SavingThrowFunction>
                 }
+                provider if provider.starts_with("ability_save_dc(") => {
+                    let ability: Ability = provider
+                        .strip_prefix("ability_save_dc(")
+                        .and_then(|rest| rest.strip_suffix(')'))
+                        .and_then(|ability| serde_plain::from_str(ability).ok())
+                        .ok_or_else(|| format!("Invalid ability in SavingThrowDefinition: {}", s))?;
+                    Arc::new({
+                        move |world: &World, entity: Entity, _action_context: &ActionContext| {
+                            ability_saving_throw(world, entity, ability, kind)
+                        }
+                    }) as Arc<SavingThrowFunction>
+                }
                 provider => {
                     let class: ClassId = provider
                         .strip_prefix("spell_save_dc(")
@@ -174,6 +191,32 @@ impl FromStr for SavingThrowDefinition {
             raw: s.to_string(),
             function,
         })
+    }
+}
+
+/// A DC of 8 plus `ability`'s modifier and the Proficiency Bonus, for a feature that is not a
+/// spell, e.g. a Dragonborn's Breath Weapon (8 + Constitution modifier + Proficiency Bonus).
+fn ability_saving_throw(
+    world: &World,
+    entity: Entity,
+    ability: Ability,
+    kind: SavingThrowKind,
+) -> D20CheckDC {
+    let modifier = systems::helpers::get_component::<AbilityScoreMap>(world, entity)
+        .ability_modifier(&ability)
+        .total();
+    let proficiency_bonus =
+        systems::helpers::level(world, entity).map_or(0, |level| level.proficiency_bonus());
+
+    let mut dc = ModifierMap::from(ModifierSource::Base, 8);
+    dc.add_modifier(ModifierSource::Ability(ability), modifier);
+    dc.add_modifier(
+        ModifierSource::Proficiency(ProficiencyLevel::Proficient),
+        proficiency_bonus as i32,
+    );
+    D20CheckDC::SavingThrow {
+        saving_throw: kind,
+        dc: dc.evaluate(),
     }
 }
 

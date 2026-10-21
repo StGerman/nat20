@@ -1,0 +1,11 @@
+{
+    "id": "nat20_core::effect.monster.pack_tactics",
+    "kind": "buff",
+    "description": "The creature has Advantage on an attack roll against a creature if at least one of the creature's allies is within 5 feet of the target and the ally doesn't have the Incapacitated condition.",
+    "_comment": "SRD 5.2.1 (CC-BY-4.0), Wolf and Giant Rat. An ally at 0 Hit Points doesn't count, since it is Unconscious and so Incapacitated.",
+    "on_attack_roll": [
+        {
+            "script": "nat20_core::script.effect.monster.pack_tactics"
+        }
+    ]
+}

@@ -1,0 +1,21 @@
+{
+    "id": "nat20_core::effect.condition.prone",
+    "kind": "debuff",
+    "description": "Prone: you have Disadvantage on attack rolls. An attack roll against you has Advantage if the attacker is within 5 feet of you, and Disadvantage otherwise. At the start of your turn you stand up, which costs movement equal to half your Speed; with a Speed of 0 you stay down.",
+    "_comment": "SRD 5.2.1, Conditions > Prone. Standing up happens automatically at the start of the creature's turn (nat20-table Milestone 5 spec D8); crawling isn't modelled. The attacked-side Advantage or Disadvantage uses its own source (effect.condition.prone.target), so a Prone attacker's own Disadvantage and its Prone target's Advantage both count and cancel.",
+    "modifiers": [
+        {
+            "attack_roll_modifier": "disadvantage"
+        }
+    ],
+    "on_attacked": [
+        {
+            "script": "nat20_core::script.effect.condition.prone"
+        }
+    ],
+    "on_turn_start": [
+        {
+            "script": "nat20_core::script.effect.condition.prone"
+        }
+    ]
+}

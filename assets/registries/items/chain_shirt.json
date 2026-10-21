@@ -1,0 +1,17 @@
+{
+  "item": {
+    "id": "nat20_core::item.chain_shirt",
+    "name": "Chain Shirt",
+    "description": "A shirt of interlocking metal rings, worn between layers of clothing or leather.",
+    "weight": "20 lb",
+    "value": "50 GP",
+    "rarity": "common"
+  },
+  "armor_type": "medium",
+  "armor_class": 13,
+  "dexterity_bonus": {
+    "limited": 2
+  },
+  "stealth_disadvantage": false,
+  "effects": []
+}

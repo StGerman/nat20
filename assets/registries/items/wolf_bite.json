@@ -1,0 +1,22 @@
+{
+  "_comment": "Natural weapon: the Wolf's Bite (SRD 5.2.1, CC-BY-4.0). Only a monster stat block equips it; it is not loot.",
+  "item": {
+    "id": "nat20_core::item.wolf_bite",
+    "name": "Bite",
+    "description": "The wolf's jaws.",
+    "weight": "0 lb",
+    "value": "0 GP",
+    "rarity": "common"
+  },
+  "category": "simple",
+  "kind": "melee",
+  "properties": [],
+  "damage": [
+    [
+      "1d6",
+      "piercing"
+    ]
+  ],
+  "extra_weapon_actions": [],
+  "effects": []
+}

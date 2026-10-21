@@ -1,0 +1,11 @@
+{
+    "id": "nat20_core::effect.monster.advantage_rider",
+    "kind": "buff",
+    "description": "A hit with an attack roll that had Advantage deals an extra 1d4 damage of the same type as the attack.",
+    "_comment": "SRD 5.2.1 (CC-BY-4.0), Goblin Warrior and Goblin Boss, Scimitar and Shortbow: 'plus 2 (1d4) damage if the attack roll had Advantage'. 5e-bits applies it on every hit, which is wrong. Advantage cancelled by Disadvantage doesn't count.",
+    "pre_damage_roll": [
+        {
+            "script": "nat20_core::script.effect.monster.advantage_rider"
+        }
+    ]
+}

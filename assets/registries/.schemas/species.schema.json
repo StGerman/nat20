@@ -43,6 +43,20 @@
                 "$ref": "#/definitions/LevelUpPrompt"
             }
         },
+        "resources_by_level": {
+            "description": "Resources granted at each level, e.g. uses of a species feature.",
+            "type": "object",
+            "additionalProperties": false,
+            "default": {},
+            "patternProperties": {
+                "^\\d+$": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/ClassResourceDefinition"
+                    }
+                }
+            }
+        },
         "size": {
             "$ref": "#/definitions/CreatureSize"
         },
@@ -296,6 +310,26 @@
             "description": "Registry id `[namespace::]class.<name>`, e.g. `nat20_core::class.example`. The namespace defaults to `nat20_core`.",
             "type": "string",
             "pattern": "^([A-Za-z0-9_]+::)?class[A-Za-z0-9_.]*$"
+        },
+        "ClassResourceDefinition": {
+            "description": "A resource a class, subclass or species grants at a level, with its budget.",
+            "type": "object",
+            "properties": {
+                "budget": {
+                    "$ref": "#/definitions/ResourceBudgetKindDefinition"
+                },
+                "id": {
+                    "$ref": "#/definitions/ResourceId"
+                },
+                "override": {
+                    "type": "boolean",
+                    "default": false
+                }
+            },
+            "required": [
+                "id",
+                "budget"
+            ]
         },
         "CreatureSize": {
             "type": "string",
@@ -572,6 +606,34 @@
                     ]
                 }
             ]
+        },
+        "ResourceBudgetKindDefinition": {
+            "anyOf": [
+                {
+                    "description": "A resource budget: `<max uses>` (spawns full) or `<current>/<max>`.",
+                    "type": "string",
+                    "examples": [
+                        "2",
+                        "1/4"
+                    ]
+                },
+                {
+                    "type": "object",
+                    "additionalProperties": {
+                        "description": "A resource budget: `<max uses>` (spawns full) or `<current>/<max>`.",
+                        "type": "string",
+                        "examples": [
+                            "2",
+                            "1/4"
+                        ]
+                    }
+                }
+            ]
+        },
+        "ResourceId": {
+            "description": "Registry id `[namespace::]resource.<name>`, e.g. `nat20_core::resource.example`. The namespace defaults to `nat20_core`.",
+            "type": "string",
+            "pattern": "^([A-Za-z0-9_]+::)?resource[A-Za-z0-9_.]*$"
         },
         "Skill": {
             "type": "string",
