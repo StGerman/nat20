@@ -1,6 +1,9 @@
 use std::{
     collections::{HashMap, HashSet, VecDeque},
-    sync::Arc,
+    sync::{
+        Arc,
+        atomic::{AtomicU64, Ordering},
+    },
 };
 
 use hecs::Entity;
@@ -30,9 +33,16 @@ use crate::{
 
 pub type EventId = Uuid;
 
+/// The next `Event::seq` to hand out. Process-wide, like the registries, so that events pushed
+/// to an encounter's log and to the global log share one order.
+static NEXT_EVENT_SEQ: AtomicU64 = AtomicU64::new(1);
+
 #[derive(Debug, Clone, PartialEq)]
 pub struct Event {
     pub id: EventId,
+    /// When the event was pushed to a log, counted across every log in the process: sorting the
+    /// events of several logs by `seq` gives the order they happened in. 0 until it is pushed.
+    pub seq: u64,
     pub kind: EventKind,
     pub response_to: Option<EventId>,
     pub parent: Option<EventId>,
@@ -43,6 +53,7 @@ impl Event {
     pub fn new(kind: EventKind) -> Self {
         Self {
             id: Uuid::new_v4(),
+            seq: 0,
             kind,
             response_to: None,
             parent: None,
@@ -219,7 +230,8 @@ impl EventLog {
         }
     }
 
-    pub fn push(&mut self, event: Event) {
+    pub fn push(&mut self, mut event: Event) {
+        event.seq = NEXT_EVENT_SEQ.fetch_add(1, Ordering::Relaxed);
         match &event.kind {
             // EventKind::ActionRequested { action } | EventKind::ActionPerformed { action, .. } => {
             EventKind::ActionRequested { action } => {
