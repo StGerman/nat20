@@ -6,7 +6,7 @@ use uuid::Uuid;
 use crate::{
     components::{
         actions::targeting::EntityFilter,
-        d20::{AdvantageAware, AdvantageType, D20CheckDC, D20CheckResult},
+        d20::{AdvantageAware, AdvantageType, D20CheckDC, D20CheckOutcome, D20CheckResult},
         effects::effect_manager::EffectManager,
         health::life_state::{DEATH_SAVING_THROW_DC, LifeState},
         modifier::{ModifierMap, ModifierSource},
@@ -204,6 +204,21 @@ impl Encounter {
                             result,
                             dc: _,
                         } => {
+                            // A natural 20: the creature regains 1 Hit Point instead of
+                            // counting a success (SRD 5.2.1, Death Saving Throws)
+                            if matches!(result.outcome, Some(D20CheckOutcome::CriticalSuccess))
+                                && let Some(new_state) =
+                                    systems::health::heal(&mut engine_state.world, actor.id(), 1)
+                            {
+                                return CallbackResult::Event(Event::new(
+                                    EventKind::LifeStateChanged {
+                                        entity: actor.clone(),
+                                        new_state,
+                                        actor: None,
+                                    },
+                                ));
+                            }
+
                             let life_state = systems::helpers::get_component_mut::<LifeState>(
                                 &mut engine_state.world,
                                 actor.id(),
