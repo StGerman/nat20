@@ -75,6 +75,17 @@ fn a_natural_20_on_a_death_saving_throw_restores_1_hit_point() {
         })
         .count();
     assert_eq!(conscious, 1);
+
+    // Awake at the start of its turn, the wizard takes that turn
+    let encounter = *scenario.engine_state.encounters.keys().next().unwrap();
+    assert_eq!(
+        scenario
+            .engine_state
+            .encounter(&encounter)
+            .unwrap()
+            .current_entity(),
+        wizard
+    );
 }
 
 /// SRD 5.2.1, Death Saving Throws: "If you roll a 1 on the d20, that counts as two failures."

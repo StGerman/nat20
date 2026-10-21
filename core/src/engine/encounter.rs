@@ -250,7 +250,13 @@ impl Encounter {
                 }),
             );
 
-            return true;
+            // A natural 20 wakes the creature at the start of its turn, so it takes the turn
+            if !matches!(
+                *systems::helpers::get_component::<LifeState>(&engine_state.world, current_entity),
+                LifeState::Normal
+            ) {
+                return true;
+            }
         }
 
         if matches!(
