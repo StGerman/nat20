@@ -5,7 +5,7 @@
 >
 > **Contributing AI-assisted code?** Upstream does not accept AI-generated contributions, so please
 > don't send them there. This fork does: open a pull request against `demo` here (see
-> [`FORK.md`](FORK.md#contributing)).
+> [`CONTRIBUTING.md`](CONTRIBUTING.md)).
 
 # Nat20
 _**natural 20** (noun)_ \

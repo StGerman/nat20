@@ -23,63 +23,35 @@ reaches this fork only after it lands on upstream `main` and the next sync merge
 
 ## What `demo` adds
 
-Rules and content, all from SRD 5.2.1:
+- **Rules and content** from SRD 5.2.1 that the table needs and upstream does not have yet: monster
+  stat blocks as a registry kind, more classes, species, feats, items, conditions and actions, and
+  corrections where engine behaviour differed from the 2024 rules.
+- **Engine plumbing** for a headless consumer: a registry root set at run time
+  (`NAT20_REGISTRY_ROOT`), seedable dice so a session replays from a seed, a single event
+  sequence, and re-exports of the crates whose types cross core's API (`nat20_core::<crate>`), so
+  consumers build against exactly the versions core uses.
 
-- Monster stat blocks as a registry kind (`assets/registries/monsters/`): Goblin Warrior, Goblin
-  Boss, Wolf and Giant Rat, with fractional challenge ratings and SRD XP.
-- Monster traits: Pack Tactics, Multiattack, Nimble Escape, a Bite that knocks Prone, and the
-  Goblin Warrior's extra 1d4 on an attack with Advantage.
-- The Prone condition. Advantage and Disadvantage cancel out whatever the count.
-- The Cleric (levels 1 and 2), the Human species with Savage Attacker and Skilled, SRD
-  backgrounds, Dragonborn Breath Weapon, Shield and Mace, and Potion of Healing.
-- The Help action (assist a check, assist an attack, Stabilize), listed in
-  [`docs/PROGRESS.md`](docs/PROGRESS.md) under Rules Glossary.
-- Short rests spend Hit Point Dice; Second Wind and Rage regain one use on a Short Rest.
-- Natural 20 and 1 decide only attack rolls and death saves; a natural 20 on a death save restores
-  1 Hit Point; damage to a Stable creature is a failed death save.
-- Unarmoured Armor Class counts the Dexterity modifier; heavy armour ignores a negative one.
-- Surprised creatures roll Initiative with Disadvantage; concentration ends when the spell's
-  effects run out; effects tied to a turn also end outside a fight.
-- A walk into range ends on a free spot, never inside another creature's space.
-
-Engine plumbing:
-
-- `NAT20_REGISTRY_ROOT` overrides the folder registries load from (upstream fixes it at build time).
-- Seedable dice, so a session replays exactly from a seed.
-- One event sequence number across both logs.
-- `nat20_core` re-exports `hecs`, `parry3d`, `rerecast` and `uom` (`nat20_core::hecs`, ...), so
-  consumers use exactly the versions core was built with.
-
-The full list is the [merged pull requests into `demo`](https://github.com/StGerman/nat20/pulls?q=is%3Apr+is%3Amerged+base%3Ademo).
+The record of what changed is the
+[merged pull requests into `demo`](https://github.com/StGerman/nat20/pulls?q=is%3Apr+is%3Amerged+base%3Ademo);
+[`docs/PROGRESS.md`](docs/PROGRESS.md) lists the implemented features it covers.
 
 ## Upstream's README, read against `demo`
 
-- [`docs/PROGRESS.md`](docs/PROGRESS.md) is not a comprehensive overview: it lists classes,
-  spells and (ours) the Rules Glossary; species, items, conditions and monsters have no section yet.
+- [`docs/PROGRESS.md`](docs/PROGRESS.md) is not a comprehensive overview of the engine; several
+  registry kinds have no section in it.
 - "No recompilation required" holds for JSON edits, but upstream compiles in the registry path;
   here, `NAT20_REGISTRY_ROOT` points the engine at another tree.
 
-## Contributing
-
-Upstream does not accept AI-generated contributions. If you want to contribute AI-assisted code
-to Nat20, send it here instead: open a pull request against `demo`. Please:
-
-- say in the description which parts an AI tool wrote;
-- keep to upstream's patterns: registry JSON over code, a test in `core/tests/`, and regenerated
-  `assets/registries/.schemas`;
-- keep `cargo test --locked -p nat20_core` and `cargo deny check` green (the `ci-ok` check);
-- use only SRD 5.1/5.2 (CC-BY-4.0) or your own text for rules content, never text from
-  published books or D&D Beyond.
-
-One concern per pull request. Changes land only if they fit what nat20-table needs; this fork does
-not take issues. Please don't report fork-specific behaviour upstream.
-
 ## Checks
 
-`demo` runs its own CI ([`.github/workflows/demo.yml`](.github/workflows/demo.yml)):
-`cargo test --locked` and `cargo deny check` for `nat20_core` only. The GUI (`nat20_gui`) is
-upstream's; it is not maintained or licence-checked here. Upstream's `rust.yml` is left as he wrote
-it. Dependabot keeps dependencies current on `demo`.
+`demo` runs its own CI ([`.github/workflows/demo.yml`](.github/workflows/demo.yml)) on
+`nat20_core` only; `ci-ok` is the check a pull request needs. The GUI (`nat20_gui`) is upstream's;
+it is not maintained or licence-checked here. Upstream's own workflow is left as he wrote it.
+Dependabot keeps dependencies current on `demo`.
+
+## Contributing
+
+See [`CONTRIBUTING.md`](CONTRIBUTING.md).
 
 ## Licence
 
