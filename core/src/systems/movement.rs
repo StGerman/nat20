@@ -23,6 +23,7 @@ use crate::{
         activity::ActivityState,
         damage::{DamageRoll, DamageType},
         dice::{DiceSet, DieSize},
+        health::life_state::LifeState,
         id::EntityIdentifier,
         modifier::{ModifierKind, ModifierMap, ModifierSource},
         speed::{EffectiveSpeed, Speed},
@@ -45,6 +46,9 @@ pub const MOVEMENT_SPEED: f32 = 5.0; // [m/s]
 pub const FALL_DAMAGE_DIE: DieSize = DieSize::D6;
 pub const FALL_DAMAGE_MAX_DICE: u32 = 20;
 pub const FALL_DAMAGE_THRESHOLD_FT: f32 = 10.0;
+
+/// How far apart, along a path, the points are that get tried as a place to stop.
+const STOP_SEARCH_STEP: f32 = 0.25; // [m]
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum MovementError {
@@ -175,23 +179,36 @@ pub fn path_in_range_of_target(
         &path_to_target.full_path,
         target,
     ) {
+        let path_result = path(
+            engine_state,
+            entity,
+            &result.intersection_point,
+            allow_partial,
+            trim_to_movement,
+        )?;
         return Ok(PathInRangeOfTargetResult {
-            path_result: path(
-                engine_state,
-                entity,
-                &result.intersection_point,
-                allow_partial,
-                trim_to_movement,
-            )?,
+            path_result: stop_on_free_spot(engine_state, entity, path_result, trim_to_movement)?,
             line_of_sight_result: result.line_of_sight_result,
         });
     }
 
+    if let Some((spot, line_of_sight_result)) =
+        free_spot_around_target(engine_state, entity, target, range, &line_of_sight)
+    {
+        let path_result = path(engine_state, entity, &spot, allow_partial, trim_to_movement)?;
+        return Ok(PathInRangeOfTargetResult {
+            path_result: stop_on_free_spot(engine_state, entity, path_result, trim_to_movement)?,
+            line_of_sight_result,
+        });
+    }
+
     if allow_partial {
-        // Return the partial path even if we couldn't get in range
+        // Return the partial path even if we couldn't get in range. That path
+        // leads to the target's own position, so it stops short of the target
+        // (or anyone else) on the last free spot.
         trace!("No intersection found, but allowing partial path.");
         return Ok(PathInRangeOfTargetResult {
-            path_result: path_to_target,
+            path_result: stop_on_free_spot(engine_state, entity, path_to_target, trim_to_movement)?,
             // TODO: Not sure what to do about line of sight in this case
             line_of_sight_result,
         });
@@ -213,8 +230,6 @@ fn determine_path_sphere_intersections(
     path_to_target: &WorldPath,
     target: &TargetInstance,
 ) -> Option<PathSphereIntersectionResult> {
-    // Entity shouldn't block its own line of sight
-    let raycast_filter = RaycastFilter::ExcludeCreatures(vec![entity]);
     let target_point = target.position(&engine_state.world)?;
     let sphere = Ball::new(range.get::<meter>());
 
@@ -223,40 +238,52 @@ fn determine_path_sphere_intersections(
         .windows(2)
         .map(|window| (window[0], window[1]))
     {
-        let ray = Ray::new(start, (end - start).normalize());
+        let segment_length = (end - start).norm();
+        if segment_length <= EPSILON {
+            continue;
+        }
+        let ray = Ray::new(start, (end - start) / segment_length);
 
-        if let Some(toi) = sphere.cast_ray(
+        // Only where the segment itself enters the sphere: past its end the ray
+        // leaves the path, and the point could be anywhere.
+        let Some(entry) = sphere.cast_ray(
             &Isometry::translation(target_point.x, target_point.y, target_point.z),
             &ray,
-            f32::MAX,
+            segment_length,
             true,
-        ) {
+        ) else {
+            continue;
+        };
+
+        // From where the segment enters the sphere, walk on towards the target
+        // until a spot is free and has line of sight: a creature can move
+        // through another's space but can't end its move there.
+        let mut candidates = Vec::new();
+        let mut toi = entry;
+        while toi < segment_length {
+            candidates.push(toi);
+            toi += STOP_SEARCH_STEP;
+        }
+        candidates.push(segment_length);
+
+        for toi in candidates {
             let intersection_point = ray.point_at(toi);
-            let ground_at_intersection =
-                systems::geometry::ground_position(&engine_state.geometry, &intersection_point)?;
-            let eye_pos_at_intersection = systems::geometry::get_eye_position_at_point(
-                &engine_state.world,
-                entity,
-                &ground_at_intersection,
-            )?;
-            let mut line_of_sight_result = systems::geometry::line_of_sight_point_point(
-                &engine_state.world,
-                &engine_state.geometry,
-                &eye_pos_at_intersection,
-                &target_point,
-                trajectory,
-                &raycast_filter,
-            );
-            if let TargetInstance::Entity {
-                entity: target_entity,
-                ..
-            } = target
-            {
-                line_of_sight_result.check_entity_hit(target_entity.id());
+            if (intersection_point - target_point).norm() > range.get::<meter>() + EPSILON {
+                continue;
             }
+            if !is_free_spot(engine_state, entity, &intersection_point) {
+                continue;
+            }
+            let line_of_sight_result = line_of_sight_from_point(
+                engine_state,
+                entity,
+                trajectory,
+                &intersection_point,
+                target,
+            )?;
 
             if !line_of_sight_result.has_line_of_sight {
-                // No line of sight to this intersection point; try next segment
+                // No line of sight from this point; try the next one
                 continue;
             } else {
                 return Some(PathSphereIntersectionResult {
@@ -268,6 +295,171 @@ fn determine_path_sphere_intersections(
     }
 
     None
+}
+
+/// Line of sight to `target` for `entity` standing at `point`.
+fn line_of_sight_from_point(
+    engine_state: &EngineState,
+    entity: Entity,
+    trajectory: &LineOfSightTrajectory,
+    point: &Point3<f32>,
+    target: &TargetInstance,
+) -> Option<LineOfSightResult> {
+    // Entity shouldn't block its own line of sight
+    let raycast_filter = RaycastFilter::ExcludeCreatures(vec![entity]);
+    let target_point = target.position(&engine_state.world)?;
+    let ground = systems::geometry::ground_position(&engine_state.geometry, point)?;
+    let eye_position =
+        systems::geometry::get_eye_position_at_point(&engine_state.world, entity, &ground)?;
+    let mut line_of_sight_result = systems::geometry::line_of_sight_point_point(
+        &engine_state.world,
+        &engine_state.geometry,
+        &eye_position,
+        &target_point,
+        trajectory,
+        &raycast_filter,
+    );
+    if let TargetInstance::Entity {
+        entity: target_entity,
+        ..
+    } = target
+    {
+        line_of_sight_result.check_entity_hit(target_entity.id());
+    }
+    Some(line_of_sight_result)
+}
+
+/// How many points around the target get tried when the straight way in has no
+/// free spot in range.
+const SPOTS_AROUND_TARGET: usize = 16;
+
+/// A free spot within `range` of `target` with line of sight to it, for when the
+/// path straight at the target has none (someone stands in the way): the points
+/// on a circle around the target, the one with the shortest path from `entity`.
+fn free_spot_around_target(
+    engine_state: &EngineState,
+    entity: Entity,
+    target: &TargetInstance,
+    range: Length,
+    line_of_sight: &LineOfSight,
+) -> Option<(Point3<f32>, LineOfSightResult)> {
+    let target_point = target.position(&engine_state.world)?;
+    let ground = systems::geometry::ground_position(&engine_state.geometry, &target_point)?;
+    // The circle on the ground whose points are `range` from the target point,
+    // pulled in a little so rounding can't put them out of range.
+    let height = target_point.y - ground.y;
+    let range = range.get::<meter>();
+    if range <= height {
+        return None;
+    }
+    let radius = (range * range - height * height).sqrt() * 0.9;
+
+    let mut best: Option<(f32, Point3<f32>, LineOfSightResult)> = None;
+    for i in 0..SPOTS_AROUND_TARGET {
+        let angle = std::f32::consts::TAU * i as f32 / SPOTS_AROUND_TARGET as f32;
+        let point = ground + parry3d::na::Vector3::new(angle.cos(), 0.0, angle.sin()) * radius;
+        if !is_free_spot(engine_state, entity, &point) {
+            continue;
+        }
+        let Some(line_of_sight_result) = line_of_sight_from_point(
+            engine_state,
+            entity,
+            &line_of_sight.trajectory,
+            &point,
+            target,
+        ) else {
+            continue;
+        };
+        if !line_of_sight_result.has_line_of_sight {
+            continue;
+        }
+        let Some(route) =
+            systems::geometry::path(&engine_state.world, &engine_state.geometry, entity, point)
+        else {
+            continue;
+        };
+        let length = route.length.get::<meter>();
+        if best
+            .as_ref()
+            .is_none_or(|(shortest, ..)| length < *shortest)
+        {
+            best = Some((length, point, line_of_sight_result));
+        }
+    }
+    best.map(|(_, point, line_of_sight_result)| (point, line_of_sight_result))
+}
+
+/// Whether `entity` could end its move at `point`: standing there, it would
+/// share no space with another creature that is not dead. A creature can move
+/// through another creature's space, but it can't end its move there.
+pub fn is_free_spot(engine_state: &EngineState, entity: Entity, point: &Point3<f32>) -> bool {
+    let Some((shape, pose)) = systems::geometry::get_shape_at_point(
+        &engine_state.world,
+        &engine_state.geometry,
+        entity,
+        point,
+    ) else {
+        return false;
+    };
+    systems::geometry::entities_in_shape(&engine_state.world, &shape, &pose)
+        .into_iter()
+        .all(|other| {
+            other == entity
+                || matches!(
+                    engine_state.world.get::<&LifeState>(other).as_deref(),
+                    Ok(LifeState::Dead)
+                )
+        })
+}
+
+/// The furthest point along `path` where `entity` could end its move, if any.
+fn last_free_point(
+    engine_state: &EngineState,
+    entity: Entity,
+    path: &WorldPath,
+) -> Option<Point3<f32>> {
+    let mut distance = path.length.get::<meter>();
+    loop {
+        let point = path.point_at_distance(Length::new::<meter>(distance))?;
+        if is_free_spot(engine_state, entity, &point) {
+            return Some(point);
+        }
+        if distance <= 0.0 {
+            return None;
+        }
+        distance = (distance - STOP_SEARCH_STEP).max(0.0);
+    }
+}
+
+/// `path_result` itself when the move it takes ends on a free spot, otherwise
+/// the same move cut back to the last free spot along it.
+fn stop_on_free_spot(
+    engine_state: &EngineState,
+    entity: Entity,
+    path_result: PathResult,
+    trim_to_movement: bool,
+) -> Result<PathResult, MovementError> {
+    let Some(end) = path_result.taken_path.end() else {
+        return Ok(path_result);
+    };
+    if is_free_spot(engine_state, entity, end) {
+        return Ok(path_result);
+    }
+    let Some(start) = path_result.taken_path.start().copied() else {
+        return Ok(path_result);
+    };
+    match last_free_point(engine_state, entity, &path_result.taken_path) {
+        Some(stop) if (stop - start).norm() > EPSILON => {
+            path(engine_state, entity, &stop, false, trim_to_movement)
+        }
+        // No free spot along the way but where it stands, or not even that (a
+        // creature came to stand in its space): it stays where it is, short of
+        // the goal.
+        _ => Ok(PathResult {
+            full_path: path_result.full_path,
+            taken_path: WorldPath::new(vec![start]),
+        }),
+    }
 }
 
 pub fn recharge_movement(world: &mut World, entity: Entity) {
