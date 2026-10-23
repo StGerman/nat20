@@ -445,14 +445,20 @@ fn stop_on_free_spot(
     if is_free_spot(engine_state, entity, end) {
         return Ok(path_result);
     }
-    let start = path_result.taken_path.start().copied();
+    let Some(start) = path_result.taken_path.start().copied() else {
+        return Ok(path_result);
+    };
     match last_free_point(engine_state, entity, &path_result.taken_path) {
-        Some(stop) if start.is_none_or(|start| (stop - start).norm() > EPSILON) => {
+        Some(stop) if (stop - start).norm() > EPSILON => {
             path(engine_state, entity, &stop, false, trim_to_movement)
         }
         // No free spot along the way but where it stands, or not even that (a
-        // creature came to stand in its space): it stays where it is.
-        _ => Ok(PathResult::empty()),
+        // creature came to stand in its space): it stays where it is, short of
+        // the goal.
+        _ => Ok(PathResult {
+            full_path: path_result.full_path,
+            taken_path: WorldPath::new(vec![start]),
+        }),
     }
 }
 
