@@ -1,3 +1,12 @@
+> **This is a fork.** [StGerman/nat20](https://github.com/StGerman/nat20) is a long-lived fork of
+> [MadsWedendahlKruse/nat20](https://github.com/MadsWedendahlKruse/nat20). Its default branch, `demo`, is
+> upstream `main` plus our own core changes; everything below this note is upstream's text. What differs,
+> and why, is in [`FORK.md`](FORK.md). Upstream's maintainer does not review or endorse this fork.
+>
+> **Contributing AI-assisted code?** Upstream does not accept AI-generated contributions, so please
+> don't send them there. This fork does: open a pull request against `demo` here (see
+> [`CONTRIBUTING.md`](CONTRIBUTING.md)).
+
 # Nat20
 _**natural 20** (noun)_ \
 _The result of rolling a twenty-sided die and obtaining a value of 20, before applying any modifiers, commonly representing an exceptional outcome._ \
