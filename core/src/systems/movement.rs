@@ -445,9 +445,15 @@ fn stop_on_free_spot(
     if is_free_spot(engine_state, entity, end) {
         return Ok(path_result);
     }
-    let stop = last_free_point(engine_state, entity, &path_result.taken_path)
-        .ok_or(MovementError::NoPathFound)?;
-    path(engine_state, entity, &stop, false, trim_to_movement)
+    let start = path_result.taken_path.start().copied();
+    match last_free_point(engine_state, entity, &path_result.taken_path) {
+        Some(stop) if start.is_none_or(|start| (stop - start).norm() > EPSILON) => {
+            path(engine_state, entity, &stop, false, trim_to_movement)
+        }
+        // No free spot along the way but where it stands, or not even that (a
+        // creature came to stand in its space): it stays where it is.
+        _ => Ok(PathResult::empty()),
+    }
 }
 
 pub fn recharge_movement(world: &mut World, entity: Entity) {
