@@ -1,9 +1,14 @@
-//! A creature walking into range of its target ends its move on a free spot: it
-//! can move through another creature's space, but it can't end its move there
-//! (nat20-table TASKS.md ENG-12).
+//! A creature ends its move on a free spot: it can move through another
+//! creature's space, but it can't end its move there. That holds for a walk
+//! into range of its target (nat20-table TASKS.md ENG-12) and for a move an
+//! opportunity attack stops (ENG-18).
 
 use nat20_core::{
-    components::actions::targeting::{LineOfSight, TargetInstance},
+    components::{
+        actions::targeting::{LineOfSight, TargetInstance},
+        activity::Activity,
+        speed::Speed,
+    },
     systems,
     test_utils::scenario::Scenario,
 };
@@ -115,5 +120,94 @@ fn a_walk_into_reach_goes_around_a_creature_standing_where_it_would_stop() {
     assert!(
         systems::movement::is_free_spot(&scenario.engine_state, fighter, &end),
         "{end} is in another creature's space"
+    );
+}
+
+/// The fighter's reach in meters (radius + 5 ft), as in `opportunity_attack.rs`.
+const FIGHTER_REACH: f32 = 1.974;
+/// The cleric stands where the goblin leaves the fighter's reach.
+const CLERIC_X: f32 = 2.2;
+const GOBLIN_START_X: f32 = 1.0;
+
+/// The goblin, in the fighter's reach, walks away through the cleric's space and
+/// leaves the fighter's reach while inside it.
+fn walk_away_scenario() -> Scenario {
+    let mut scenario = Scenario::new();
+    scenario
+        .spawn("fighter", "hero.fighter")
+        .position([0.0, 0.0, 0.0], true)
+        .spawn();
+    scenario
+        .spawn("goblin", "monster.goblin_warrior")
+        .position([GOBLIN_START_X, 0.0, 0.0], true)
+        .spawn();
+    scenario
+        .spawn("cleric", "hero.cleric")
+        .position([CLERIC_X, 0.0, 0.0], true)
+        .spawn();
+    scenario
+}
+
+#[test]
+fn a_move_an_opportunity_attack_stops_ends_on_a_free_spot() {
+    let mut scenario = walk_away_scenario();
+    let goblin = scenario.entity("goblin");
+    let provoked = [FIGHTER_REACH, 0.0, 0.0].into();
+    assert!(
+        !systems::movement::is_free_spot(&scenario.engine_state, goblin, &provoked),
+        "the goblin must leave the fighter's reach inside the cleric's space"
+    );
+
+    scenario.movement("goblin", [3.0, 0.0, 0.0]);
+
+    let stop = scenario.probe("goblin").position();
+    assert!(
+        stop.x >= GOBLIN_START_X - 0.01 && stop.x < FIGHTER_REACH - 0.01,
+        "{stop} is not back along the way it walked"
+    );
+    assert!(
+        systems::movement::is_free_spot(&scenario.engine_state, goblin, &stop),
+        "{stop} is in another creature's space"
+    );
+    // Still in the fighter's reach, so the fighter gets the opportunity attack.
+    scenario.react("fighter").option_index(0).perform();
+}
+
+#[test]
+fn a_stop_behind_where_the_walk_had_got_to_gives_that_movement_back() {
+    let mut scenario = walk_away_scenario();
+    scenario
+        .encounter()
+        .initiative_order(vec!["goblin", "fighter", "cleric"])
+        .build();
+    let goblin = scenario.entity("goblin");
+    scenario
+        .engine_state
+        .submit_activity(Activity::Move {
+            entity: goblin,
+            goal: [3.0, 0.0, 0.0].into(),
+        })
+        .expect("the goblin can move");
+    // Short steps, so the step that leaves the fighter's reach starts inside
+    // the cleric's space and the stop is behind where the walk had got to.
+    const STEP_SECONDS: f32 = 0.1;
+    for _ in 0..40 {
+        scenario.update(STEP_SECONDS);
+    }
+
+    let stop = scenario.probe("goblin").position();
+    let first_step = GOBLIN_START_X + systems::movement::MOVEMENT_SPEED * STEP_SECONDS;
+    assert!(stop.x < first_step, "{stop} is not behind {first_step}");
+    assert!(
+        systems::movement::is_free_spot(&scenario.engine_state, goblin, &stop),
+        "{stop} is in another creature's space"
+    );
+    let mut moved = 0.0;
+    scenario
+        .probe("goblin")
+        .component::<Speed>(|speed| moved = speed.moved_this_turn().get::<meter>());
+    assert!(
+        (moved - (stop.x - GOBLIN_START_X)).abs() < 0.01,
+        "moved {moved} m to stop at {stop}"
     );
 }
