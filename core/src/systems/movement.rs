@@ -412,18 +412,17 @@ pub fn is_free_spot(engine_state: &EngineState, entity: Entity, point: &Point3<f
         })
 }
 
-/// The furthest point along `path` where `entity` could end its move, if any,
-/// with how far along `path` it is, in meters.
+/// The furthest point along `path` where `entity` could end its move, if any.
 fn last_free_point(
     engine_state: &EngineState,
     entity: Entity,
     path: &WorldPath,
-) -> Option<(f32, Point3<f32>)> {
+) -> Option<Point3<f32>> {
     let mut distance = path.length.get::<meter>();
     loop {
         let point = path.point_at_distance(Length::new::<meter>(distance))?;
         if is_free_spot(engine_state, entity, &point) {
-            return Some((distance, point));
+            return Some(point);
         }
         if distance <= 0.0 {
             return None;
@@ -450,7 +449,7 @@ fn stop_on_free_spot(
         return Ok(path_result);
     };
     match last_free_point(engine_state, entity, &path_result.taken_path) {
-        Some((_, stop)) if (stop - start).norm() > EPSILON => {
+        Some(stop) if (stop - start).norm() > EPSILON => {
             path(engine_state, entity, &stop, false, trim_to_movement)
         }
         // No free spot along the way but where it stands, or not even that (a
@@ -590,23 +589,35 @@ pub fn move_entity(
                     continue;
                 };
 
-                let (stop, moved) =
-                    opportunity_attack_stop(engine_state, entity, &from_position, &intersection);
-                move_new_position(engine_state, entity, &stop, moved);
+                // Where it provoked can be inside another creature's space: it can
+                // move through it but can't end its move there. Then, once the
+                // opportunity attack is settled, it walks on to the first free spot
+                // along its way (nat20-table TASKS.md ENG-18).
+                let walk_on = if is_free_spot(engine_state, entity, &intersection) {
+                    None
+                } else {
+                    walk_on_to_free_spot(engine_state, entity, &intersection)
+                };
 
-                systems::helpers::get_component_mut::<ActivityState>(
+                move_new_position(engine_state, entity, from_position, &intersection);
+
+                let activity = systems::helpers::get_component_mut::<ActivityState>(
                     &mut engine_state.world,
                     entity,
-                )
-                .set_idle();
+                );
+                match walk_on {
+                    // A creature waits while a reaction to it is pending, so it walks
+                    // on only after the attack.
+                    Some(rest) => activity.set_moving(rest, None),
+                    None => activity.set_idle(),
+                }
 
                 engine_state.process_event(event);
                 return;
             }
 
             // No opportunity attacks, so just move the entity
-            let moved = Length::new::<meter>((new_position - from_position).norm());
-            move_new_position(engine_state, entity, new_position, moved);
+            move_new_position(engine_state, entity, from_position, new_position);
         }
 
         MoveMode::Displace => {
@@ -615,68 +626,59 @@ pub fn move_entity(
     }
 }
 
-/// Puts `entity` at `new_position` and, in combat, spends `distance_moved` of
-/// its movement. A negative distance gives movement back: the move ended
-/// behind where it had got to.
 fn move_new_position(
     engine_state: &mut EngineState,
     entity: Entity,
+    from_position: Point3<f32>,
     new_position: &Point3<f32>,
-    distance_moved: Length,
 ) {
     systems::geometry::teleport_to(&mut engine_state.world, entity, new_position);
 
     if systems::combat::is_in_combat(&engine_state, entity) {
+        let distance_moved = Length::new::<meter>((new_position - from_position).norm());
         systems::helpers::get_component_mut::<Speed>(&mut engine_state.world, entity)
             .record_movement(distance_moved);
     }
 }
 
-/// Where a move that provokes an opportunity attack at `provoked` stops, and
-/// how far that is along the way walked from `from_position` (negative when it
-/// is behind it). The move stops at `provoked` when `entity` could end its move
-/// there. Otherwise it stops at the last spot before it, along the way walked,
-/// where it could: a creature can move through another creature's space, but
-/// it can't end its move there (nat20-table TASKS.md ENG-18). The way walked is
-/// the points of the moving path already reached, then `from_position`, then
-/// `provoked`. With no such spot on it, `entity` stays at `from_position`.
-fn opportunity_attack_stop(
+/// The rest of `entity`'s walk from `provoked` up to the first spot along it
+/// where it could end its move, if there is one. The rest of the walk is the
+/// points of its moving path still ahead; the action it was walking to take
+/// stays dropped, as for any move an opportunity attack stops.
+fn walk_on_to_free_spot(
     engine_state: &EngineState,
     entity: Entity,
-    from_position: &Point3<f32>,
     provoked: &Point3<f32>,
-) -> (Point3<f32>, Length) {
-    let step = (provoked - from_position).norm();
-    if is_free_spot(engine_state, entity, provoked) {
-        return (*provoked, Length::new::<meter>(step));
-    }
-    let mut points: Vec<Point3<f32>> = match engine_state.world.get::<&ActivityState>(entity) {
-        Ok(activity) => match &*activity {
-            ActivityState::Moving {
-                path,
-                current_target,
-                ..
-            } => path.points[..(*current_target).min(path.points.len())].to_vec(),
-            _ => Vec::new(),
-        },
-        Err(_) => Vec::new(),
-    };
-    for point in [*from_position, *provoked] {
-        // A point the walk has just reached is `from_position` again; a segment
-        // of no length has no points to try.
-        if points
-            .last()
-            .is_none_or(|last| (point - last).norm() > EPSILON)
-        {
-            points.push(point);
+) -> Option<WorldPath> {
+    let mut points = vec![*provoked];
+    if let Ok(activity) = engine_state.world.get::<&ActivityState>(entity)
+        && let ActivityState::Moving {
+            path,
+            current_target,
+            ..
+        } = &*activity
+    {
+        for point in path.points.iter().skip(*current_target) {
+            // A segment of no length has no points to try.
+            if points
+                .last()
+                .is_none_or(|last| (point - last).norm() > EPSILON)
+            {
+                points.push(*point);
+            }
         }
     }
-    let walked = WorldPath::new(points);
-    let from_distance = walked.length.get::<meter>() - step;
-    match last_free_point(engine_state, entity, &walked) {
-        Some((distance, stop)) => (stop, Length::new::<meter>(distance - from_distance)),
-        None => (*from_position, Length::new::<meter>(0.0)),
+    let rest = WorldPath::new(points);
+    let length = rest.length.get::<meter>();
+    let mut distance = 0.0;
+    while distance < length {
+        distance = (distance + STOP_SEARCH_STEP).min(length);
+        let point = rest.point_at_distance(Length::new::<meter>(distance))?;
+        if is_free_spot(engine_state, entity, &point) {
+            return Some(rest.trim_to_length(Length::new::<meter>(distance)));
+        }
     }
+    None
 }
 
 pub fn calculate_opportunity_attack(

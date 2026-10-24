@@ -1,16 +1,18 @@
 //! A creature ends its move on a free spot: it can move through another
 //! creature's space, but it can't end its move there. That holds for a walk
-//! into range of its target (nat20-table TASKS.md ENG-12) and for a move an
-//! opportunity attack stops (ENG-18).
+//! into range of its target (nat20-table TASKS.md ENG-12) and for a move that
+//! provokes an opportunity attack inside another creature's space (ENG-18).
 
 use nat20_core::{
     components::{
         actions::targeting::{LineOfSight, TargetInstance},
-        activity::Activity,
-        speed::Speed,
+        activity::{ActivityState, ActivityStateTag},
+        d20::{D20CheckKind, D20CheckOutcome},
+        damage::{AttackSource, DamageType},
+        items::equipment::weapon::WeaponKind,
     },
     systems,
-    test_utils::scenario::Scenario,
+    test_utils::scenario::{Operator, Scenario},
 };
 use parry3d::na::Point3;
 use uom::si::{f32::Length, length::meter};
@@ -148,8 +150,17 @@ fn walk_away_scenario() -> Scenario {
     scenario
 }
 
+/// Where the goblin is, and whether it is still walking.
+fn goblin_at(scenario: &Scenario) -> (Point3<f32>, ActivityStateTag) {
+    let goblin = scenario.entity("goblin");
+    let world = &scenario.engine_state.world;
+    let at = systems::geometry::get_foot_position(world, goblin).expect("the goblin stands");
+    let activity = systems::helpers::get_component::<ActivityState>(world, goblin).tag();
+    (at, activity)
+}
+
 #[test]
-fn a_move_an_opportunity_attack_stops_ends_on_a_free_spot() {
+fn a_move_that_provokes_inside_another_creatures_space_walks_on_after_the_attack() {
     let mut scenario = walk_away_scenario();
     let goblin = scenario.entity("goblin");
     let provoked = [FIGHTER_REACH, 0.0, 0.0].into();
@@ -160,54 +171,55 @@ fn a_move_an_opportunity_attack_stops_ends_on_a_free_spot() {
 
     scenario.movement("goblin", [3.0, 0.0, 0.0]);
 
-    let stop = scenario.probe("goblin").position();
-    assert!(
-        stop.x >= GOBLIN_START_X - 0.01 && stop.x < FIGHTER_REACH - 0.01,
-        "{stop} is not back along the way it walked"
+    // It waits where it provoked, still walking, while the fighter decides.
+    let (at, activity) = goblin_at(&scenario);
+    assert!((at.x - FIGHTER_REACH).abs() < 0.01, "{at}");
+    assert_eq!(activity, ActivityStateTag::Moving);
+
+    scenario.probe("fighter").d20_force_outcome(
+        D20CheckKind::AttackRoll(AttackSource::Weapon(WeaponKind::Melee)),
+        D20CheckOutcome::Failure,
     );
+    scenario.react("fighter").option_index(0).perform();
+    for _ in 0..10 {
+        scenario.update(0.1);
+    }
+
+    // Then it walks past the cleric to the first free spot and stops there,
+    // short of where it was going.
+    let (stop, activity) = goblin_at(&scenario);
+    assert_eq!(activity, ActivityStateTag::Idle);
     assert!(
         systems::movement::is_free_spot(&scenario.engine_state, goblin, &stop),
         "{stop} is in another creature's space"
     );
-    // Still in the fighter's reach, so the fighter gets the opportunity attack.
-    scenario.react("fighter").option_index(0).perform();
+    assert!(stop.x > CLERIC_X && stop.x < 3.0 - 0.01, "{stop}");
 }
 
 #[test]
-fn a_stop_behind_where_the_walk_had_got_to_gives_that_movement_back() {
+fn a_creature_the_opportunity_attack_drops_walks_no_further() {
     let mut scenario = walk_away_scenario();
-    scenario
-        .encounter()
-        .initiative_order(vec!["goblin", "fighter", "cleric"])
-        .build();
-    let goblin = scenario.entity("goblin");
-    scenario
-        .engine_state
-        .submit_activity(Activity::Move {
-            entity: goblin,
-            goal: [3.0, 0.0, 0.0].into(),
-        })
-        .expect("the goblin can move");
-    // Short steps, so the step that leaves the fighter's reach starts inside
-    // the cleric's space and the stop is behind where the walk had got to.
-    const STEP_SECONDS: f32 = 0.1;
-    for _ in 0..40 {
-        scenario.update(STEP_SECONDS);
-    }
-
-    let stop = scenario.probe("goblin").position();
-    let first_step = GOBLIN_START_X + systems::movement::MOVEMENT_SPEED * STEP_SECONDS;
-    assert!(stop.x < first_step, "{stop} is not behind {first_step}");
-    assert!(
-        systems::movement::is_free_spot(&scenario.engine_state, goblin, &stop),
-        "{stop} is in another creature's space"
-    );
-    let mut moved = 0.0;
+    // At 1 Hit Point, any hit drops it.
+    let hp = scenario.probe("goblin").hp();
     scenario
         .probe("goblin")
-        .component::<Speed>(|speed| moved = speed.moved_this_turn().get::<meter>());
+        .damage(hp - 1, DamageType::Bludgeoning)
+        .assert_hp(Operator::Equal(1));
+
+    scenario.movement("goblin", [3.0, 0.0, 0.0]);
+    scenario.probe("fighter").d20_force_outcome(
+        D20CheckKind::AttackRoll(AttackSource::Weapon(WeaponKind::Melee)),
+        D20CheckOutcome::Success,
+    );
+    scenario.react("fighter").option_index(0).perform();
+    for _ in 0..10 {
+        scenario.update(0.1);
+    }
+
+    let (at, activity) = goblin_at(&scenario);
+    assert_eq!(activity, ActivityStateTag::Idle);
     assert!(
-        (moved - (stop.x - GOBLIN_START_X)).abs() < 0.01,
-        "moved {moved} m to stop at {stop}"
+        (at.x - FIGHTER_REACH).abs() < 0.01,
+        "{at} moved after it dropped"
     );
 }

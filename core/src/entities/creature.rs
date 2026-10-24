@@ -298,6 +298,14 @@ fn update_activity(engine_state: &mut EngineState, delta_time: f32, entity: Enti
 }
 
 fn update_moving(engine_state: &mut EngineState, delta_time: f32, entity: Entity) {
+    // A creature at 0 Hit Points walks no further: an opportunity attack that
+    // drops it ends the walk it was waiting to finish.
+    if !systems::health::is_alive(&engine_state.world, entity) {
+        systems::helpers::get_component_mut::<ActivityState>(&mut engine_state.world, entity)
+            .set_idle();
+        return;
+    }
+
     let target_point = {
         let activity =
             systems::helpers::get_component::<ActivityState>(&engine_state.world, entity);
