@@ -578,7 +578,18 @@ pub fn move_entity(
                     .unwrap_or(std::cmp::Ordering::Equal)
             });
 
+            let already_provoked = match &*systems::helpers::get_component::<ActivityState>(
+                &engine_state.world,
+                entity,
+            ) {
+                ActivityState::Moving { provoked, .. } => provoked.clone(),
+                _ => Vec::new(),
+            };
+
             for attacker in potential_attackers {
+                if already_provoked.contains(&attacker) {
+                    continue;
+                }
                 let Some((event, intersection)) = calculate_opportunity_attack(
                     engine_state,
                     entity,
@@ -589,27 +600,29 @@ pub fn move_entity(
                     continue;
                 };
 
-                // Where it provoked can be inside another creature's space: it can
-                // move through it but can't end its move there. Then, once the
-                // opportunity attack is settled, it walks on to the first free spot
-                // along its way (nat20-table TASKS.md ENG-18).
-                let walk_on = if is_free_spot(engine_state, entity, &intersection) {
-                    None
-                } else {
-                    walk_on_to_free_spot(engine_state, entity, &intersection)
-                };
+                // The mover waits where it provoked while the reaction is open, then
+                // walks on along the rest of its route and takes the action it was
+                // walking to take (SRD 5.2.1, Opportunity Attacks: the attack
+                // interrupts the movement, it doesn't end it; nat20-table TASKS.md
+                // ENG-22). A walk that provokes inside another creature's space
+                // walks on the same way, to its goal (ENG-18). One that the attack
+                // drops walks no further (`update_moving`).
+                let rest = rest_of_walk(engine_state, entity, &intersection);
 
                 move_new_position(engine_state, entity, from_position, &intersection);
 
-                let activity = systems::helpers::get_component_mut::<ActivityState>(
+                if let ActivityState::Moving {
+                    path,
+                    current_target,
+                    provoked,
+                    ..
+                } = &mut *systems::helpers::get_component_mut::<ActivityState>(
                     &mut engine_state.world,
                     entity,
-                );
-                match walk_on {
-                    // A creature waits while a reaction to it is pending, so it walks
-                    // on only after the attack.
-                    Some(rest) => activity.set_moving(rest, None),
-                    None => activity.set_idle(),
+                ) {
+                    *path = rest;
+                    *current_target = 0;
+                    provoked.push(attacker);
                 }
 
                 engine_state.process_event(event);
@@ -641,15 +654,9 @@ fn move_new_position(
     }
 }
 
-/// The rest of `entity`'s walk from `provoked` up to the first spot along it
-/// where it could end its move, if there is one. The rest of the walk is the
-/// points of its moving path still ahead; the action it was walking to take
-/// stays dropped, as for any move an opportunity attack stops.
-fn walk_on_to_free_spot(
-    engine_state: &EngineState,
-    entity: Entity,
-    provoked: &Point3<f32>,
-) -> Option<WorldPath> {
+/// The rest of `entity`'s walk from `provoked`: the points of its moving path
+/// still ahead.
+fn rest_of_walk(engine_state: &EngineState, entity: Entity, provoked: &Point3<f32>) -> WorldPath {
     let mut points = vec![*provoked];
     if let Ok(activity) = engine_state.world.get::<&ActivityState>(entity)
         && let ActivityState::Moving {
@@ -659,7 +666,7 @@ fn walk_on_to_free_spot(
         } = &*activity
     {
         for point in path.points.iter().skip(*current_target) {
-            // A segment of no length has no points to try.
+            // A segment of no length adds nothing to walk.
             if points
                 .last()
                 .is_none_or(|last| (point - last).norm() > EPSILON)
@@ -668,17 +675,7 @@ fn walk_on_to_free_spot(
             }
         }
     }
-    let rest = WorldPath::new(points);
-    let length = rest.length.get::<meter>();
-    let mut distance = 0.0;
-    while distance < length {
-        distance = (distance + STOP_SEARCH_STEP).min(length);
-        let point = rest.point_at_distance(Length::new::<meter>(distance))?;
-        if is_free_spot(engine_state, entity, &point) {
-            return Some(rest.trim_to_length(Length::new::<meter>(distance)));
-        }
-    }
-    None
+    WorldPath::new(points)
 }
 
 pub fn calculate_opportunity_attack(

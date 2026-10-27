@@ -369,6 +369,7 @@ fn update_moving(engine_state: &mut EngineState, delta_time: f32, entity: Entity
             path,
             current_target,
             action,
+            ..
         } = &mut *activity
         else {
             return;

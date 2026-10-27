@@ -59,6 +59,9 @@ pub enum ActivityState {
         current_target: usize,
         /// Potential action to be performed after reaching the destination
         action: Option<ActionDecision>,
+        /// Creatures this walk has already given an opportunity attack: each one
+        /// gets a single chance per walk.
+        provoked: Vec<Entity>,
     },
     Acting {
         timeline: ActionTimeline,
@@ -93,6 +96,7 @@ impl ActivityState {
             path,
             current_target: 0,
             action,
+            provoked: Vec::new(),
         };
     }
 

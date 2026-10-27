@@ -1,7 +1,8 @@
 //! A creature ends its move on a free spot: it can move through another
 //! creature's space, but it can't end its move there. That holds for a walk
 //! into range of its target (nat20-table TASKS.md ENG-12) and for a move that
-//! provokes an opportunity attack inside another creature's space (ENG-18).
+//! provokes an opportunity attack inside another creature's space (ENG-18): it
+//! walks on through that space to its goal once the attack is settled (ENG-22).
 
 use nat20_core::{
     components::{
@@ -160,7 +161,7 @@ fn goblin_at(scenario: &Scenario) -> (Point3<f32>, ActivityStateTag) {
 }
 
 #[test]
-fn a_move_that_provokes_inside_another_creatures_space_walks_on_after_the_attack() {
+fn a_move_that_provokes_inside_another_creatures_space_walks_on_to_its_goal_after_the_attack() {
     let mut scenario = walk_away_scenario();
     let goblin = scenario.entity("goblin");
     let provoked = [FIGHTER_REACH, 0.0, 0.0].into();
@@ -185,15 +186,15 @@ fn a_move_that_provokes_inside_another_creatures_space_walks_on_after_the_attack
         scenario.update(0.1);
     }
 
-    // Then it walks past the cleric to the first free spot and stops there,
-    // short of where it was going.
+    // Then it walks on past the cleric to where it was going (ENG-22), a free
+    // spot, as the end of every move is.
     let (stop, activity) = goblin_at(&scenario);
     assert_eq!(activity, ActivityStateTag::Idle);
     assert!(
         systems::movement::is_free_spot(&scenario.engine_state, goblin, &stop),
         "{stop} is in another creature's space"
     );
-    assert!(stop.x > CLERIC_X && stop.x < 3.0 - 0.01, "{stop}");
+    assert!((stop.x - 3.0).abs() < 0.01, "{stop}");
 }
 
 #[test]
