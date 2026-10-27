@@ -369,6 +369,7 @@ fn update_moving(engine_state: &mut EngineState, delta_time: f32, entity: Entity
             path,
             current_target,
             action,
+            ..
         } = &mut *activity
         else {
             return;
@@ -426,6 +427,7 @@ fn update_acting(engine_state: &mut EngineState, delta_time: f32, entity: Entity
             elapsed_time,
             phase_cooldown,
             blocking_event,
+            interrupted_walk,
         } = &mut *activity
         else {
             return;
@@ -464,7 +466,11 @@ fn update_acting(engine_state: &mut EngineState, delta_time: f32, entity: Entity
                     .clear_blocker(blocking_event, entity);
             }
 
-            activity.set_idle();
+            // A reaction taken mid-walk hands the creature back to its walk.
+            match interrupted_walk.take() {
+                Some(walk) => *activity = *walk,
+                None => activity.set_idle(),
+            }
         }
 
         (advance, finished)

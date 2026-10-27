@@ -578,38 +578,68 @@ pub fn move_entity(
                     .unwrap_or(std::cmp::Ordering::Equal)
             });
 
-            for attacker in potential_attackers {
-                let Some((event, intersection)) = calculate_opportunity_attack(
-                    engine_state,
-                    entity,
-                    &from_position,
-                    new_position,
-                    attacker,
-                ) else {
-                    continue;
-                };
+            let already_provoked = match &*systems::helpers::get_component::<ActivityState>(
+                &engine_state.world,
+                entity,
+            ) {
+                ActivityState::Moving { provoked, .. } => provoked.clone(),
+                _ => Vec::new(),
+            };
 
-                // Where it provoked can be inside another creature's space: it can
-                // move through it but can't end its move there. Then, once the
-                // opportunity attack is settled, it walks on to the first free spot
-                // along its way (nat20-table TASKS.md ENG-18).
-                let walk_on = if is_free_spot(engine_state, entity, &intersection) {
-                    None
-                } else {
-                    walk_on_to_free_spot(engine_state, entity, &intersection)
-                };
+            // The walk stops at the first point on this step where it leaves a
+            // reach, whoever's it is, so no exit is passed over for a later one.
+            let mut exits: Vec<(Entity, Event, Point3<f32>)> = potential_attackers
+                .into_iter()
+                .filter(|attacker| !already_provoked.contains(attacker))
+                .filter_map(|attacker| {
+                    calculate_opportunity_attack(
+                        engine_state,
+                        entity,
+                        &from_position,
+                        new_position,
+                        attacker,
+                    )
+                    .map(|(event, intersection)| (attacker, event, intersection))
+                })
+                .collect();
+            exits.sort_by(|(_, _, a), (_, _, b)| {
+                (a - from_position)
+                    .norm()
+                    .partial_cmp(&(b - from_position).norm())
+                    .unwrap_or(std::cmp::Ordering::Equal)
+            });
+
+            for (attacker, event, intersection) in exits {
+                // A creature that can't see the mover where it leaves the reach
+                // gets no window there, so the walk doesn't stop for it, and it
+                // keeps its chance for a later exit on this walk where it can.
+                if !can_react_at(engine_state, entity, attacker, &event, &intersection) {
+                    continue;
+                }
+
+                // The mover waits where it provoked while the reaction is open, then
+                // walks on along the rest of its route and takes the action it was
+                // walking to take (SRD 5.2.1, Opportunity Attacks: the attack
+                // interrupts the movement, it doesn't end it; nat20-table TASKS.md
+                // ENG-22). A walk that provokes inside another creature's space
+                // walks on the same way, to its goal (ENG-18). One that the attack
+                // drops walks no further (`update_moving`).
+                let rest = rest_of_walk(engine_state, entity, &intersection);
 
                 move_new_position(engine_state, entity, from_position, &intersection);
 
-                let activity = systems::helpers::get_component_mut::<ActivityState>(
+                if let ActivityState::Moving {
+                    path,
+                    current_target,
+                    provoked,
+                    ..
+                } = &mut *systems::helpers::get_component_mut::<ActivityState>(
                     &mut engine_state.world,
                     entity,
-                );
-                match walk_on {
-                    // A creature waits while a reaction to it is pending, so it walks
-                    // on only after the attack.
-                    Some(rest) => activity.set_moving(rest, None),
-                    None => activity.set_idle(),
+                ) {
+                    *path = rest;
+                    *current_target = 0;
+                    provoked.push(attacker);
                 }
 
                 engine_state.process_event(event);
@@ -624,6 +654,31 @@ pub fn move_entity(
             systems::geometry::teleport_to(&mut engine_state.world, entity, new_position)
         }
     }
+}
+
+/// Whether `attacker` has a reaction to `event` with `mover` standing at
+/// `point`, the edge of its reach. Range is not checked there, since the edge is
+/// as far as the reach goes; line of sight is.
+fn can_react_at(
+    engine_state: &mut EngineState,
+    mover: Entity,
+    attacker: Entity,
+    event: &Event,
+    point: &Point3<f32>,
+) -> bool {
+    let Some(standing) = systems::geometry::get_foot_position(&engine_state.world, mover) else {
+        return false;
+    };
+    systems::geometry::teleport_to(&mut engine_state.world, mover, point);
+    let can_react = !systems::actions::available_reactions_to_event(
+        engine_state,
+        attacker,
+        event,
+        &[ActionUsabilityCheck::Targeting(vec![TargetingCheck::Range])],
+    )
+    .is_empty();
+    systems::geometry::teleport_to(&mut engine_state.world, mover, &standing);
+    can_react
 }
 
 fn move_new_position(
@@ -641,15 +696,9 @@ fn move_new_position(
     }
 }
 
-/// The rest of `entity`'s walk from `provoked` up to the first spot along it
-/// where it could end its move, if there is one. The rest of the walk is the
-/// points of its moving path still ahead; the action it was walking to take
-/// stays dropped, as for any move an opportunity attack stops.
-fn walk_on_to_free_spot(
-    engine_state: &EngineState,
-    entity: Entity,
-    provoked: &Point3<f32>,
-) -> Option<WorldPath> {
+/// The rest of `entity`'s walk from `provoked`: the points of its moving path
+/// still ahead.
+fn rest_of_walk(engine_state: &EngineState, entity: Entity, provoked: &Point3<f32>) -> WorldPath {
     let mut points = vec![*provoked];
     if let Ok(activity) = engine_state.world.get::<&ActivityState>(entity)
         && let ActivityState::Moving {
@@ -659,7 +708,7 @@ fn walk_on_to_free_spot(
         } = &*activity
     {
         for point in path.points.iter().skip(*current_target) {
-            // A segment of no length has no points to try.
+            // A segment of no length adds nothing to walk.
             if points
                 .last()
                 .is_none_or(|last| (point - last).norm() > EPSILON)
@@ -668,17 +717,7 @@ fn walk_on_to_free_spot(
             }
         }
     }
-    let rest = WorldPath::new(points);
-    let length = rest.length.get::<meter>();
-    let mut distance = 0.0;
-    while distance < length {
-        distance = (distance + STOP_SEARCH_STEP).min(length);
-        let point = rest.point_at_distance(Length::new::<meter>(distance))?;
-        if is_free_spot(engine_state, entity, &point) {
-            return Some(rest.trim_to_length(Length::new::<meter>(distance)));
-        }
-    }
-    None
+    WorldPath::new(points)
 }
 
 pub fn calculate_opportunity_attack(
@@ -765,16 +804,31 @@ fn get_opportunity_attack_point(
         attacker_reach,
     );
 
+    let event = Event::new(EventKind::MovingOutOfReach {
+        mover: EntityIdentifier::from_world(&engine_state.world, entity),
+        entity: EntityIdentifier::from_world(&engine_state.world, attacker),
+    });
+
+    // Scenario 0: Entity starts on the edge of reach and moves away from the attacker.
+    // A creature at the edge of reach is within it, so this leaves reach right where it
+    // starts. It happens when a walk stops where it leaves one creature's reach at the
+    // same point where it leaves another's: it walks on from both edges at once.
+    let from_offset = from_position - attacker_position;
+    if (from_offset.norm() - attacker_reach).abs() <= EPSILON
+        && (new_position - from_position).dot(&from_offset) > 0.0
+    {
+        trace!(
+            "Entity {:?} starts on the edge of reach of potential attacker {:?} and moves away, so potential opportunity attack.",
+            entity, attacker
+        );
+        return Some((event, *from_position));
+    }
+
     // Scenario 1: No intersections
     // Entity either doesn't come within reach or doesn't leave reach, so no opportunity attack.
     if intersections.is_empty() {
         return None;
     }
-
-    let event = Event::new(EventKind::MovingOutOfReach {
-        mover: EntityIdentifier::from_world(&engine_state.world, entity),
-        entity: EntityIdentifier::from_world(&engine_state.world, attacker),
-    });
 
     // Scenario 2: One intersection
     // 2a: Entity starts outside of reach and enters reach: no opportunity attack
