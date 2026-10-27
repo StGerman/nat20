@@ -5,6 +5,7 @@
 
 use nat20_core::{
     components::{
+        actions::action_builder::ReactionBuilder,
         activity::{ActivityState, ActivityStateTag},
         d20::{D20CheckKind, D20CheckOutcome},
         damage::AttackSource,
@@ -135,9 +136,105 @@ fn a_walk_goes_on_past_a_creature_that_cant_see_it_leave() {
         .react("fighter")
         .option_index(0)
         .assert_perform_fails();
+    // The fighter keeps its chance for a later exit on this walk where it can see.
+    let fighter = scenario.entity("fighter");
+    match &*systems::helpers::get_component::<ActivityState>(
+        &scenario.engine_state.world,
+        scenario.entity("goblin"),
+    ) {
+        ActivityState::Moving { provoked, .. } => assert!(!provoked.contains(&fighter)),
+        other => panic!("the goblin isn't walking: {:?}", other.tag()),
+    }
 
     scenario.react("cleric").option_none().perform();
     scenario
         .probe("goblin")
         .assert_position([4.0, 0.0, 0.0], Length::new::<meter>(0.01));
+}
+
+#[test]
+fn two_creatures_whose_reach_ends_at_the_same_point_each_get_a_window() {
+    // The fighters stand either side of the goblin's route, so it leaves both
+    // reaches at the same point. The walk stops there once for each of them.
+    let mut scenario = Scenario::new();
+    for (handle, z) in [("fighter_a", 1.0), ("fighter_b", -1.0)] {
+        scenario
+            .spawn(handle, "hero.fighter")
+            .position([0.0, 0.0, z], true)
+            .spawn();
+    }
+    scenario
+        .spawn("goblin", "monster.goblin_warrior")
+        .position([0.0, 0.0, 0.0], true)
+        .spawn();
+
+    scenario.movement("goblin", [4.0, 0.0, 0.0]);
+    let edge = (FIGHTER_REACH.powi(2) - 1.0).sqrt();
+    scenario
+        .probe("goblin")
+        .assert_position([edge, 0.0, 0.0], Length::new::<meter>(0.01));
+
+    let (first, second) = if scenario
+        .engine_state
+        .next_prompt_entity(scenario.entity("fighter_a"))
+        .is_some()
+    {
+        ("fighter_a", "fighter_b")
+    } else {
+        ("fighter_b", "fighter_a")
+    };
+    scenario.react(first).option_none().perform();
+
+    // Still at the edge: the second fighter's window is open.
+    scenario
+        .probe("goblin")
+        .assert_position([edge, 0.0, 0.0], Length::new::<meter>(0.01));
+    scenario.react(second).option_none().perform();
+
+    scenario
+        .probe("goblin")
+        .assert_position([4.0, 0.0, 0.0], Length::new::<meter>(0.01));
+}
+
+#[test]
+fn a_mover_that_casts_shield_against_the_opportunity_attack_walks_on() {
+    let mut scenario = scenario_with(&[("fighter", "hero.fighter", 0.0)]);
+    // Level 5 so the wizard knows Shield and the attack can't drop it.
+    scenario
+        .spawn("wizard", "hero.wizard")
+        .level(5)
+        .position([1.0, 0.0, 0.0], true)
+        .spawn();
+    let wizard = scenario.entity("wizard");
+
+    scenario.movement("wizard", [8.0, 0.0, 0.0]);
+    scenario.probe("fighter").d20_force_outcome(
+        D20CheckKind::AttackRoll(AttackSource::Weapon(WeaponKind::Melee)),
+        D20CheckOutcome::Success,
+    );
+    ReactionBuilder::new(&scenario.engine_state, scenario.entity("fighter"))
+        .option_index(0)
+        .perform_ok(&mut scenario.engine_state);
+
+    // Tick the way a client's table does: stop as soon as the wizard has a window
+    // to answer, which is while it still has a way to walk.
+    for _ in 0..100 {
+        if scenario.engine_state.next_prompt_entity(wizard).is_some() {
+            break;
+        }
+        scenario.update(0.1);
+    }
+    assert_eq!(activity(&scenario, "wizard"), ActivityStateTag::Moving);
+
+    scenario
+        .probe("wizard")
+        .react()
+        .option_id("action.shield")
+        .perform();
+
+    scenario
+        .probe("wizard")
+        .assert_effect("effect.spell.shield")
+        .assert_position([8.0, 0.0, 0.0], Length::new::<meter>(0.01));
+    assert_eq!(activity(&scenario, "wizard"), ActivityStateTag::Idle);
 }

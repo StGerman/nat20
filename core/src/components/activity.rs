@@ -68,6 +68,10 @@ pub enum ActivityState {
         elapsed_time: f32,
         phase_cooldown: f32,
         blocking_event: Option<EventId>,
+        /// The walk this action interrupted, when the creature takes it in the
+        /// middle of one (a reaction such as Shield against the opportunity
+        /// attack its walk provoked). The walk goes on when the action ends.
+        interrupted_walk: Option<Box<ActivityState>>,
     },
     Displaced {
         trajectory: Parabola,
@@ -109,11 +113,21 @@ impl ActivityState {
         }
         debug!("Setting entity to perform action {:?}", action);
 
+        // A walk with steps still ahead is only interrupted. One at its goal is
+        // over: its own follow-up action is what starts here.
+        let walking = matches!(
+            self,
+            ActivityState::Moving { path, current_target, .. }
+                if *current_target < path.points.len()
+        );
+        let interrupted_walk = walking.then(|| Box::new(std::mem::take(self)));
+
         *self = ActivityState::Acting {
             timeline: action.timeline.clone(),
             elapsed_time: 0.0,
             phase_cooldown: action.timeline.step_spacing,
             blocking_event,
+            interrupted_walk,
         };
     }
 
