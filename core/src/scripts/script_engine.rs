@@ -9,7 +9,7 @@
 use std::{
     collections::HashMap,
     str::FromStr,
-    sync::{LazyLock, Mutex},
+    sync::{Arc, LazyLock, Mutex},
 };
 
 use hecs::Entity;
@@ -27,9 +27,11 @@ use mlua::{Function, Lua, RegistryKey, Table, Value};
 // - Cross-thread access is *documented* to serialize via that same reentrant
 //   lock. Empirically, however, multiple OS threads pounding on the same
 //   `Lua` state from `cargo test` reliably hang once you cross ~4 concurrent
-//   scripted tests. The cause is somewhere in mlua-with-vendored-Lua-under-
-//   contention rather than in our locking; we can't reproduce it as a clean
-//   two-thread deadlock.
+//   scripted tests. One cause was our locking: `load_module` held the
+//   `module_cache` lock while asking Lua for a cached module, and a thread
+//   already inside Lua (a hook reaching `load_module` again) waits for the
+//   cache, so the two locks were taken in opposite orders. `load_module` now
+//   drops the cache lock first; `tests/script_engine_threads.rs` covers it.
 //
 // **Workaround**: `.cargo/config.toml` sets `RUST_TEST_THREADS=1`, so
 // `cargo test` is single-threaded by default. Tests run in ~0.5s total
@@ -41,8 +43,8 @@ use mlua::{Function, Lua, RegistryKey, Table, Value};
 // scripts; for tests that's microseconds.
 //
 // Only the `module_cache` itself needs explicit sync within `ScriptEngine`;
-// it lives behind a short-lived `Mutex` that's never held across script
-// execution.
+// it lives behind a short-lived `Mutex` that's never held across a call
+// into Lua.
 
 use crate::{
     components::{
@@ -70,7 +72,9 @@ pub static SCRIPT_ENGINE: LazyLock<ScriptEngine> = LazyLock::new(ScriptEngine::n
 
 pub struct ScriptEngine {
     lua: Lua,
-    module_cache: Mutex<HashMap<ScriptId, RegistryKey>>,
+    /// Shared keys, so a lookup can drop the cache lock before it asks Lua for the module: a
+    /// thread inside Lua holds the Lua lock and may be waiting for this one.
+    module_cache: Mutex<HashMap<ScriptId, Arc<RegistryKey>>>,
 }
 
 impl Default for ScriptEngine {
@@ -100,15 +104,16 @@ impl ScriptEngine {
 
     fn load_module(&self, script: &Script) -> Result<Table, ScriptError> {
         // Brief lock to check the cache; release before potentially compiling
-        // a new script (which may `require(...)` and re-enter `load_module`).
-        {
-            let cache = self.module_cache.lock().unwrap();
-            if let Some(key) = cache.get(&script.id) {
-                return self
-                    .lua
-                    .registry_value(key)
-                    .map_err(|e| ScriptError::RuntimeError(format!("Lua registry: {e}")));
-            }
+        // a new script (which may `require(...)` and re-enter `load_module`),
+        // and before asking Lua for a cached one: a thread inside Lua holds the
+        // Lua lock and may be waiting for the cache, so holding both here in the
+        // other order deadlocks.
+        let cached = self.module_cache.lock().unwrap().get(&script.id).cloned();
+        if let Some(key) = cached {
+            return self
+                .lua
+                .registry_value(&key)
+                .map_err(|e| ScriptError::RuntimeError(format!("Lua registry: {e}")));
         }
 
         let chunk = self
@@ -137,7 +142,7 @@ impl ScriptEngine {
         self.module_cache
             .lock()
             .unwrap()
-            .insert(script.id.clone(), key);
+            .insert(script.id.clone(), Arc::new(key));
         Ok(table)
     }
 
