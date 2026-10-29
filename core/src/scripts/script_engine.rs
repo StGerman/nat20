@@ -9,7 +9,7 @@
 use std::{
     collections::HashMap,
     str::FromStr,
-    sync::{LazyLock, Mutex},
+    sync::{Arc, LazyLock, Mutex},
 };
 
 use hecs::Entity;
@@ -70,7 +70,9 @@ pub static SCRIPT_ENGINE: LazyLock<ScriptEngine> = LazyLock::new(ScriptEngine::n
 
 pub struct ScriptEngine {
     lua: Lua,
-    module_cache: Mutex<HashMap<ScriptId, RegistryKey>>,
+    /// Shared keys, so a lookup can drop the cache lock before it asks Lua for the module: a
+    /// thread inside Lua holds the Lua lock and may be waiting for this one.
+    module_cache: Mutex<HashMap<ScriptId, Arc<RegistryKey>>>,
 }
 
 impl Default for ScriptEngine {
@@ -100,15 +102,16 @@ impl ScriptEngine {
 
     fn load_module(&self, script: &Script) -> Result<Table, ScriptError> {
         // Brief lock to check the cache; release before potentially compiling
-        // a new script (which may `require(...)` and re-enter `load_module`).
-        {
-            let cache = self.module_cache.lock().unwrap();
-            if let Some(key) = cache.get(&script.id) {
-                return self
-                    .lua
-                    .registry_value(key)
-                    .map_err(|e| ScriptError::RuntimeError(format!("Lua registry: {e}")));
-            }
+        // a new script (which may `require(...)` and re-enter `load_module`),
+        // and before asking Lua for a cached one: a thread inside Lua holds the
+        // Lua lock and may be waiting for the cache, so holding both here in the
+        // other order deadlocks.
+        let cached = self.module_cache.lock().unwrap().get(&script.id).cloned();
+        if let Some(key) = cached {
+            return self
+                .lua
+                .registry_value(&key)
+                .map_err(|e| ScriptError::RuntimeError(format!("Lua registry: {e}")));
         }
 
         let chunk = self
@@ -137,7 +140,7 @@ impl ScriptEngine {
         self.module_cache
             .lock()
             .unwrap()
-            .insert(script.id.clone(), key);
+            .insert(script.id.clone(), Arc::new(key));
         Ok(table)
     }
 
