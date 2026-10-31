@@ -102,3 +102,27 @@ fn an_incapacitated_creature_loses_the_benefits_of_dodging() {
         .cloned();
     assert_eq!(tracker, None);
 }
+
+#[test]
+fn a_creature_whose_speed_is_0_loses_the_benefits_of_dodging() {
+    // Paralyzed sets Speed to 0 (and also incapacitates; no registry effect stops movement alone)
+    let mut scenario = scenario();
+    scenario.probe("fighter").act("action.dodge").perform();
+    scenario
+        .probe("fighter")
+        .apply_effect("effect.condition.paralyzed")
+        .assert_effect(DODGE)
+        .assert_d20_no_advantage(&dexterity_save(), &dodge_source(), AdvantageType::Advantage);
+    let dodge = scenario
+        .probe("goblin")
+        .preview_attack_roll(
+            "fighter",
+            "action.melee_attack",
+            EquipmentSlot::MeleeMainHand,
+        )
+        .advantage_tracker()
+        .summary()
+        .get(&dodge_source())
+        .cloned();
+    assert_eq!(dodge, None);
+}
