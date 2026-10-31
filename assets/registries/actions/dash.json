@@ -1,6 +1,6 @@
 {
     "id": "nat20_core::action.dash",
-    "description": "You double your movement speed until the end of the turn.",
+    "description": "You gain extra movement equal to your Speed for the current turn. Each Dash adds it again.",
     "kind": {
         "standard": {
             "phases": [
