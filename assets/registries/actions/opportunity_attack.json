@@ -1,6 +1,7 @@
 {
     "id": "nat20_core::action.opportunity_attack",
     "description": "Make an attack against a creature moving out of your reach.",
+    "summary": "A creature you can see is leaving your reach: make one melee attack against it.",
     "kind": {
         "standard": {
             "phases": [

@@ -1,6 +1,7 @@
 {
     "id": "nat20_core::spell.ray_of_frost",
     "description": "A frigid beam of blue-white light streaks toward a creature within range. Make a ranged spell attack against the target. On a hit, it takes 1d8 Cold damage, and its Speed is reduced by 10 feet until the start of your next turn.",
+    "summary": "A spell attack with a frigid beam. A hit deals cold damage and slows the target by 10 feet until your next turn starts.",
     "base_level": 0,
     "school": "evocation",
     "flags": [

@@ -1,6 +1,7 @@
 {
     "id": "nat20_core::action.barbarian.reckless_attack_reaction",
     "description": "When you're about to miss an attack, you can throw aside all concern for defense to attack with increased ferocity. Doing so gives you Advantage on attack rolls using Strength until the start of your next turn, but attack rolls against you have Advantage during that time.",
+    "summary": "Attack with Advantage on Strength attack rolls this turn; until your next turn, attack rolls against you have Advantage too.",
     "kind": {
         "reaction": {
             "body": "nat20_core::script.action.barbarian.reckless_attack_reaction"

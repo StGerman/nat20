@@ -67,6 +67,13 @@
                 }
             }
         },
+        "summary": {
+            "description": "One to three plain sentences on what the action does, for a player choosing it. Optional;\nunlike `description` it never carries computed numbers or DCs.",
+            "type": [
+                "string",
+                "null"
+            ]
+        },
         "target_usability": {
             "description": "Checked once a target has been chosen, for conditions that depend on who is\nbeing targeted (e.g. Brutal Strike needs Advantage against *this* target)",
             "anyOf": [

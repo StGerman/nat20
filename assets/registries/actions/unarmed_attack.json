@@ -1,6 +1,7 @@
 {
     "id": "nat20_core::action.unarmed_attack",
     "description": "Make an unarmed strike.",
+    "summary": "Punch, kick or headbutt a creature within your reach. A hit deals bludgeoning damage of 1 plus your Strength modifier.",
     "kind": {
         "standard": {
             "phases": [

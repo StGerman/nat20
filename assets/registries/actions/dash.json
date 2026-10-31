@@ -1,6 +1,7 @@
 {
     "id": "nat20_core::action.dash",
     "description": "You gain extra movement equal to your Speed for the current turn. Each Dash adds it again.",
+    "summary": "You gain extra movement equal to your Speed this turn; a second Dash in the same turn adds it again.",
     "kind": {
         "standard": {
             "phases": [

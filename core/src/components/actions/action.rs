@@ -66,6 +66,8 @@ pub type TargetUsabilityFunction =
 pub struct Action {
     pub id: ActionId,
     pub description: String,
+    /// One to three plain sentences on what the action does, for a player choosing it
+    pub summary: Option<String>,
     pub kind: ActionKind,
     pub targeting: Arc<TargetingFunction>,
     /// e.g. Action, Bonus Action, Reaction

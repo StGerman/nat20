@@ -1,6 +1,7 @@
 {
     "id": "nat20_core::spell.spare_the_dying",
     "description": "Choose a creature within range that has 0 Hit Points and isn't dead. The creature becomes Stable.",
+    "summary": "A creature at 0 Hit Points within 15 feet becomes Stable: no more death saving throws.",
     "_comment": "The range doubling at levels 5, 11 and 17 is not modelled.",
     "base_level": 0,
     "school": "necromancy",

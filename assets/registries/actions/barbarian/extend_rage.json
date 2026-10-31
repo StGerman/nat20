@@ -1,6 +1,7 @@
 {
     "id": "nat20_core::action.barbarian.extend_rage",
     "description": "Extend your Rage until the end of your next turn.",
+    "summary": "Keep your Rage going until the end of your next turn.",
     "kind": {
         "standard": {
             "phases": [
