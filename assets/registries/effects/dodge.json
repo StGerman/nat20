@@ -1,0 +1,17 @@
+{
+    "id": "nat20_core::effect.dodge",
+    "kind": "buff",
+    "description": "Dodging: attack rolls against you have Disadvantage, and you make Dexterity saving throws with Advantage. You lose this if you are Incapacitated or your Speed is 0.",
+    "_comment": "SRD 5.2.1, Actions > Dodge. The rule names attackers you can see; vision isn't modelled, so every attacker counts.",
+    "on_attacked": [
+        {
+            "script": "nat20_core::script.effect.dodge"
+        }
+    ],
+    "on_saving_throw": [
+        {
+            "kind": "dexterity",
+            "script": "nat20_core::script.effect.dodge"
+        }
+    ]
+}

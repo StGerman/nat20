@@ -19,6 +19,9 @@ use crate::components::modifier::ModifierSource;
 pub struct Speed {
     flat: HashMap<ModifierSource, f32>,
     multipliers: HashMap<ModifierSource, f32>,
+    /// Extra movement equal to the speed, counted per source: each Dash adds one (SRD 5.2.1,
+    /// Dash: "extra movement equal to your Speed"), so two Dashes in a turn give three times it.
+    extra_speeds: HashMap<ModifierSource, u32>,
     moved_this_turn: f32,
 
     free_movement_multipliers: HashMap<ModifierSource, f32>,
@@ -33,6 +36,7 @@ impl Speed {
         Self {
             flat,
             multipliers: HashMap::new(),
+            extra_speeds: HashMap::new(),
             moved_this_turn: 0.0,
             free_movement_multipliers: HashMap::new(),
             free_movement_used: 0.0,
@@ -59,6 +63,16 @@ impl Speed {
 
     pub fn remove_multiplier(&mut self, source: &ModifierSource) {
         self.multipliers.remove(source);
+    }
+
+    /// Adds extra movement equal to the speed, once more for `source`. Unlike a multiplier,
+    /// it stacks: each call adds one more speed's worth.
+    pub fn add_extra_speed(&mut self, source: ModifierSource) {
+        *self.extra_speeds.entry(source).or_insert(0) += 1;
+    }
+
+    pub fn extra_speeds(&self) -> &HashMap<ModifierSource, u32> {
+        &self.extra_speeds
     }
 
     pub fn moved_this_turn(&self) -> Length {
@@ -140,7 +154,9 @@ impl EffectiveSpeed {
             self.0.multipliers.values().product()
         };
 
-        Length::new::<meter>(base_speed * total_multiplier)
+        let extra: u32 = self.0.extra_speeds.values().sum();
+
+        Length::new::<meter>(base_speed * total_multiplier * (1 + extra) as f32)
     }
 
     pub fn remaining_movement(&self) -> Length {

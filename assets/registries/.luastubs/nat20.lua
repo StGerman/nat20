@@ -308,6 +308,9 @@ local Speed = {}
 ---@param source string
 ---@param value string either a length expression ("10 feet") or a multiplier ("x2"), the same grammar as the `speed` effect modifier in JSON.
 function Speed:add_modifier(source, value) end
+---Adds extra movement equal to the Speed, once more for `source`: each call stacks (the Dash action).
+---@param source string
+function Speed:add_extra_speed(source) end
 
 ---@class ModifierResult
 ---@field total integer

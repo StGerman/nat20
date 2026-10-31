@@ -1,0 +1,39 @@
+{
+    "id": "nat20_core::action.dodge",
+    "description": "Until the start of your next turn, attack rolls against you have Disadvantage and you make Dexterity saving throws with Advantage. You lose this if you are Incapacitated or your Speed is 0.",
+    "kind": {
+        "standard": {
+            "phases": [
+                {
+                    "payload": {
+                        "components": [
+                            {
+                                "effect": {
+                                    "effect_id": "nat20_core::effect.dodge",
+                                    "lifetime": {
+                                        "turn_boundary": {
+                                            "entity": "applier",
+                                            "boundary": "start",
+                                            "duration": {
+                                                "turns": 1
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        ],
+                        "delivery": "immediate"
+                    }
+                }
+            ]
+        }
+    },
+    "targeting": "self",
+    "resource_cost": {
+        "nat20_core::resource.action": 1
+    },
+    "timeline": {
+        "total_duration": 1.0,
+        "perform_time": 0.5
+    }
+}

@@ -1,10 +1,11 @@
 {
     "id": "nat20_core::effect.dash",
     "kind": "buff",
-    "description": "Your movement speed is doubled until the end of your turn.",
-    "modifiers": [
+    "description": "You gain extra movement equal to your Speed for the current turn. Each Dash adds it again.",
+    "_comment": "SRD 5.2.1, Actions > Dash: \"you gain extra movement for the current turn. The increase equals your Speed after applying any modifiers.\" Each instance adds one extra Speed through the speed hook, so a second Dash in the same turn (Action Surge) adds movement too; a speed multiplier would key both on the same source and add nothing.",
+    "on_speed": [
         {
-            "speed": "x2"
+            "script": "nat20_core::script.effect.dash"
         }
     ]
 }

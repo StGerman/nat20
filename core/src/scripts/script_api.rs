@@ -633,6 +633,11 @@ impl UserData for Speed {
                 Ok(())
             },
         );
+        // Extra movement equal to the speed, stacking once per call (the Dash action)
+        methods.add_method_mut("add_extra_speed", |_, this, source: String| {
+            this.add_extra_speed(parse_source(&source)?);
+            Ok(())
+        });
     }
 }
 
