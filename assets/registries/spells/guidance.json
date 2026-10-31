@@ -1,7 +1,7 @@
 {
     "id": "nat20_core::spell.guidance",
     "description": "You touch a willing creature and choose a skill. Until the spell ends, the creature adds 1d4 to any ability check using the chosen skill.",
-    "summary": "Touch an ally and name a skill: they add 1d4 to checks with that skill while the spell lasts. Concentration, up to 1 minute.",
+    "summary": "Touch a willing creature, you included, and name a skill: it adds 1d4 to checks with that skill while the spell lasts. Concentration, up to 1 minute.",
     "base_level": 0,
     "school": "divination",
     "flags": [

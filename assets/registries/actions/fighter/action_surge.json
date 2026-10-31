@@ -1,7 +1,7 @@
 {
     "id": "nat20_core::action.fighter.action_surge",
     "description": "You can push yourself beyond your normal limits for a moment. On your turn, you can take one additional action.",
-    "summary": "Take one more action this turn (not the Magic action). Once until you finish a Short or Long Rest.",
+    "summary": "Take one more action this turn. Once per Short or Long Rest.",
     "kind": {
         "standard": {
             "phases": [
