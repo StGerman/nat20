@@ -1,6 +1,7 @@
 {
     "id": "nat20_core::action.dodge",
     "description": "Until the start of your next turn, attack rolls against you have Disadvantage and you make Dexterity saving throws with Advantage. You lose this if you are Incapacitated or your Speed is 0.",
+    "summary": "Until the start of your next turn, attacks against you have Disadvantage and you have Advantage on Dexterity saving throws; you lose this while you are Incapacitated or your Speed is 0.",
     "kind": {
         "standard": {
             "phases": [

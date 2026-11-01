@@ -1,6 +1,7 @@
 {
     "id": "nat20_core::spell.bless",
     "description": "You bless up to three creatures within range. Whenever a target makes an attack roll or a saving throw before the spell ends, the target adds 1d4 to the attack roll or save.",
+    "summary": "Up to three creatures add 1d4 to their attack rolls and saving throws. Concentration, up to 1 minute.",
     "base_level": 1,
     "school": "enchantment",
     "flags": [

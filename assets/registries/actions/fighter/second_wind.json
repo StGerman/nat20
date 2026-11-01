@@ -1,6 +1,7 @@
 {
     "id": "nat20_core::action.fighter.second_wind",
     "description": "You have a limited well of physical and mental stamina that you can draw on. As a Bonus Action, you can use it to regain Hit Points equal to 1d10 plus your Fighter level.",
+    "summary": "Catch your breath and regain 1d10 + your Fighter level in Hit Points. You have a few uses; a Short Rest gives one back.",
     "kind": {
         "standard": {
             "phases": [

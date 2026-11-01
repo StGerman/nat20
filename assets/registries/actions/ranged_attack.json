@@ -1,6 +1,7 @@
 {
     "id": "nat20_core::action.ranged_attack",
     "description": "Make a ranged weapon attack with a weapon you are wielding.",
+    "summary": "Shoot at a creature in the weapon's range. Past its normal range, or with a foe within 5 feet of you, the roll has Disadvantage.",
     "kind": {
         "standard": {
             "phases": [

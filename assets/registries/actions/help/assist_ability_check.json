@@ -1,6 +1,7 @@
 {
     "id": "nat20_core::action.help.assist_ability_check",
     "description": "Choose one of your skill or tool proficiencies and one ally who is near enough for you to assist verbally or physically when they make an ability check. That ally has Advantage on the next ability check they make with the chosen skill or tool. This benefit expires if the ally doesn't use it before the start of your next turn. The GM has final say on whether your assistance is possible.",
+    "summary": "Pick an ally and a skill or tool you are proficient with: their next check with it before your next turn has Advantage.",
     "kind": {
         "variant": {
             "variants": [

@@ -66,6 +66,13 @@
         "school": {
             "$ref": "#/definitions/MagicSchool"
         },
+        "summary": {
+            "description": "One to three plain sentences on what the spell does, for a player choosing it. Optional;\nunlike `description` it never carries computed numbers or DCs.",
+            "type": [
+                "string",
+                "null"
+            ]
+        },
         "target_usability": {
             "anyOf": [
                 {

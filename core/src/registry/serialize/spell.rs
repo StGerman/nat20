@@ -23,6 +23,10 @@ use crate::{
 pub struct SpellDefinition {
     pub id: SpellId,
     pub description: String,
+    /// One to three plain sentences on what the spell does, for a player choosing it. Optional;
+    /// unlike `description` it never carries computed numbers or DCs.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub summary: Option<String>,
     pub base_level: u8,
     pub school: MagicSchool,
     #[serde(default)]
@@ -49,6 +53,7 @@ impl From<SpellDefinition> for Spell {
         Spell::new(
             value.id,
             value.description,
+            value.summary,
             value.base_level,
             value.school,
             value.flags,

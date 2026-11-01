@@ -1,6 +1,7 @@
 {
     "id": "nat20_core::spell.thunderwave",
     "description": "You unleash a wave of thunderous energy. Each creature in a 15-foot Cube originating from you makes a Constitution saving throw. On a failed save, a creature takes 2d8 Thunder damage and is pushed 10 feet away from you. On a successful save, a creature takes half as much damage only. In addition, unsecured objects that are entirely within the Cube are pushed 10 feet away from you, and a thunderous boom is audible within 300 feet. The damage increases by 1d8 for each spell slot level above 1.",
+    "summary": "A 15-foot cube of thunder from you: each creature in it makes a Constitution saving throw, taking thunder damage and being pushed 10 feet on a failure, half damage on a success.",
     "base_level": 1,
     "school": "evocation",
     "flags": [

@@ -1,6 +1,7 @@
 {
     "id": "nat20_core::action.melee_attack",
     "description": "Make a melee weapon attack with a weapon you are wielding.",
+    "summary": "Attack a creature within the weapon's reach. A hit deals the weapon's damage.",
     "kind": {
         "standard": {
             "phases": [

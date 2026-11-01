@@ -1,6 +1,7 @@
 {
     "id": "nat20_core::action.help.assist_attack_roll",
     "description": "You momentarily distract an enemy within 5 feet of you, giving Advantage to the next attack roll by one of your allies against that enemy. This benefit expires at the start of your next turn.",
+    "summary": "Pick a foe within 5 feet of you: the next attack roll an ally makes against it before your next turn has Advantage.",
     "kind": {
         "standard": {
             "phases": [

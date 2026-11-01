@@ -54,6 +54,7 @@ impl Spell {
     pub fn new(
         id: SpellId,
         description: String,
+        summary: Option<String>,
         base_level: u8,
         school: MagicSchool,
         flags: Vec<SpellFlag>,
@@ -76,6 +77,7 @@ impl Spell {
             action: Action {
                 id: action_id,
                 description,
+                summary,
                 kind,
                 resource_cost,
                 targeting,

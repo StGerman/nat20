@@ -41,6 +41,10 @@ use crate::{
 pub struct ActionDefinition {
     pub id: ActionId,
     pub description: String,
+    /// One to three plain sentences on what the action does, for a player choosing it. Optional;
+    /// unlike `description` it never carries computed numbers or DCs.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub summary: Option<String>,
     pub kind: ActionKindDefinition,
     /// The contexts in which this action can be performed. For example, a weapon
     /// attack can be performed in the context of a melee or ranged attack. If left
@@ -190,6 +194,7 @@ impl From<ActionDefinition> for Action {
         Action {
             id: value.id,
             description: value.description,
+            summary: value.summary,
             kind: value.kind.into(),
             resource_cost: value.resource_cost,
             targeting: value.targeting.function(),

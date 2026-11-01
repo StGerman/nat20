@@ -1,6 +1,7 @@
 {
     "id": "nat20_core::spell.acid_splash",
     "description": "You create an acidic bubble at a point within range, where it explodes in a 5-foot-radius Sphere. Each creature in that Sphere must succeed on a Dexterity saving throw or take 1d6 Acid damage",
+    "summary": "A bubble of acid bursts at a point you can see: each creature within 5 feet of it makes a Dexterity saving throw or takes acid damage.",
     "base_level": 0,
     "school": "evocation",
     "flags": [

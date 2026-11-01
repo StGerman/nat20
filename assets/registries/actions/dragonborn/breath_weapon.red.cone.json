@@ -1,6 +1,7 @@
 {
     "id": "nat20_core::action.dragonborn.breath_weapon.red.cone",
     "description": "You exhale magical energy in a 15-foot Cone. Each creature in that area makes a Dexterity saving throw (DC 8 plus your Constitution modifier and Proficiency Bonus), taking 1d10 Fire damage on a failed save, or half as much on a successful one. The damage increases by 1d10 at character levels 5, 11 and 17.",
+    "summary": "Breathe fire in a 15-foot cone. Each creature in it makes a Dexterity saving throw: full damage on a failure, half on a success. A few uses until you finish a Long Rest.",
     "_comment": "Breath Weapon replaces one attack of the Attack action. Extra Attack is not modelled with it: it costs the Action, which is the whole Attack action until a character has Extra Attack.",
     "kind": {
         "standard": {

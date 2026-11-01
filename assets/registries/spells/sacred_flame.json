@@ -1,6 +1,7 @@
 {
     "id": "nat20_core::spell.sacred_flame",
     "description": "Flame-like radiance descends on a creature that you can see within range. The target must succeed on a Dexterity saving throw or take 1d8 Radiant damage. The target gains no benefit from Half Cover or Three-Quarters Cover for this save.",
+    "summary": "Radiant flame falls on a creature you can see: it makes a Dexterity saving throw or takes radiant damage. Half and Three-Quarters Cover don't help it.",
     "base_level": 0,
     "school": "evocation",
     "flags": [

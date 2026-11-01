@@ -1,6 +1,7 @@
 {
     "id": "nat20_core::spell.fireball",
     "description": "A bright streak flashes from you to a point you choose within range and then blossoms with a low roar into a fiery explosion. Each creature in a 20-foot-radius Sphere centered on that point makes a Dexterity saving throw, taking 8d6 Fire damage on a failed save or half as much damage on a successful one. The damage increases by 1d6 for each spell slot level above 3",
+    "summary": "A burst of fire with a 20-foot radius at a point you choose: each creature in it makes a Dexterity saving throw, full fire damage on a failure, half on a success.",
     "base_level": 3,
     "school": "evocation",
     "flags": [

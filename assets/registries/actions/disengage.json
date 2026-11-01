@@ -1,6 +1,7 @@
 {
     "id": "nat20_core::action.disengage",
     "description": "Your movement doesn't provoke opportunity attacks for the rest of the turn.",
+    "summary": "Your movement this turn provokes no opportunity attacks.",
     "kind": {
         "standard": {
             "phases": [
