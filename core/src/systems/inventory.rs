@@ -59,3 +59,30 @@ pub fn remove_money(
 ) -> Result<(), MonetaryValueError> {
     systems::helpers::get_component_mut::<Inventory>(world, entity).remove_money(amount)
 }
+
+/// Moves one of this item from one creature's inventory to another's. Returns
+/// false, and moves nothing, if `from` carries none. Items worn or wielded in
+/// the loadout are not in the inventory and cannot be given this way.
+pub fn give_item(world: &mut World, from: Entity, to: Entity, item: &ItemId) -> bool {
+    systems::helpers::get_component::<Inventory>(world, to);
+    if !use_up_item(world, from, item) {
+        return false;
+    }
+    add_item(world, to, item.clone());
+    true
+}
+
+/// Moves coin from one creature to another. `from` pays with change (see
+/// [`MonetaryValue::spend`]) and `to` receives the coins named in `amount`;
+/// if `from` is short, nothing moves.
+pub fn give_money(
+    world: &mut World,
+    from: Entity,
+    to: Entity,
+    amount: MonetaryValue,
+) -> Result<(), MonetaryValueError> {
+    systems::helpers::get_component::<Inventory>(world, to);
+    remove_money(world, from, amount.clone())?;
+    add_money(world, to, amount);
+    Ok(())
+}

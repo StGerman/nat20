@@ -18,6 +18,27 @@ pub enum Currency {
 }
 
 impl Currency {
+    /// Every currency, from the smallest coin to the largest
+    pub const ASCENDING: [Currency; 5] = [
+        Currency::Copper,
+        Currency::Silver,
+        Currency::Electrum,
+        Currency::Gold,
+        Currency::Platinum,
+    ];
+
+    /// What one coin is worth in copper pieces, by the SRD 5.2.1 exchange rates
+    /// (Equipment, Coins): 1 SP = 10 CP, 1 EP = 50 CP, 1 GP = 100 CP, 1 PP = 1,000 CP
+    pub fn in_copper(&self) -> u64 {
+        match self {
+            Currency::Copper => 1,
+            Currency::Silver => 10,
+            Currency::Electrum => 50,
+            Currency::Gold => 100,
+            Currency::Platinum => 1000,
+        }
+    }
+
     pub fn to_gold(&self, amount: u32) -> f32 {
         let amount = amount as f32;
         match self {
@@ -104,6 +125,59 @@ impl MonetaryValue {
             return Ok(());
         }
         Err(MonetaryValueError::InsufficientFunds)
+    }
+
+    /// The whole value in copper pieces, exact
+    pub fn total_in_copper(&self) -> u64 {
+        self.values
+            .iter()
+            .map(|(currency, &amount)| currency.in_copper() * u64::from(amount))
+            .sum()
+    }
+
+    /// Pays `amount` out of this value, making change the way a shopkeeper would.
+    ///
+    /// Only the total of `amount` counts, not its coins: 5 SP can be paid with a
+    /// gold piece. Coins go from the largest down, as many of each as still
+    /// fit in what is owed; if something is still owed, the smallest coin left
+    /// (each one is worth more than the rest owed) is handed over and the change comes back in gold, silver and
+    /// copper (never electrum), largest first. Atomic: on
+    /// [`MonetaryValueError::InsufficientFunds`] nothing is spent.
+    pub fn spend(&mut self, amount: &MonetaryValue) -> Result<(), MonetaryValueError> {
+        let mut owed = amount.total_in_copper();
+        if owed > self.total_in_copper() {
+            return Err(MonetaryValueError::InsufficientFunds);
+        }
+        let mut purse = self.clone();
+        for currency in Currency::ASCENDING.into_iter().rev() {
+            let value = currency.in_copper();
+            let held = u64::from(purse.values.get(&currency).copied().unwrap_or(0));
+            let taken = held.min(owed / value);
+            if taken > 0 {
+                purse.remove(currency.clone(), taken as u32)?;
+                owed -= taken * value;
+            }
+        }
+        if owed > 0 {
+            // Every coin left is worth more than what is owed, and the total
+            // check above means at least one is left
+            let coin = Currency::ASCENDING
+                .into_iter()
+                .find(|currency| purse.values.get(currency).is_some_and(|&held| held > 0))
+                .ok_or(MonetaryValueError::InsufficientFunds)?;
+            purse.remove(coin.clone(), 1)?;
+            let mut change = coin.in_copper() - owed;
+            for currency in [Currency::Gold, Currency::Silver, Currency::Copper] {
+                let value = currency.in_copper();
+                let coins = change / value;
+                if coins > 0 {
+                    purse.add(currency, coins as u32);
+                    change -= coins * value;
+                }
+            }
+        }
+        *self = purse;
+        Ok(())
     }
 
     pub fn total_in_gold(&self) -> f32 {
@@ -261,5 +335,66 @@ mod tests {
 
         let result = value.remove(Currency::Gold, 15);
         assert!(matches!(result, Err(MonetaryValueError::InsufficientFunds)));
+    }
+
+    fn value(s: &str) -> MonetaryValue {
+        MonetaryValue::from_str(s).unwrap()
+    }
+
+    #[test]
+    fn total_in_copper_uses_the_srd_exchange_rates() {
+        assert_eq!(
+            value("1 PP, 1 GP, 1 EP, 1 SP, 1 CP").total_in_copper(),
+            1161
+        );
+        assert_eq!(MonetaryValue::new().total_in_copper(), 0);
+    }
+
+    #[test]
+    fn spend_makes_change_from_a_larger_coin() {
+        let mut purse = value("1 GP");
+        purse.spend(&value("5 SP")).unwrap();
+        assert_eq!(purse, value("5 SP"));
+    }
+
+    #[test]
+    fn spend_pays_with_the_largest_coins_that_fit() {
+        let mut purse = value("2 GP, 30 SP, 7 CP");
+        purse.spend(&value("3 GP")).unwrap();
+        assert_eq!(purse, value("20 SP, 7 CP"));
+    }
+
+    #[test]
+    fn spend_breaks_the_smallest_coin_that_covers_the_rest() {
+        let mut purse = value("1 PP, 1 GP, 3 CP");
+        purse.spend(&value("25 CP")).unwrap();
+        // 3 CP paid, 22 CP still owed: the gold piece is broken, not the platinum
+        assert_eq!(purse, value("1 PP, 7 SP, 8 CP"));
+        assert_eq!(purse.total_in_copper(), 1078);
+    }
+
+    #[test]
+    fn spend_gives_change_without_electrum() {
+        let mut purse = value("1 PP");
+        purse.spend(&value("1 EP")).unwrap();
+        assert_eq!(purse, value("9 GP, 5 SP"));
+    }
+
+    #[test]
+    fn spend_is_atomic_on_insufficient_funds() {
+        let mut purse = value("1 GP, 5 SP");
+        let before = purse.clone();
+        assert!(matches!(
+            purse.spend(&value("2 GP")),
+            Err(MonetaryValueError::InsufficientFunds)
+        ));
+        assert_eq!(purse, before);
+    }
+
+    #[test]
+    fn spend_the_exact_total_empties_the_purse() {
+        let mut purse = value("1 GP, 5 SP");
+        purse.spend(&value("15 SP")).unwrap();
+        assert_eq!(purse.total_in_copper(), 0);
     }
 }

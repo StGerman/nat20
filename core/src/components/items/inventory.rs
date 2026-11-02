@@ -187,11 +187,10 @@ impl Inventory {
         }
     }
 
+    /// Pays `amount`, making change; nothing is spent if the purse is short
+    /// (see [`MonetaryValue::spend`])
     pub fn remove_money(&mut self, amount: MonetaryValue) -> Result<(), MonetaryValueError> {
-        for (currency, value) in amount.values.into_iter() {
-            self.money.remove(currency, value)?;
-        }
-        Ok(())
+        self.money.spend(&amount)
     }
 }
 
