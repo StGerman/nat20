@@ -5,7 +5,10 @@ use std::str::FromStr;
 use nat20_core::{
     components::{
         id::ItemId,
-        items::{inventory::Inventory, money::MonetaryValue},
+        items::{
+            inventory::Inventory,
+            money::{MonetaryValue, MonetaryValueError},
+        },
     },
     systems,
     test_utils::scenario::Scenario,
@@ -82,6 +85,19 @@ fn coin_moves_between_creatures_and_the_total_is_kept() {
     let world = &mut scenario.engine_state.world;
     assert!(systems::inventory::give_money(world, bren, maren, coins("1 GP")).is_err());
     assert_eq!(purse(&scenario, "bren") + purse(&scenario, "maren"), 300);
+}
+
+#[test]
+fn coin_that_would_overflow_the_recipient_does_not_leave_the_giver() {
+    let mut scenario = party();
+    fill(&mut scenario, "bren", "3 GP");
+    fill(&mut scenario, "maren", &format!("{} GP", u32::MAX));
+    let (bren, maren) = (scenario.entity("bren"), scenario.entity("maren"));
+    let world = &mut scenario.engine_state.world;
+    let result = systems::inventory::give_money(world, bren, maren, coins("1 GP"));
+    assert!(matches!(result, Err(MonetaryValueError::Overflow)));
+    assert_eq!(purse(&scenario, "bren"), 300);
+    assert_eq!(purse(&scenario, "maren"), u64::from(u32::MAX) * 100);
 }
 
 #[test]

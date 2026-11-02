@@ -87,6 +87,8 @@ pub struct MonetaryValue {
 #[derive(Debug, Clone)]
 pub enum MonetaryValueError {
     InsufficientFunds,
+    /// A purse would hold more of one coin than fits in a `u32`
+    Overflow,
 }
 
 impl_string_schema!(
@@ -112,6 +114,20 @@ impl MonetaryValue {
 
     pub fn add(&mut self, currency: Currency, amount: u32) {
         *self.values.entry(currency).or_insert(0) += amount;
+    }
+
+    /// Adds every coin of `other`. Atomic: on [`MonetaryValueError::Overflow`]
+    /// nothing is added.
+    pub fn checked_add_value(&mut self, other: &MonetaryValue) -> Result<(), MonetaryValueError> {
+        let mut purse = self.clone();
+        for (currency, &amount) in &other.values {
+            let held = purse.values.entry(currency.clone()).or_insert(0);
+            *held = held
+                .checked_add(amount)
+                .ok_or(MonetaryValueError::Overflow)?;
+        }
+        *self = purse;
+        Ok(())
     }
 
     pub fn remove(&mut self, currency: Currency, amount: u32) -> Result<(), MonetaryValueError> {
@@ -142,7 +158,9 @@ impl MonetaryValue {
     /// fit in what is owed; if something is still owed, the smallest coin left
     /// (each one is worth more than the rest owed) is handed over and the change comes back in gold, silver and
     /// copper (never electrum), largest first. Atomic: on
-    /// [`MonetaryValueError::InsufficientFunds`] nothing is spent.
+    /// [`MonetaryValueError::InsufficientFunds`], or
+    /// [`MonetaryValueError::Overflow`] when the change does not fit, nothing
+    /// is spent.
     pub fn spend(&mut self, amount: &MonetaryValue) -> Result<(), MonetaryValueError> {
         let mut owed = amount.total_in_copper();
         if owed > self.total_in_copper() {
@@ -171,7 +189,9 @@ impl MonetaryValue {
                 let value = currency.in_copper();
                 let coins = change / value;
                 if coins > 0 {
-                    purse.add(currency, coins as u32);
+                    let mut coin_change = MonetaryValue::new();
+                    coin_change.add(currency, coins as u32);
+                    purse.checked_add_value(&coin_change)?;
                     change -= coins * value;
                 }
             }
@@ -320,6 +340,16 @@ mod tests {
     fn value_zero() {
         let value = MonetaryValue::from_str("0 GP").unwrap();
         assert_eq!(value.values.get(&Currency::Gold), Some(&0));
+    }
+
+    #[test]
+    fn checked_add_value_is_atomic_on_overflow() {
+        let mut purse: MonetaryValue = "3 SP".parse().unwrap();
+        purse.add(Currency::Gold, u32::MAX);
+        let before = purse.clone();
+        let result = purse.checked_add_value(&"1 GP, 2 SP".parse().unwrap());
+        assert!(matches!(result, Err(MonetaryValueError::Overflow)));
+        assert_eq!(purse, before);
     }
 
     #[test]

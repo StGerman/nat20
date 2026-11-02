@@ -73,16 +73,19 @@ pub fn give_item(world: &mut World, from: Entity, to: Entity, item: &ItemId) -> 
 }
 
 /// Moves coin from one creature to another. `from` pays with change (see
-/// [`MonetaryValue::spend`]) and `to` receives the coins named in `amount`;
-/// if `from` is short, nothing moves.
+/// [`MonetaryValue::spend`]) and `to` receives the coins named in `amount`.
+/// All or nothing: if `from` is short, or `to`'s purse could not hold the
+/// coins ([`MonetaryValueError::Overflow`]), nothing moves.
 pub fn give_money(
     world: &mut World,
     from: Entity,
     to: Entity,
     amount: MonetaryValue,
 ) -> Result<(), MonetaryValueError> {
-    systems::helpers::get_component::<Inventory>(world, to);
+    let mut received = systems::helpers::get_component::<Inventory>(world, to)
+        .money()
+        .clone();
+    received.checked_add_value(&amount)?;
     remove_money(world, from, amount.clone())?;
-    add_money(world, to, amount);
-    Ok(())
+    systems::helpers::get_component_mut::<Inventory>(world, to).checked_add_money(&amount)
 }

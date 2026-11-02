@@ -187,6 +187,12 @@ impl Inventory {
         }
     }
 
+    /// Adds `amount` to the purse; on [`MonetaryValueError::Overflow`] nothing
+    /// is added (see [`MonetaryValue::checked_add_value`])
+    pub fn checked_add_money(&mut self, amount: &MonetaryValue) -> Result<(), MonetaryValueError> {
+        self.money.checked_add_value(amount)
+    }
+
     /// Pays `amount`, making change; nothing is spent if the purse is short
     /// (see [`MonetaryValue::spend`])
     pub fn remove_money(&mut self, amount: MonetaryValue) -> Result<(), MonetaryValueError> {
