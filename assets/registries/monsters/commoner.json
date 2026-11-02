@@ -1,0 +1,29 @@
+{
+    "id": "nat20_core::monster.commoner",
+    "name": "Commoner",
+    "_comment": "SRD 5.2.1 (CC-BY-4.0), Commoner. AC 10 is 10 + Dex 0 with no armour; Club +2 and 1d4 from Strength and PB +2. Training (one skill of the GM's choice, with Advantage) is not implemented: the choice is the adventure's. Medium or Small: Medium here. Its block lists XP 10; core counts CR 0 as 0 XP, which the SRD's table also allows.",
+    "size": "medium",
+    "creature_type": "humanoid",
+    "challenge_rating": "0",
+    "hit_points": {
+        "average": 4,
+        "dice": "1d8"
+    },
+    "speed": "30 feet",
+    "abilities": {
+        "strength": 10,
+        "dexterity": 10,
+        "constitution": 10,
+        "intelligence": 10,
+        "wisdom": 10,
+        "charisma": 10
+    },
+    "skills": {},
+    "gear": [
+        "nat20_core::item.club"
+    ],
+    "effects": [],
+    "factions": [
+        "nat20_core::faction.townsfolk"
+    ]
+}

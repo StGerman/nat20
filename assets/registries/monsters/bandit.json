@@ -1,0 +1,31 @@
+{
+    "id": "nat20_core::monster.bandit",
+    "name": "Bandit",
+    "_comment": "SRD 5.2.1 (CC-BY-4.0), Bandit. AC 12 comes from the gear (Leather Armor 11 + Dex 1); Scimitar +3 and 1d6 + 1 from Dexterity (Finesse), Light Crossbow (item.crossbow) +3 and 1d8 + 1, range 80/320 ft. Medium or Small: Medium here.",
+    "size": "medium",
+    "creature_type": "humanoid",
+    "challenge_rating": "1/8",
+    "hit_points": {
+        "average": 11,
+        "dice": "2d8 + 2"
+    },
+    "speed": "30 feet",
+    "abilities": {
+        "strength": 11,
+        "dexterity": 12,
+        "constitution": 12,
+        "intelligence": 10,
+        "wisdom": 10,
+        "charisma": 10
+    },
+    "skills": {},
+    "gear": [
+        "nat20_core::item.leather_armor",
+        "nat20_core::item.scimitar",
+        "nat20_core::item.crossbow"
+    ],
+    "effects": [],
+    "factions": [
+        "nat20_core::faction.bandits"
+    ]
+}

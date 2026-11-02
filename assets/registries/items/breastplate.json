@@ -1,0 +1,16 @@
+{
+  "item": {
+    "id": "nat20_core::item.breastplate",
+    "name": "Breastplate",
+    "description": "A fitted metal chest piece worn with supple leather.",
+    "weight": "20 lb",
+    "value": "400 GP",
+    "rarity": "common"
+  },
+  "armor_type": "medium",
+  "armor_class": 14,
+  "dexterity_bonus": {
+    "limited": 2
+  },
+  "effects": []
+}

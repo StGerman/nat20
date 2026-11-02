@@ -1,0 +1,23 @@
+{
+  "item": {
+    "id": "nat20_core::item.rapier",
+    "name": "Rapier",
+    "description": "A slender, sharp-pointed sword.",
+    "weight": "2 lb",
+    "value": "25 GP",
+    "rarity": "common"
+  },
+  "category": "martial",
+  "kind": "melee",
+  "properties": [
+    "Finesse"
+  ],
+  "damage": [
+    [
+      "1d8",
+      "piercing"
+    ]
+  ],
+  "extra_weapon_actions": [],
+  "effects": []
+}
