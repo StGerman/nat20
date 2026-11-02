@@ -2,12 +2,13 @@ use hecs::{Entity, Ref, World};
 
 use crate::{
     components::{
-        d20::{D20Check, D20CheckDC, D20CheckKind, D20CheckResult},
+        d20::{D20Check, D20CheckDC, D20CheckKind, D20CheckResult, RollMode},
         damage::AttackSource,
         id::{ActionId, EntityIdentifier},
         items::equipment::loadout::Loadout,
+        modifier::{Modifiable, ModifierKind},
         saving_throw::SavingThrowSet,
-        skill::SkillSet,
+        skill::{Skill, SkillSet},
         spells::spellbook::Spellbook,
     },
     engine::{
@@ -63,6 +64,31 @@ pub fn get_mut(world: &mut World, entity: Entity, kind: D20CheckKind) -> &mut D2
             AttackSource::Spell => systems::helpers::get_component_mut::<Spellbook>(world, entity)
                 .attack_roll_template_mut(),
         },
+    }
+}
+
+/// The passive score of a skill (SRD 5.2.1, Rules Glossary > Passive
+/// Perception): 10 plus every flat modifier the skill's check gets, plus 5 with
+/// Advantage or minus 5 with Disadvantage. The formula is the SRD's for
+/// Perception and works the same for any skill. A passive score rolls nothing,
+/// so dice modifiers (such as Guidance) do not count.
+pub fn passive_score(engine_state: &EngineState, entity: Entity, skill: Skill) -> i32 {
+    let mut check = (*get(&engine_state.world, entity, D20CheckKind::Skill(skill))).clone();
+    check.apply_pre_roll_hooks(engine_state, entity);
+    let modifiers: i32 = check.modifiers().values().map(flat_part).sum();
+    let advantage = match check.advantage_tracker().roll_mode() {
+        RollMode::Normal => 0,
+        RollMode::Advantage => 5,
+        RollMode::Disadvantage => -5,
+    };
+    10 + modifiers + advantage
+}
+
+fn flat_part(kind: &ModifierKind) -> i32 {
+    match kind {
+        ModifierKind::Flat(value) => *value,
+        ModifierKind::Dice(_) => 0,
+        ModifierKind::Composite(kinds) => kinds.iter().map(flat_part).sum(),
     }
 }
 
