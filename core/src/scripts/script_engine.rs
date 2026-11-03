@@ -440,6 +440,29 @@ impl ScriptEngine {
             .map_err(Self::runtime_error)
     }
 
+    pub fn evaluate_damage_on_failure_hook(
+        &self,
+        script: &Script,
+        engine_state: &EngineState,
+        actor: Entity,
+        action: &ActionData,
+    ) -> Result<bool, ScriptError> {
+        let func = self.get_function(script, ScriptFunction::DamageOnFailureHook)?;
+        let actor = self
+            .lua
+            .create_userdata(ScriptEntity::from(actor))
+            .map_err(Self::runtime_error)?;
+        self.lua
+            .scope(|scope| {
+                func.call::<bool>((
+                    scope.create_userdata_ref(engine_state)?,
+                    actor,
+                    scope.create_userdata_ref(action)?,
+                ))
+            })
+            .map_err(Self::runtime_error)
+    }
+
     pub fn evaluate_healing_hook(
         &self,
         script: &Script,

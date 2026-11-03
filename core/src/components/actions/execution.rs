@@ -594,6 +594,15 @@ impl StepComponent {
                 damage,
                 damage_on_failure,
             } => {
+                // An effect can give an action without damage on failure half damage
+                // instead (e.g. Potent Cantrip)
+                let damage_on_failure = damage_on_failure.clone().or_else(|| {
+                    (!resolution.is_success()
+                        && systems::effects::effects(&engine_state.world, action.actor.id())
+                            .half_damage_on_failure(engine_state, action.actor.id(), action))
+                    .then_some(DamageOnFailure::Half)
+                });
+                let damage_on_failure = damage_on_failure.as_ref();
                 let damage_fn = if resolution.is_success() {
                     debug!("Condition resolved successfully, using standard damage function");
                     Some(damage.clone())

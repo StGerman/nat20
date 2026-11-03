@@ -196,6 +196,29 @@ pub fn evaluate_speed_hook(
     }
 }
 
+pub fn evaluate_damage_on_failure_hook(
+    damage_on_failure_hook: &ScriptId,
+    engine_state: &EngineState,
+    actor: Entity,
+    action: &ActionData,
+) -> bool {
+    let script = ScriptsRegistry::get(damage_on_failure_hook).unwrap_or_else(|| {
+        panic!(
+            "Damage on failure hook script not found in registry: {:?}",
+            damage_on_failure_hook
+        )
+    });
+    SCRIPT_ENGINE
+        .evaluate_damage_on_failure_hook(script, engine_state, actor, action)
+        .unwrap_or_else(|err| {
+            error!(
+                "Error evaluating damage on failure hook script {:?} for entity {:?}: {:?}",
+                damage_on_failure_hook, actor, err
+            );
+            false
+        })
+}
+
 pub fn evaluate_healing_hook(
     healing_hook: &ScriptId,
     engine_state: &EngineState,

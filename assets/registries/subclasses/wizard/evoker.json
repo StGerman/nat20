@@ -1,6 +1,10 @@
 {
     "id": "nat20_core::subclass.wizard.evoker",
     "base": {
-        "effects_by_level": {}
+        "effects_by_level": {
+            "3": [
+                "nat20_core::effect.wizard.evoker.potent_cantrip"
+            ]
+        }
     }
 }

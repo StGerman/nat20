@@ -85,6 +85,14 @@
                 "$ref": "#/definitions/AttackedHookDefinition"
             }
         },
+        "on_damage_on_failure": {
+            "description": "Whether this creature's damaging actions still deal half their damage when the\nattack roll misses or the saving throw succeeds",
+            "type": "array",
+            "default": [],
+            "items": {
+                "$ref": "#/definitions/DamageOnFailureHookDefinition"
+            }
+        },
         "on_death": {
             "type": "array",
             "default": [],
@@ -378,6 +386,21 @@
                 "saving_throw",
                 "skill",
                 "attack_roll"
+            ]
+        },
+        "DamageOnFailureHookDefinition": {
+            "anyOf": [
+                {
+                    "type": "object",
+                    "properties": {
+                        "script": {
+                            "$ref": "#/definitions/ScriptId"
+                        }
+                    },
+                    "required": [
+                        "script"
+                    ]
+                }
             ]
         },
         "DamageRollHookDefinition": {

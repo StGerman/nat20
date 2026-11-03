@@ -1,4 +1,10 @@
 {
     "id": "nat20_core::subclass.barbarian.path_of_the_berserker",
-    "base": {}
+    "base": {
+        "effects_by_level": {
+            "3": [
+                "nat20_core::effect.barbarian.berserker.frenzy"
+            ]
+        }
+    }
 }

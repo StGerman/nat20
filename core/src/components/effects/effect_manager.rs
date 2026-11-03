@@ -249,6 +249,19 @@ impl EffectManager {
         );
     }
 
+    /// Whether a damaging action that missed or was saved against deals half its damage
+    pub fn half_damage_on_failure(
+        &self,
+        engine_state: &EngineState,
+        actor: Entity,
+        action: &ActionData,
+    ) -> bool {
+        self.effects
+            .values()
+            .filter_map(|instance| instance.effect().on_damage_on_failure.as_ref())
+            .any(|hook| hook(engine_state, actor, action))
+    }
+
     pub fn resource_cost(
         &self,
         engine_state: &EngineState,

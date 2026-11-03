@@ -22,9 +22,10 @@ use crate::{
             },
             hooks::{
                 ActionHook, ActionResultHook, ActionUsabilityHook, ArmorClassHook, AttackedHook,
-                D20CheckHooks, DamageRollHook, DamageRollResultHook, DeathHook, EffectLifetimeHook,
-                HealingHook, PostDamageMitigationHook, PreDamageMitigationHook, PreDeathHook,
-                ResourceCostHook, RestHook, SpeedHook, TurnStartHook,
+                D20CheckHooks, DamageOnFailureHook, DamageRollHook, DamageRollResultHook,
+                DeathHook, EffectLifetimeHook, HealingHook, PostDamageMitigationHook,
+                PreDamageMitigationHook, PreDeathHook, ResourceCostHook, RestHook, SpeedHook,
+                TurnStartHook,
             },
         },
         health::hit_points::{HitPoints, TemporaryHitPoints},
@@ -133,6 +134,10 @@ pub struct EffectDefinition {
     /// Hit Points this creature's actions restore, before they are rolled
     #[serde(default)]
     pub on_healing: Vec<HealingHookDefinition>,
+    /// Whether this creature's damaging actions still deal half their damage when the
+    /// attack roll misses or the saving throw succeeds
+    #[serde(default)]
+    pub on_damage_on_failure: Vec<DamageOnFailureHookDefinition>,
     #[serde(default)]
     pub pre_damage_mitigation: Vec<PreDamageMitigationHookDefinition>,
     #[serde(default)]
@@ -280,6 +285,15 @@ impl From<EffectDefinition> for Effect {
                 let hooks = collect_effect_hooks(&definition.post_damage_roll, &effect_id);
                 effect.post_damage_roll =
                     Some(DamageRollResultHookDefinition::combine_hooks(hooks));
+            }
+        }
+
+        // Build on_damage_on_failure hooks
+        {
+            if !definition.on_damage_on_failure.is_empty() {
+                let hooks = collect_effect_hooks(&definition.on_damage_on_failure, &effect_id);
+                effect.on_damage_on_failure =
+                    Some(DamageOnFailureHookDefinition::combine_hooks(hooks));
             }
         }
 
@@ -448,6 +462,16 @@ impl RegistryReferenceCollector for EffectDefinition {
                     collector.add(RegistryReference::Script(
                         script.clone(),
                         ScriptFunction::DamageRollResultHook,
+                    ));
+                }
+            }
+        }
+        for hook in &self.on_damage_on_failure {
+            match hook {
+                DamageOnFailureHookDefinition::Script { script } => {
+                    collector.add(RegistryReference::Script(
+                        script.clone(),
+                        ScriptFunction::DamageOnFailureHook,
                     ));
                 }
             }
@@ -1186,6 +1210,41 @@ impl HookEffect<DamageRollResultHook> for DamageRollResultHookDefinition {
                 for hook in &hooks {
                     hook(engine_state, entity, damage_roll_result, action, resolution);
                 }
+            },
+        )
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
+#[serde(untagged)]
+pub enum DamageOnFailureHookDefinition {
+    Script { script: ScriptId },
+}
+
+impl HookEffect<DamageOnFailureHook> for DamageOnFailureHookDefinition {
+    fn build_hook(&self, _effect: &EffectId) -> DamageOnFailureHook {
+        match self {
+            DamageOnFailureHookDefinition::Script { script } => {
+                let script_id = script.clone();
+                Arc::new(
+                    move |engine_state: &EngineState, actor: Entity, action: &ActionData| {
+                        systems::scripts::evaluate_damage_on_failure_hook(
+                            &script_id,
+                            engine_state,
+                            actor,
+                            action,
+                        )
+                    },
+                )
+            }
+        }
+    }
+
+    /// Any hook that says yes wins
+    fn combine_hooks(hooks: Vec<DamageOnFailureHook>) -> DamageOnFailureHook {
+        Arc::new(
+            move |engine_state: &EngineState, actor: Entity, action: &ActionData| {
+                hooks.iter().any(|hook| hook(engine_state, actor, action))
             },
         )
     }

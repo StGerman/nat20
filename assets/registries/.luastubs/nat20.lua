@@ -358,6 +358,11 @@ function EngineState:add_resource(entity, resource_id, amount) end
 ---@param callback fun(engine_state: EngineState, success: boolean, result: D20CheckResult)
 function EngineState:saving_throw(entity, saving_throw, dc, callback) end
 
+--- Whether it is `entity`'s turn; always true outside combat
+---@param entity ScriptEntity
+---@return boolean
+function EngineState:is_turn_of(entity) end
+
 --- Mark a once-per-turn feature as used on the current turn; always true outside combat
 ---@param entity ScriptEntity
 ---@param key string  -- e.g. "nat20_core::feat.savage_attacker"
@@ -513,6 +518,7 @@ function EffectLifetime:set_duration(duration) end
 ---@alias D20AbilityHookFn fun(engine_state: EngineState, entity: ScriptEntity, d20_check: D20Check): string|nil
 ---@alias D20CheckHookFn fun(engine_state: EngineState, entity: ScriptEntity, d20_check: D20Check)
 ---@alias D20CheckResultHookFn fun(engine_state: EngineState, entity: ScriptEntity, result: D20CheckResult)
+---@alias DamageOnFailureHookFn fun(engine_state: EngineState, actor: ScriptEntity, action: ActionData): boolean
 ---@alias DamageRollHookFn fun(engine_state: EngineState, entity: ScriptEntity, damage_roll: DamageRoll, action: ActionData, resolution: ActionConditionResolution)
 ---@alias DamageRollResultHookFn fun(engine_state: EngineState, entity: ScriptEntity, damage_roll: DamageRollResult, action: ActionData, resolution: ActionConditionResolution)
 ---@alias DeathHookFn fun(engine_state: EngineState, victim: ScriptEntity, killer: ScriptEntity?, applier: ScriptEntity?)

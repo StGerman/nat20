@@ -1236,6 +1236,10 @@ impl UserData for EngineState {
             },
         );
 
+        methods.add_method("is_turn_of", |_, this, entity: ScriptEntity| {
+            Ok(this.is_turn_of(entity.into()))
+        });
+
         methods.add_method(
             "use_once_per_turn",
             |_, this, (entity, key): (ScriptEntity, String)| {

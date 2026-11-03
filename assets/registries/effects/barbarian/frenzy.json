@@ -1,0 +1,10 @@
+{
+    "id": "nat20_core::effect.barbarian.berserker.frenzy",
+    "kind": "buff",
+    "description": "If you use Reckless Attack while your Rage is active, you deal extra damage to the first target you hit on your turn with a Strength-based attack. To determine the extra damage, roll a number of d6s equal to your Rage Damage bonus, and add them together. The damage has the same type as the weapon or Unarmed Strike used for the attack.",
+    "pre_damage_roll": [
+        {
+            "script": "nat20_core::script.effect.barbarian.frenzy"
+        }
+    ]
+}
