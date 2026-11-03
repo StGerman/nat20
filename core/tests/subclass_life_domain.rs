@@ -1,7 +1,13 @@
 extern crate nat20_core;
 
 use nat20_core::{
-    components::damage::DamageType,
+    components::{
+        damage::DamageType,
+        id::{EffectId, SpellId},
+        rng,
+        spells::spellbook::{GrantedSpellSource, SpellSource},
+    },
+    systems,
     test_utils::scenario::{Operator, Scenario},
 };
 
@@ -47,6 +53,42 @@ fn disciple_of_life_adds_2_plus_the_slot_level_to_healing_spells() {
             "slot {slot}: {healed}"
         );
     }
+}
+
+/// How much a level 1 Cure Wounds heals the Fighter, with the dice seeded the same each time.
+/// `granted` casts it from a granted spell, which uses no spell slot.
+fn seeded_cure_wounds(granted: bool) -> u32 {
+    let mut scenario = chapel();
+    wound_to(&mut scenario, "fighter", 1);
+    if granted {
+        let cleric = scenario.entity("cleric");
+        systems::spells::add_spell(
+            &mut scenario.engine_state,
+            cleric,
+            &SpellId::new("nat20_core", "spell.cure_wounds"),
+            &SpellSource::Granted {
+                source: GrantedSpellSource::Effect(EffectId::new("nat20_core", "effect.test")),
+                level: 1,
+            },
+        )
+        .unwrap();
+    }
+    rng::seed(7);
+    scenario
+        .act("cleric", "action.cure_wounds")
+        .context_filter(move |context, _| {
+            context.spell.as_ref().is_some_and(|spell| {
+                spell.level == 1 && matches!(spell.source, SpellSource::Granted { .. }) == granted
+            })
+        })
+        .target_entity("fighter")
+        .perform();
+    scenario.probe("fighter").hp() - 1
+}
+
+#[test]
+fn disciple_of_life_needs_a_spell_slot() {
+    assert_eq!(seeded_cure_wounds(false), seeded_cure_wounds(true) + 3);
 }
 
 #[test]
