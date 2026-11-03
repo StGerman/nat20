@@ -10,6 +10,7 @@ use crate::{
         effects::effect::{EffectInstance, EffectLifetime},
         id::{ActionId, EffectId, ScriptId},
         items::equipment::armor::ArmorClass,
+        modifier::ModifierMap,
         resource::ResourceAmountMap,
         speed::Speed,
     },
@@ -191,6 +192,30 @@ pub fn evaluate_speed_hook(
         error!(
             "Error evaluating speed hook script {:?} for entity {:?}: {:?}",
             speed_hook, entity, err
+        );
+    }
+}
+
+pub fn evaluate_healing_hook(
+    healing_hook: &ScriptId,
+    engine_state: &EngineState,
+    healer: Entity,
+    target: Entity,
+    action: &ActionData,
+    healing: &mut ModifierMap,
+) {
+    let script = ScriptsRegistry::get(healing_hook).unwrap_or_else(|| {
+        panic!(
+            "Healing hook script not found in registry: {:?}",
+            healing_hook
+        )
+    });
+    if let Err(err) =
+        SCRIPT_ENGINE.evaluate_healing_hook(script, engine_state, healer, target, action, healing)
+    {
+        error!(
+            "Error evaluating healing hook script {:?} for entity {:?}: {:?}",
+            healing_hook, healer, err
         );
     }
 }

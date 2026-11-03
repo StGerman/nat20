@@ -1,0 +1,10 @@
+{
+    "id": "nat20_core::effect.cleric.life_domain.disciple_of_life",
+    "kind": "buff",
+    "description": "When a spell you cast with a spell slot restores Hit Points to a creature, that creature regains additional Hit Points on the turn you cast the spell. The additional Hit Points equal 2 plus the spell slot's level.",
+    "on_healing": [
+        {
+            "script": "nat20_core::script.effect.cleric.disciple_of_life"
+        }
+    ]
+}

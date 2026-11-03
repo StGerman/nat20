@@ -1,0 +1,53 @@
+{
+    "id": "nat20_core::action.cleric.life_domain.preserve_life",
+    "description": "As a Magic action, you present your Holy Symbol and expend a use of your Channel Divinity to evoke healing energy that can restore a number of Hit Points equal to five times your Cleric level. Choose Bloodied creatures within 30 feet of yourself (which can include you), and divide those Hit Points among them. This feature can restore a creature to no more than half its Hit Point maximum.",
+    "summary": "Channel Divinity: share five times your Cleric level in Hit Points among Bloodied creatures within 30 feet, you included; none goes above half its Hit Points.",
+    "_comment": "The Hit Points come from the effect nat20_core::effect.cleric.life_domain.preserve_life, which divides them evenly among the chosen creatures.",
+    "kind": {
+        "standard": {
+            "phases": [
+                {
+                    "payload": {
+                        "components": [
+                            {
+                                "healing": "0"
+                            }
+                        ],
+                        "delivery": "immediate"
+                    }
+                }
+            ]
+        }
+    },
+    "targeting": {
+        "kind": {
+            "multiple": {
+                "max_targets": "5 * class.cleric.level",
+                "allow_duplicates": false
+            }
+        },
+        "range": "30 feet",
+        "line_of_sight": {
+            "trajectory": "ray"
+        },
+        "allowed_targets": [
+            {
+                "life_states": [
+                    "dead"
+                ],
+                "invert": true
+            }
+        ]
+    },
+    "resource_cost": {
+        "nat20_core::resource.action": 1,
+        "nat20_core::resource.cleric.channel_divinity": 1
+    },
+    "target_usability": {
+        "script": "nat20_core::script.action.cleric.preserve_life"
+    },
+    "timeline": {
+        "total_duration": 1.0,
+        "perform_time": 0.5
+    }
+}

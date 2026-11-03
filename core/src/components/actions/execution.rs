@@ -481,7 +481,7 @@ impl StepState {
         let resolution = resolution.clone();
 
         for component in self.components.iter_mut() {
-            if !component.resolve(engine_state, action, &resolution) {
+            if !component.resolve(engine_state, action, self.target, &resolution) {
                 return false;
             }
         }
@@ -563,6 +563,7 @@ impl StepComponent {
         &mut self,
         engine_state: &mut EngineState,
         action: &ActionData,
+        target: Entity,
         resolution: &ActionConditionResolution,
     ) -> bool {
         if self.payload_result.is_ready() {
@@ -688,8 +689,15 @@ impl StepComponent {
 
             ActionPayloadComponent::Healing(healing) => {
                 // TODO: No events yet for healing, might introduce them in the future?
-                let healing_amount =
-                    healing(&engine_state.world, action.actor.id(), &action.context).evaluate();
+                let mut healing = healing(&engine_state.world, action.actor.id(), &action.context);
+                systems::effects::effects(&engine_state.world, action.actor.id()).healing(
+                    engine_state,
+                    action.actor.id(),
+                    target,
+                    action,
+                    &mut healing,
+                );
+                let healing_amount = healing.evaluate();
                 self.payload_result = Awaitable::Ready(PayloadResult::Healing(healing_amount));
                 true
             }

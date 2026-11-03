@@ -1,0 +1,16 @@
+{
+    "id": "nat20_core::subclass.cleric.life_domain",
+    "base": {
+        "effects_by_level": {
+            "3": [
+                "nat20_core::effect.cleric.life_domain.disciple_of_life",
+                "nat20_core::effect.cleric.life_domain.preserve_life"
+            ]
+        },
+        "actions_by_level": {
+            "3": [
+                "nat20_core::action.cleric.life_domain.preserve_life"
+            ]
+        }
+    }
+}

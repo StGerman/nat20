@@ -715,6 +715,18 @@ pub mod creatures {
                         &None,
                         vec![spell("spell.shield_of_faith")],
                     ),
+                    // Level 3
+                    LevelUpDecision::single_choice(ChoiceItem::Class(cleric.clone())),
+                    LevelUpDecision::single_choice(ChoiceItem::Subclass(SubclassId::new(
+                        "nat20_core",
+                        "subclass.cleric.life_domain",
+                    ))),
+                    LevelUpDecision::spells(
+                        "choice.spells",
+                        &cleric,
+                        &None,
+                        vec![spell("spell.hold_person")],
+                    ),
                 ],
             );
 

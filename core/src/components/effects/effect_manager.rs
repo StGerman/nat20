@@ -14,7 +14,7 @@ use crate::{
         },
         id::{ActionId, EffectId},
         items::equipment::armor::ArmorClass,
-        modifier::{Modifiable, ModifierSource},
+        modifier::{Modifiable, ModifierMap, ModifierSource},
         resource::ResourceAmountMap,
         speed::Speed,
         time::TimeStep,
@@ -232,6 +232,20 @@ impl EffectManager {
         self.for_each(
             |effect| effect.post_damage_roll.as_ref(),
             |hook| hook(engine_state, entity, result, action, resolution),
+        );
+    }
+
+    pub fn healing(
+        &self,
+        engine_state: &EngineState,
+        healer: Entity,
+        target: Entity,
+        action: &ActionData,
+        healing: &mut ModifierMap,
+    ) {
+        self.for_each(
+            |effect| effect.on_healing.as_ref(),
+            |hook| hook(engine_state, healer, target, action, healing),
         );
     }
 

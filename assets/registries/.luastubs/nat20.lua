@@ -99,6 +99,10 @@ function ActionContext:is_melee_attack() end
 ---@return boolean
 function ActionContext:is_ranged_attack() end
 
+--- The level the spell was cast at: 0 for a cantrip, nil when the action is no spell
+---@return integer?
+function ActionContext:spell_level() end
+
 ---@class ActionData
 ---@field action_id string
 ---@field actor ScriptEntity
@@ -108,6 +112,10 @@ local ActionData = {}
 ---@param resource_id string
 ---@return boolean
 function ActionData:costs_resource(resource_id) end
+
+--- How many creatures the action targets
+---@return integer
+function ActionData:creature_target_count() end
 
 ---@class ResourceAmountMap
 local ResourceAmountMap = {}
@@ -510,6 +518,7 @@ function EffectLifetime:set_duration(duration) end
 ---@alias DeathHookFn fun(engine_state: EngineState, victim: ScriptEntity, killer: ScriptEntity?, applier: ScriptEntity?)
 ---@alias EffectLifetimeHookFn fun(engine_state: EngineState, applier: ScriptEntity, target: ScriptEntity, effect_id: string, lifetime: EffectLifetime)
 ---@alias EventFilterFn fun(event: Event, applier: ScriptEntity, target: ScriptEntity): boolean
+---@alias HealingHookFn fun(engine_state: EngineState, healer: ScriptEntity, target: ScriptEntity, action: ActionData, healing: ModifierMap)
 ---@alias PostDamageMitigationHookFn fun(engine_state: EngineState, entity: ScriptEntity, damage_taken: DamageMitigationResult, action: ActionData?, resolution: ActionConditionResolution?)
 ---@alias PreDamageMitigationHookFn fun(engine_state: EngineState, victim: ScriptEntity, effect: EffectInstance, damage_roll: DamageRollResult, action: ActionData?, resolution: ActionConditionResolution?)
 ---@alias PreDeathHookFn fun(engine_state: EngineState, victim: ScriptEntity, killer: ScriptEntity?, applier: ScriptEntity?)

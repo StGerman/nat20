@@ -673,6 +673,10 @@ impl UserData for ActionContext {
             "is_ranged_attack",
             |_, this, ()| Ok(this.is_ranged_attack()),
         );
+        // The level the spell was cast at: 0 for a cantrip, nil when the action is no spell
+        methods.add_method("spell_level", |_, this, ()| {
+            Ok(this.spell.as_ref().map(|spell| spell.level))
+        });
     }
 }
 
@@ -705,6 +709,14 @@ impl UserData for ActionData {
         methods.add_method("costs_resource", |_, this, resource_id: String| {
             let id = parse_id::<ResourceId>(&resource_id)?;
             Ok(this.resource_cost.map.contains_key(&id))
+        });
+        // How many creatures the action targets
+        methods.add_method("creature_target_count", |_, this, ()| {
+            Ok(this
+                .targets
+                .iter()
+                .filter(|target| matches!(target, TargetInstance::Entity { .. }))
+                .count())
         });
     }
 }

@@ -99,6 +99,14 @@
                 "$ref": "#/definitions/EffectLifetimeHookDefinition"
             }
         },
+        "on_healing": {
+            "description": "Hit Points this creature's actions restore, before they are rolled",
+            "type": "array",
+            "default": [],
+            "items": {
+                "$ref": "#/definitions/HealingHookDefinition"
+            }
+        },
         "on_resource_cost": {
             "type": "array",
             "default": [],
@@ -869,6 +877,21 @@
                     "description": "The final result of a D20 check after reactions have been applied.",
                     "type": "string",
                     "const": "d20_check_resolved"
+                }
+            ]
+        },
+        "HealingHookDefinition": {
+            "anyOf": [
+                {
+                    "type": "object",
+                    "properties": {
+                        "script": {
+                            "$ref": "#/definitions/ScriptId"
+                        }
+                    },
+                    "required": [
+                        "script"
+                    ]
                 }
             ]
         },
