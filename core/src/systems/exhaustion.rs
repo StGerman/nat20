@@ -165,6 +165,27 @@ fn gain_from(engine_state: &mut EngineState, entity: Entity, levels: u8, malnutr
     new.level
 }
 
+/// Puts back a creature's Exhaustion and hunger as they were saved, e.g. a character carried
+/// from one game session to the next: the level's effect is applied and, at level 6, the
+/// creature dies. The levels from malnutrition are capped at the level.
+pub fn restore(
+    engine_state: &mut EngineState,
+    entity: Entity,
+    exhaustion: Exhaustion,
+    hunger: Hunger,
+) {
+    let level = exhaustion.level.min(MAX_EXHAUSTION_LEVEL);
+    set(
+        engine_state,
+        entity,
+        Exhaustion {
+            level,
+            from_malnutrition: exhaustion.from_malnutrition.min(level),
+        },
+    );
+    let _ = engine_state.world.insert_one(entity, hunger);
+}
+
 /// Removes one Exhaustion level a Long Rest can remove: none while every level is from
 /// malnutrition the creature hasn't eaten its fill since. Returns the new level.
 pub fn reduce_after_long_rest(engine_state: &mut EngineState, entity: Entity) -> u8 {

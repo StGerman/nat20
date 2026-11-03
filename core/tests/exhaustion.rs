@@ -4,7 +4,7 @@ use nat20_core::{
     components::{
         ability::Ability,
         d20::{D20CheckKind, D20CheckOutcome},
-        exhaustion::Exhaustion,
+        exhaustion::{Exhaustion, Hunger},
         health::life_state::LifeState,
         saving_throw::SavingThrowKind,
         skill::Skill,
@@ -203,5 +203,67 @@ fn five_days_without_food_bring_a_level_and_each_day_after_another() {
             scenario.entity("fighter")
         ),
         0
+    );
+}
+
+#[test]
+fn a_saved_exhaustion_and_hunger_come_back_as_they_were() {
+    let mut scenario = fighter();
+    let (perception_0, speed_0) = (perception(&scenario), speed_ft(&mut scenario));
+    let fighter = scenario.entity("fighter");
+    systems::exhaustion::restore(
+        &mut scenario.engine_state,
+        fighter,
+        Exhaustion {
+            level: 2,
+            from_malnutrition: 1,
+        },
+        Hunger {
+            days_without_food: 3,
+        },
+    );
+    assert_eq!(
+        exhaustion(&scenario),
+        Exhaustion {
+            level: 2,
+            from_malnutrition: 1
+        }
+    );
+    assert_eq!(
+        systems::exhaustion::days_without_food(&scenario.engine_state.world, fighter),
+        3
+    );
+    assert_eq!(perception(&scenario), perception_0 - 4);
+    assert_eq!(speed_ft(&mut scenario), speed_0 - 10.0);
+    // A Long Rest takes the level that isn't from malnutrition, and no more.
+    assert_eq!(
+        systems::exhaustion::reduce_after_long_rest(&mut scenario.engine_state, fighter),
+        1
+    );
+    assert_eq!(
+        systems::exhaustion::reduce_after_long_rest(&mut scenario.engine_state, fighter),
+        1
+    );
+}
+
+#[test]
+fn restored_malnutrition_never_exceeds_the_level() {
+    let mut scenario = fighter();
+    let fighter = scenario.entity("fighter");
+    systems::exhaustion::restore(
+        &mut scenario.engine_state,
+        fighter,
+        Exhaustion {
+            level: 1,
+            from_malnutrition: 3,
+        },
+        Hunger::default(),
+    );
+    assert_eq!(
+        exhaustion(&scenario),
+        Exhaustion {
+            level: 1,
+            from_malnutrition: 1
+        }
     );
 }
