@@ -46,3 +46,23 @@ fn a_saved_hit_point_total_comes_back_between_1_and_the_maximum() {
         .unwrap();
     assert_eq!(life, LifeState::Normal);
 }
+
+#[test]
+fn a_restored_creature_wakes_from_any_life_state() {
+    let mut scenario = captain();
+    let guard = scenario.entity("guard");
+    *scenario
+        .engine_state
+        .world
+        .get::<&mut LifeState>(guard)
+        .unwrap() = LifeState::Stable;
+
+    systems::health::restore(&mut scenario.engine_state.world, guard, 5);
+    assert_eq!(hit_points(&mut scenario).0, 5);
+    let life = *scenario
+        .engine_state
+        .world
+        .get::<&LifeState>(guard)
+        .unwrap();
+    assert_eq!(life, LifeState::Normal, "not left Stable at 5 HP");
+}

@@ -59,12 +59,16 @@ pub fn stabilize(world: &mut World, target: Entity) -> Option<LifeState> {
 /// Restores a saved Hit Point total on a creature rebuilt from a save, such as a townsperson
 /// the party left hurt and meets again later. The current HP is set to `current`, clamped to
 /// at least 1 and at most the maximum, and the creature is conscious. This is not healing or
-/// damage: no effect is triggered, and Temporary Hit Points are left as they are. A creature
-/// that was at 0 HP is not restored this way.
+/// damage: no effect is triggered, and Temporary Hit Points are left as they are. It is for a
+/// creature that was alive when it was saved: a saved total of 0 comes back as 1 HP, so a
+/// caller keeps the dead out of a save instead of restoring them. A creature with no Hit
+/// Points is left unchanged.
 pub fn restore(world: &mut World, target: Entity, current: u32) {
-    if let Ok(mut hit_points) = world.get::<&mut HitPoints>(target) {
-        hit_points.restore(current);
-    }
+    let Ok(mut hit_points) = world.get::<&mut HitPoints>(target) else {
+        return;
+    };
+    hit_points.restore(current);
+    drop(hit_points);
     if let Ok(mut life_state) = world.get::<&mut LifeState>(target) {
         *life_state = LifeState::Normal;
     }

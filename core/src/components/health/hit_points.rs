@@ -135,9 +135,11 @@ impl HitPoints {
         self.current = (self.current + amount).min(self.max());
     }
 
-    /// Sets the current hit points to a saved value, between 1 and the maximum.
+    /// Sets the current hit points to a saved value, between 1 and the maximum (0 when the
+    /// maximum itself is 0, so the current never exceeds the maximum).
     pub(crate) fn restore(&mut self, current: u32) {
-        self.current = current.clamp(1, self.max().max(1));
+        let max = self.max();
+        self.current = current.clamp(1.min(max), max);
     }
 
     pub(crate) fn heal_full(&mut self) {
