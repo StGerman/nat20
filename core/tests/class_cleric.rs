@@ -403,6 +403,23 @@ fn guiding_bolt_lasts_until_the_end_of_the_casters_next_turn() {
         .encounter()
         .initiative_order(vec!["cleric", "brute", "fighter", "goblin"])
         .build();
+    // The forced order spaces initiative by 20, which a level 10 Barbarian's Advantage and
+    // Dexterity can still overtake, so the turns follow the encounter's real order.
+    let current = |scenario: &Scenario| {
+        scenario
+            .engine_state
+            .encounter_for_entity(scenario.entity("cleric"))
+            .unwrap()
+            .current_entity()
+    };
+    let end_current_turn = |scenario: &mut Scenario| {
+        let entity = current(scenario);
+        scenario.engine_state.end_turn(entity);
+        scenario.engine_state.update(0.0);
+    };
+    while current(&scenario) != scenario.entity("cleric") {
+        end_current_turn(&mut scenario);
+    }
     scenario.probe("cleric").d20_force_outcome(
         D20CheckKind::AttackRoll(AttackSource::Spell),
         D20CheckOutcome::Success,
@@ -412,13 +429,16 @@ fn guiding_bolt_lasts_until_the_end_of_the_casters_next_turn() {
         .context_spell_level(1)
         .target_entity("brute")
         .perform();
-    for handle in ["cleric", "brute", "fighter", "goblin"] {
-        scenario.probe(handle).end_turn();
+    // The caster's turn and the three after it: the effect holds.
+    for _ in 0..4 {
+        end_current_turn(&mut scenario);
         scenario
             .probe("brute")
             .assert_effect("effect.spell.guiding_bolt");
     }
-    scenario.probe("cleric").end_turn();
+    // The end of the caster's next turn: it is gone.
+    assert_eq!(current(&scenario), scenario.entity("cleric"));
+    end_current_turn(&mut scenario);
     scenario
         .probe("brute")
         .assert_no_effect("effect.spell.guiding_bolt");
