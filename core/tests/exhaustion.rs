@@ -84,6 +84,23 @@ fn a_creature_dies_at_level_6() {
 }
 
 #[test]
+fn healing_does_not_bring_back_a_creature_dead_of_exhaustion() {
+    let mut scenario = fighter();
+    gain(&mut scenario, 6);
+    let fighter = scenario.entity("fighter");
+    systems::health::heal(&mut scenario.engine_state.world, fighter, 10);
+    assert_eq!(
+        *scenario
+            .engine_state
+            .world
+            .get::<&LifeState>(fighter)
+            .unwrap(),
+        LifeState::Dead
+    );
+    assert!(!scenario.probe("fighter").is_alive());
+}
+
+#[test]
 fn a_long_rest_removes_one_level() {
     let mut scenario = fighter();
     let perception_0 = perception(&scenario);
