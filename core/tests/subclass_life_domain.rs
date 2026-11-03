@@ -163,6 +163,34 @@ fn aid_raises_the_maximum_and_current_hit_points_until_it_ends() {
 }
 
 #[test]
+fn a_second_aid_does_not_add_to_the_first() {
+    let mut scenario = chapel();
+    let max_hp = scenario.probe("fighter").max_hp();
+    for _ in 0..2 {
+        scenario
+            .act("cleric", "action.aid")
+            .context_spell_level(2)
+            .target_entity("fighter")
+            .perform();
+        scenario.probe("cleric").end_turn();
+    }
+    assert_eq!(scenario.probe("fighter").max_hp(), max_hp + 5);
+    let fighter = scenario.entity("fighter");
+    let aid = EffectId::new("nat20_core", "effect.spell.aid");
+    let active = systems::effects::effects(&scenario.engine_state.world, fighter)
+        .values()
+        .filter(|instance| instance.effect_id == aid)
+        .count();
+    assert_eq!(active, 1);
+    systems::effects::remove_effects_by_id(
+        &mut scenario.engine_state,
+        fighter,
+        &EffectId::new("nat20_core", "effect.spell.aid"),
+    );
+    assert_eq!(scenario.probe("fighter").max_hp(), max_hp);
+}
+
+#[test]
 fn losing_aid_takes_away_hit_points_above_the_maximum() {
     let mut scenario = chapel();
     let max_hp = scenario.probe("fighter").max_hp();
