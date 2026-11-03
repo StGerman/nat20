@@ -279,6 +279,11 @@ pub fn on_rest_end(engine_state: &mut EngineState, participants: &[Entity], kind
             }
         }
 
+        // Finishing a Long Rest removes one Exhaustion level (SRD 5.2.1)
+        if *kind == RestKind::Long {
+            systems::exhaustion::reduce_after_long_rest(engine_state, entity);
+        }
+
         // Hooks run last so they see the recharged, healed-up creature
         let rest_hooks = systems::effects::effects(&engine_state.world, entity)
             .collect_hooks(|effect| effect.on_rest.as_ref());

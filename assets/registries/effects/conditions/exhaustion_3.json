@@ -1,0 +1,20 @@
+{
+    "id": "nat20_core::effect.condition.exhaustion_3",
+    "kind": "debuff",
+    "description": "Exhaustion level 3: every D20 Test is reduced by 6, and your Speed by 15 feet.",
+    "_comment": "SRD 5.2.1, Rules Glossary > Exhaustion. One effect per level; systems::exhaustion swaps them as the level changes, so the penalties never stack twice. D20 Tests are skill checks (initiative included), saving throws and attack rolls.",
+    "modifiers": [
+        {
+            "skill": "all -6"
+        },
+        {
+            "saving_throw": "all -6"
+        },
+        {
+            "attack_roll_modifier": "-6"
+        },
+        {
+            "speed": "-15 ft"
+        }
+    ]
+}

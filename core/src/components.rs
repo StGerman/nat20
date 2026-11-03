@@ -8,6 +8,7 @@ pub mod d20;
 pub mod damage;
 pub mod dice;
 pub mod effects;
+pub mod exhaustion;
 pub mod faction;
 pub mod feat;
 pub mod health;

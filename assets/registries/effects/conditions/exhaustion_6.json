@@ -1,0 +1,20 @@
+{
+    "id": "nat20_core::effect.condition.exhaustion_6",
+    "kind": "debuff",
+    "description": "Exhaustion level 6: every D20 Test is reduced by 12, and your Speed by 30 feet. You die at level 6.",
+    "_comment": "SRD 5.2.1, Rules Glossary > Exhaustion. One effect per level; systems::exhaustion swaps them as the level changes, so the penalties never stack twice. D20 Tests are skill checks (initiative included), saving throws and attack rolls.",
+    "modifiers": [
+        {
+            "skill": "all -12"
+        },
+        {
+            "saving_throw": "all -12"
+        },
+        {
+            "attack_roll_modifier": "-12"
+        },
+        {
+            "speed": "-30 ft"
+        }
+    ]
+}
