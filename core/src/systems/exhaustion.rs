@@ -141,6 +141,8 @@ fn die(engine_state: &mut EngineState, entity: Entity) {
     let _ = engine_state
         .world
         .insert(entity, (HitPoints::with_current(0, max), LifeState::Dead));
+    systems::health::finalize_death(engine_state, entity, None);
+    systems::spells::break_concentration(engine_state, entity);
     let event = Event::new(EventKind::LifeStateChanged {
         entity: EntityIdentifier::from_world(&engine_state.world, entity),
         new_state: LifeState::Dead,

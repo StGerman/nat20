@@ -29,7 +29,14 @@ use crate::{
     systems::{self, time::RestKind},
 };
 
+/// Heals the creature. Healing never brings back the dead: a dead creature is left unchanged.
 pub fn heal(world: &mut World, target: Entity, amount: u32) -> Option<LifeState> {
+    if world
+        .get::<&LifeState>(target)
+        .is_ok_and(|life_state| *life_state == LifeState::Dead)
+    {
+        return None;
+    }
     if let Ok(mut hit_points) = world.get::<&mut HitPoints>(target) {
         let hit_points_before = hit_points.current();
         hit_points.heal(amount);
@@ -85,6 +92,47 @@ pub fn heal_full(world: &mut World, target: Entity) -> Option<LifeState> {
         return heal(world, target, max);
     }
     None
+}
+
+/// What follows any death, whatever caused it: the dying creature's death hooks run, its
+/// effects that are not permanent end (with any concentration on them), and no pending
+/// event waits for it any more. Its life state is the caller's to set.
+pub(crate) fn finalize_death(
+    engine_state: &mut EngineState,
+    target: Entity,
+    killer: Option<Entity>,
+) {
+    // Trigger death hooks and remove effects that are not permanent
+    let death_hooks: Vec<_> = systems::effects::effects(&engine_state.world, target)
+        .collect_hooks_with_applier(|effect| effect.on_death.as_ref());
+    for (hook, applier) in death_hooks {
+        hook(engine_state, target, killer, applier);
+    }
+
+    let temporary_effects = systems::effects::remove_temporary_effects(engine_state, target);
+
+    for effect in temporary_effects {
+        if let Some(applier) = effect.applier
+            && applier != target
+        {
+            // Check if the applier is concentrating on the target and break concentration if so
+            let spellbook =
+                systems::helpers::get_component_mut::<Spellbook>(&mut engine_state.world, applier);
+            spellbook
+                .concentration_tracker_mut()
+                .remove_instances_by_entity(target);
+        }
+    }
+
+    // Unblock pending events waiting for the entity to act (if any)
+    // TODO: I can't think of a scenario where this would happen, but I've got
+    // a feeling that this might be necessary in some edge cases.
+    for pending_event in engine_state
+        .scope_for_entity_mut(target)
+        .pending_events_mut()
+    {
+        pending_event.blocked_by.remove(&target);
+    }
 }
 
 pub fn damage(
@@ -202,36 +250,7 @@ pub fn damage(
             new_life_state = Some(death_policy.state_when_killed());
         }
 
-        // Trigger death hooks and remove effects that are not permanent
-        let death_hooks: Vec<_> = systems::effects::effects(&engine_state.world, target)
-            .collect_hooks_with_applier(|effect| effect.on_death.as_ref());
-        for (hook, applier) in death_hooks {
-            hook(engine_state, target, killer, applier);
-        }
-
-        let temporary_effects = systems::effects::remove_temporary_effects(engine_state, target);
-
-        for effect in temporary_effects {
-            if let Some(applier) = effect.applier
-                && applier != target
-            {
-                // Check if the applier is concentrating on the target and break concentration if so
-                let spellbook = systems::helpers::get_component_mut::<Spellbook>(
-                    &mut engine_state.world,
-                    applier,
-                );
-                spellbook
-                    .concentration_tracker_mut()
-                    .remove_instances_by_entity(target);
-            }
-        }
-
-        // Unblock pending events waiting for the entity to act (if any)
-        // TODO: I can't think of a scenario where this would happen, but I've got
-        // a feeling that this might be necessary in some edge cases.
-        for pending_event in engine_state.scope_for_entity_mut(target).pending_events_mut() {
-            pending_event.blocked_by.remove(&target);
-        }
+        finalize_death(engine_state, target, killer);
     }
 
     if let Some(new_life_state) = new_life_state
