@@ -204,5 +204,10 @@ impl RegistryReferenceCollector for Subclass {
                 collector.add(RegistryReference::Action(action.clone()));
             }
         }
+        for spell_list in self.base.spells_by_level.values() {
+            for spell in spell_list {
+                collector.add(RegistryReference::Spell(spell.clone()));
+            }
+        }
     }
 }

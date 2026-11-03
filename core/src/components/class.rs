@@ -53,6 +53,10 @@ pub struct ClassBase {
     /// Actions that are available at each level.
     #[serde(default)]
     pub actions_by_level: HashMap<u8, Vec<ActionId>>,
+    /// Spells that are always prepared from each level, e.g. a Cleric domain's
+    /// spells. They don't count against the number of spells the class prepares.
+    #[serde(default)]
+    pub spells_by_level: HashMap<u8, Vec<SpellId>>,
 }
 
 /// How a class gets access to spells (i.e., what the "known pool" means).
@@ -200,6 +204,8 @@ impl Class {
                 resources_by_level,
                 prompts_by_level,
                 actions_by_level,
+                // Only subclasses always prepare spells so far
+                spells_by_level: HashMap::new(),
             },
         }
     }

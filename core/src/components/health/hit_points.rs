@@ -35,8 +35,11 @@ impl Default for TemporaryHitPoints {
 #[derive(Debug, Clone)]
 pub struct HitPoints {
     current: u32,
+    /// The maximum before any bonus to it
     max: u32,
     temp: Option<TemporaryHitPoints>,
+    /// Bonuses to the maximum from effects, e.g. the Aid spell
+    max_bonuses: Vec<(ModifierSource, u32)>,
 }
 
 impl HitPoints {
@@ -45,6 +48,7 @@ impl HitPoints {
             current: max,
             max,
             temp: None,
+            max_bonuses: Vec::new(),
         }
     }
 
@@ -53,6 +57,7 @@ impl HitPoints {
             current,
             max,
             temp: None,
+            max_bonuses: Vec::new(),
         }
     }
 
@@ -61,6 +66,7 @@ impl HitPoints {
             current,
             max,
             temp: Some(temp),
+            max_bonuses: Vec::new(),
         }
     }
 
@@ -68,19 +74,33 @@ impl HitPoints {
         self.current
     }
 
+    /// The Hit Point maximum, bonuses included
     pub fn max(&self) -> u32 {
-        self.max
+        self.max + self.max_bonuses.iter().map(|(_, bonus)| bonus).sum::<u32>()
     }
 
     pub fn temp(&self) -> Option<&TemporaryHitPoints> {
         self.temp.as_ref()
     }
 
+    /// Sets the maximum before bonuses, e.g. after a level up
     pub fn update_max(&mut self, new_max: u32) {
-        if new_max < self.current {
-            self.current = new_max;
-        }
         self.max = new_max;
+        self.current = self.current.min(self.max());
+    }
+
+    /// Raises the maximum by `amount` from `source`, replacing an earlier bonus from the
+    /// same source. Current Hit Points are left as they are.
+    pub fn add_max_bonus(&mut self, source: &ModifierSource, amount: u32) {
+        self.remove_max_bonus(source);
+        self.max_bonuses.push((source.clone(), amount));
+    }
+
+    /// Drops the bonus from `source`; current Hit Points above the new maximum are lost.
+    pub fn remove_max_bonus(&mut self, source: &ModifierSource) {
+        self.max_bonuses
+            .retain(|(bonus_source, _)| bonus_source != source);
+        self.current = self.current.min(self.max());
     }
 
     /// Applies damage to the hit points. If the entity has temporary hit points,
@@ -112,15 +132,15 @@ impl HitPoints {
     }
 
     pub(crate) fn heal(&mut self, amount: u32) {
-        self.current = (self.current + amount).min(self.max);
+        self.current = (self.current + amount).min(self.max());
     }
 
     pub(crate) fn heal_full(&mut self) {
-        self.current = self.max;
+        self.current = self.max();
     }
 
     pub fn is_full(&self) -> bool {
-        self.current == self.max
+        self.current == self.max()
     }
 
     pub fn is_alive(&self) -> bool {

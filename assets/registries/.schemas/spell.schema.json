@@ -425,6 +425,18 @@
                     "required": [
                         "life_state"
                     ]
+                },
+                {
+                    "description": "Ends a condition on the target when the condition succeeds, together with\nthe effect that imposed it (e.g. Lesser Restoration ending Paralyzed ends\nHold Person)",
+                    "type": "object",
+                    "properties": {
+                        "end_condition": {
+                            "$ref": "#/definitions/EffectId"
+                        }
+                    },
+                    "required": [
+                        "end_condition"
+                    ]
                 }
             ]
         },

@@ -11,6 +11,14 @@
             "3": [
                 "nat20_core::action.cleric.life_domain.preserve_life"
             ]
+        },
+        "spells_by_level": {
+            "3": [
+                "nat20_core::spell.aid",
+                "nat20_core::spell.bless",
+                "nat20_core::spell.cure_wounds",
+                "nat20_core::spell.lesser_restoration"
+            ]
         }
     }
 }

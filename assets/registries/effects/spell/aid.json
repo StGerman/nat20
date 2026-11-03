@@ -1,0 +1,10 @@
+{
+    "id": "nat20_core::effect.spell.aid",
+    "kind": "buff",
+    "description": "Your Hit Point maximum and current Hit Points are higher by 5, plus 5 for each spell slot level above 2, while the spell lasts.",
+    "modifiers": [
+        {
+            "hit_point_maximum": "5 * (spell_level - 1)"
+        }
+    ]
+}

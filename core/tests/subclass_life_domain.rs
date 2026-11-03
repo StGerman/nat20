@@ -1,7 +1,14 @@
 extern crate nat20_core;
 
 use nat20_core::{
-    components::damage::DamageType,
+    components::{
+        ability::Ability,
+        d20::{D20CheckKind, D20CheckOutcome},
+        damage::DamageType,
+        id::EffectId,
+        saving_throw::SavingThrowKind,
+    },
+    systems,
     test_utils::scenario::{Operator, Scenario},
 };
 
@@ -119,4 +126,101 @@ fn a_level_2_cleric_has_no_life_domain_yet() {
     let mut scenario = Scenario::new();
     scenario.spawn("cleric", "hero.cleric").level(2).spawn();
     scenario.act("cleric", PRESERVE_LIFE).assert_perform_fails();
+}
+
+#[test]
+fn life_domain_spells_are_always_prepared() {
+    let mut scenario = chapel();
+    // The fixture prepared none of Aid and Lesser Restoration, yet both can be cast.
+    for spell in ["action.aid", "action.lesser_restoration"] {
+        scenario.probe("cleric").assert_action_available(spell);
+    }
+}
+
+#[test]
+fn aid_raises_the_maximum_and_current_hit_points_until_it_ends() {
+    let mut scenario = chapel();
+    wound_to(&mut scenario, "fighter", 4);
+    let max_hp = scenario.probe("fighter").max_hp();
+    let cleric_max_hp = scenario.probe("cleric").max_hp();
+    scenario
+        .act("cleric", "action.aid")
+        .context_spell_level(2)
+        .target_entities(vec!["fighter", "cleric"])
+        .perform();
+    assert_eq!(scenario.probe("fighter").max_hp(), max_hp + 5);
+    assert_eq!(scenario.probe("fighter").hp(), 4 + 5);
+    assert_eq!(scenario.probe("cleric").max_hp(), cleric_max_hp + 5);
+
+    let fighter = scenario.entity("fighter");
+    systems::effects::remove_effects_by_id(
+        &mut scenario.engine_state,
+        fighter,
+        &EffectId::new("nat20_core", "effect.spell.aid"),
+    );
+    assert_eq!(scenario.probe("fighter").max_hp(), max_hp);
+    assert_eq!(scenario.probe("fighter").hp(), 4 + 5);
+}
+
+#[test]
+fn losing_aid_takes_away_hit_points_above_the_maximum() {
+    let mut scenario = chapel();
+    let max_hp = scenario.probe("fighter").max_hp();
+    scenario
+        .act("cleric", "action.aid")
+        .context_spell_level(2)
+        .target_entity("fighter")
+        .perform();
+    assert_eq!(scenario.probe("fighter").hp(), max_hp + 5);
+    let fighter = scenario.entity("fighter");
+    systems::effects::remove_effects_by_id(
+        &mut scenario.engine_state,
+        fighter,
+        &EffectId::new("nat20_core", "effect.spell.aid"),
+    );
+    assert_eq!(scenario.probe("fighter").hp(), max_hp);
+}
+
+#[test]
+fn lesser_restoration_ends_paralysis_and_the_hold_person_behind_it() {
+    let mut scenario = chapel();
+    scenario.probe("fighter").d20_force_outcome(
+        D20CheckKind::SavingThrow(SavingThrowKind::Ability(Ability::Wisdom)),
+        D20CheckOutcome::CriticalFailure,
+    );
+    scenario
+        .act("cleric", "action.hold_person")
+        .context_spell_level(2)
+        .target_entity("fighter")
+        .perform();
+    scenario
+        .probe("fighter")
+        .assert_effect("effect.condition.paralyzed");
+
+    scenario
+        .act("cleric", "action.lesser_restoration")
+        .variant("variant.lesser_restoration.paralyzed")
+        .target_entity("fighter")
+        .perform();
+    scenario
+        .probe("fighter")
+        .assert_no_effect("effect.spell.hold_person")
+        .assert_no_effect("effect.condition.paralyzed")
+        .assert_no_effect("effect.condition.incapacitated");
+}
+
+#[test]
+fn lesser_restoration_leaves_a_permanent_condition_alone() {
+    let mut scenario = chapel();
+    scenario
+        .probe("fighter")
+        .apply_effect("effect.condition.poisoned");
+    scenario
+        .act("cleric", "action.lesser_restoration")
+        .variant("variant.lesser_restoration.poisoned")
+        .target_entity("fighter")
+        .perform();
+    scenario
+        .probe("fighter")
+        .assert_effect("effect.condition.poisoned");
 }

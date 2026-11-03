@@ -602,6 +602,12 @@ pub enum EffectModifier {
     TemporaryHitPoints {
         temporary_hit_points: HealEquation,
     },
+    /// Raises the Hit Point maximum and current Hit Points by the amount while the
+    /// effect lasts (e.g. Aid); the current Hit Points above the maximum are lost
+    /// when it ends
+    HitPointMaximum {
+        hit_point_maximum: HealEquation,
+    },
     Concentration {
         #[serde(default)]
         break_concentration: bool,
@@ -812,6 +818,31 @@ impl EffectModifier {
                     }
                 }
             }
+
+            EffectModifier::HitPointMaximum { hit_point_maximum } => match phase {
+                EffectPhase::Apply => {
+                    if let Some(context) = context {
+                        let amount =
+                            (hit_point_maximum.function)(&mut engine_state.world, entity, context)
+                                .evaluate()
+                                .total()
+                                .max(0) as u32;
+                        systems::helpers::get_component_mut::<HitPoints>(
+                            &mut engine_state.world,
+                            entity,
+                        )
+                        .add_max_bonus(&source, amount);
+                        systems::health::heal(&mut engine_state.world, entity, amount);
+                    }
+                }
+                EffectPhase::Unapply => {
+                    systems::helpers::get_component_mut::<HitPoints>(
+                        &mut engine_state.world,
+                        entity,
+                    )
+                    .remove_max_bonus(&source);
+                }
+            },
 
             EffectModifier::Concentration {
                 break_concentration,

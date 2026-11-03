@@ -1,0 +1,42 @@
+{
+    "id": "nat20_core::spell.lesser_restoration",
+    "description": "You touch a creature and end one condition on it: Blinded, Deafened, Paralyzed, or Poisoned.",
+    "summary": "Touch a creature and end its Paralyzed or Poisoned condition.",
+    "_comment": "Blinded and Deafened have no condition effects in core yet, so they have no variants.",
+    "base_level": 2,
+    "school": "abjuration",
+    "flags": [
+        "verbal",
+        "somatic"
+    ],
+    "kind": {
+        "variant": {
+            "variants": [
+                "nat20_core::variant.lesser_restoration.paralyzed",
+                "nat20_core::variant.lesser_restoration.poisoned"
+            ]
+        }
+    },
+    "resource_cost": {
+        "nat20_core::resource.bonus_action": 1
+    },
+    "targeting": {
+        "kind": "single",
+        "range": "5 feet",
+        "line_of_sight": {
+            "trajectory": "ray"
+        },
+        "allowed_targets": [
+            {
+                "life_states": [
+                    "dead"
+                ],
+                "invert": true
+            }
+        ]
+    },
+    "timeline": {
+        "total_duration": 1.0,
+        "perform_time": 0.5
+    }
+}

@@ -546,6 +546,8 @@ enum PayloadResult {
     Displacement(Option<DisplacementTemplate>),
     /// None: the condition failed, so the target's life state is unchanged
     LifeState(Option<LifeStateChange>),
+    /// False: the condition failed, so no condition ends
+    EndCondition(bool),
 }
 
 impl StepComponent {
@@ -726,6 +728,12 @@ impl StepComponent {
                 self.payload_result = Awaitable::Ready(PayloadResult::LifeState(change));
                 true
             }
+
+            ActionPayloadComponent::EndCondition(_) => {
+                self.payload_result =
+                    Awaitable::Ready(PayloadResult::EndCondition(resolution.is_success()));
+                true
+            }
         }
     }
 
@@ -770,6 +778,13 @@ impl StepComponent {
             }
             PayloadResult::LifeState(change) => {
                 Self::apply_life_state(engine_state, action, target, resolution, change)
+            }
+            PayloadResult::EndCondition(ends) => {
+                let ActionPayloadComponent::EndCondition(condition) = &self.payload else {
+                    unreachable!()
+                };
+                let condition = condition.clone();
+                Self::apply_end_condition(engine_state, target, resolution, condition, ends)
             }
         });
     }
@@ -886,6 +901,26 @@ impl StepComponent {
         let result = reaction.execute(engine_state, action);
 
         ActionResultComponent::Reaction(result)
+    }
+
+    fn apply_end_condition(
+        engine_state: &mut EngineState,
+        target: Entity,
+        resolution: &ActionConditionResolution,
+        condition: EffectId,
+        ends: bool,
+    ) -> ActionResultComponent {
+        let ended =
+            ends && !systems::effects::end_condition(engine_state, target, &condition).is_empty();
+        ActionResultComponent::Effect(EffectResult {
+            resolution: resolution.clone(),
+            effects: vec![condition],
+            result: if ended {
+                EffectResultKind::Removed
+            } else {
+                EffectResultKind::None
+            },
+        })
     }
 
     fn apply_life_state(

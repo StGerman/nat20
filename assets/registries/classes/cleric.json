@@ -98,12 +98,14 @@
         },
         "spell_replacement_model": "long_rest",
         "spell_list": [
+            "nat20_core::spell.aid",
             "nat20_core::spell.bless",
             "nat20_core::spell.cure_wounds",
             "nat20_core::spell.guidance",
             "nat20_core::spell.guiding_bolt",
             "nat20_core::spell.healing_word",
             "nat20_core::spell.hold_person",
+            "nat20_core::spell.lesser_restoration",
             "nat20_core::spell.sacred_flame",
             "nat20_core::spell.shield_of_faith",
             "nat20_core::spell.spare_the_dying"

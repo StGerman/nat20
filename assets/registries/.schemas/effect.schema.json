@@ -817,6 +817,23 @@
                     ]
                 },
                 {
+                    "description": "Raises the Hit Point maximum and current Hit Points by the amount while the\neffect lasts (e.g. Aid); the current Hit Points above the maximum are lost\nwhen it ends",
+                    "type": "object",
+                    "properties": {
+                        "hit_point_maximum": {
+                            "description": "Healing roll as a dice expression. Expressions may use the variables `spell_level`, `caster_level`, `character_level` and `<class>.level` (e.g. `class.wizard.level`).",
+                            "type": "string",
+                            "examples": [
+                                "1d8 + spell_level",
+                                "2d4 + 2"
+                            ]
+                        }
+                    },
+                    "required": [
+                        "hit_point_maximum"
+                    ]
+                },
+                {
                     "type": "object",
                     "properties": {
                         "block_concentration": {
