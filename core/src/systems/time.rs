@@ -88,6 +88,38 @@ pub enum RestError {
     InCombat { entities: Vec<Entity> },
     NotResting { entities: Vec<Entity> },
     DifferentRestKinds { entities: HashMap<Entity, RestKind> },
+    /// A Long Rest needs at least 1 Hit Point to start
+    NoHitPoints { entities: Vec<Entity> },
+    /// Less than 16 hours have passed since these entities finished a Long Rest
+    TooSoon { entities: Vec<Entity> },
+}
+/// After a Long Rest ends, a creature must wait at least 16 hours before starting
+/// another one (SRD 5.2.1, Long Rest).
+pub const LONG_REST_WAIT_SECONDS: f32 = 16.0 * 60.0 * 60.0;
+
+/// When the entity last finished a Long Rest, on its own clock.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct LongRestFinished {
+    pub at_seconds: f32,
+}
+
+fn local_time(world: &World, entity: Entity) -> f32 {
+    world
+        .get::<&EntityClock>(entity)
+        .map(|clock| clock.local_time_seconds())
+        .unwrap_or(0.0)
+}
+
+/// How long the entity must still wait before it can start a Long Rest, in seconds;
+/// 0 when it can start one now.
+pub fn long_rest_wait_left(world: &World, entity: Entity) -> f32 {
+    match world.get::<&LongRestFinished>(entity) {
+        Ok(finished) => {
+            let since = local_time(world, entity) - finished.at_seconds;
+            (LONG_REST_WAIT_SECONDS - since).max(0.0)
+        }
+        Err(_) => 0.0,
+    }
 }
 
 pub fn on_turn_start(engine_state: &mut EngineState, entity: Entity) {
@@ -120,6 +152,35 @@ pub fn start_rest(
         return Err(RestError::InCombat {
             entities: entities_in_combat,
         });
+    }
+
+    if *kind == RestKind::Long {
+        let no_hit_points: Vec<Entity> = participants
+            .iter()
+            .copied()
+            .filter(|&entity| !systems::health::is_alive(&engine_state.world, entity))
+            .collect();
+        if !no_hit_points.is_empty() {
+            error!(
+                "Entities with 0 Hit Points cannot start a Long Rest: {:?}",
+                no_hit_points
+            );
+            return Err(RestError::NoHitPoints {
+                entities: no_hit_points,
+            });
+        }
+        let too_soon: Vec<Entity> = participants
+            .iter()
+            .copied()
+            .filter(|&entity| long_rest_wait_left(&engine_state.world, entity) > 0.0)
+            .collect();
+        if !too_soon.is_empty() {
+            error!(
+                "Entities finished a Long Rest less than 16 hours ago: {:?}",
+                too_soon
+            );
+            return Err(RestError::TooSoon { entities: too_soon });
+        }
     }
 
     let event = Event::new(EventKind::RestStarted {
@@ -210,7 +271,11 @@ pub fn on_rest_end(engine_state: &mut EngineState, participants: &[Entity], kind
                 if let Ok(mut hit_point_dice) = world.get::<&mut HitPointDice>(entity) {
                     hit_point_dice.restore_all();
                 }
-                // TODO: Remove non-permanent effects?
+                // The 16-hour wait before the next Long Rest counts from here. Effects
+                // with a duration end as the rest's hours pass, which the caller advances;
+                // the SRD ends nothing else at the end of a Long Rest.
+                let at_seconds = local_time(world, entity);
+                let _ = world.insert_one(entity, LongRestFinished { at_seconds });
             }
         }
 
