@@ -5,8 +5,10 @@ use nat20_core::{
         ability::Ability,
         d20::{D20CheckKind, D20CheckOutcome},
         damage::DamageType,
-        id::EffectId,
+        id::{EffectId, SpellId},
+        rng,
         saving_throw::SavingThrowKind,
+        spells::spellbook::{GrantedSpellSource, SpellSource},
     },
     systems,
     test_utils::scenario::{Operator, Scenario},
@@ -54,6 +56,42 @@ fn disciple_of_life_adds_2_plus_the_slot_level_to_healing_spells() {
             "slot {slot}: {healed}"
         );
     }
+}
+
+/// How much a level 1 Cure Wounds heals the Fighter, with the dice seeded the same each time.
+/// `granted` casts it from a granted spell, which uses no spell slot.
+fn seeded_cure_wounds(granted: bool) -> u32 {
+    let mut scenario = chapel();
+    wound_to(&mut scenario, "fighter", 1);
+    if granted {
+        let cleric = scenario.entity("cleric");
+        systems::spells::add_spell(
+            &mut scenario.engine_state,
+            cleric,
+            &SpellId::new("nat20_core", "spell.cure_wounds"),
+            &SpellSource::Granted {
+                source: GrantedSpellSource::Effect(EffectId::new("nat20_core", "effect.test")),
+                level: 1,
+            },
+        )
+        .unwrap();
+    }
+    rng::seed(7);
+    scenario
+        .act("cleric", "action.cure_wounds")
+        .context_filter(move |context, _| {
+            context.spell.as_ref().is_some_and(|spell| {
+                spell.level == 1 && matches!(spell.source, SpellSource::Granted { .. }) == granted
+            })
+        })
+        .target_entity("fighter")
+        .perform();
+    scenario.probe("fighter").hp() - 1
+}
+
+#[test]
+fn disciple_of_life_needs_a_spell_slot() {
+    assert_eq!(seeded_cure_wounds(false), seeded_cure_wounds(true) + 3);
 }
 
 #[test]
@@ -160,6 +198,34 @@ fn aid_raises_the_maximum_and_current_hit_points_until_it_ends() {
     );
     assert_eq!(scenario.probe("fighter").max_hp(), max_hp);
     assert_eq!(scenario.probe("fighter").hp(), 4 + 5);
+}
+
+#[test]
+fn a_second_aid_does_not_add_to_the_first() {
+    let mut scenario = chapel();
+    let max_hp = scenario.probe("fighter").max_hp();
+    for _ in 0..2 {
+        scenario
+            .act("cleric", "action.aid")
+            .context_spell_level(2)
+            .target_entity("fighter")
+            .perform();
+        scenario.probe("cleric").end_turn();
+    }
+    assert_eq!(scenario.probe("fighter").max_hp(), max_hp + 5);
+    let fighter = scenario.entity("fighter");
+    let aid = EffectId::new("nat20_core", "effect.spell.aid");
+    let active = systems::effects::effects(&scenario.engine_state.world, fighter)
+        .values()
+        .filter(|instance| instance.effect_id == aid)
+        .count();
+    assert_eq!(active, 1);
+    systems::effects::remove_effects_by_id(
+        &mut scenario.engine_state,
+        fighter,
+        &EffectId::new("nat20_core", "effect.spell.aid"),
+    );
+    assert_eq!(scenario.probe("fighter").max_hp(), max_hp);
 }
 
 #[test]
