@@ -1,7 +1,10 @@
 extern crate nat20_core;
 
 use nat20_core::{
-    components::level::{CharacterLevels, experience_for_level},
+    components::{
+        id::ClassId,
+        level::{CharacterLevels, experience_for_level},
+    },
     systems,
     test_utils::scenario::Scenario,
 };
@@ -80,10 +83,27 @@ fn a_character_can_level_up_at_the_next_levels_threshold() {
     ));
 }
 
+fn level_20_fighter() -> CharacterLevels {
+    let mut levels = CharacterLevels::new();
+    for _ in 0..20 {
+        levels.level_up(ClassId::new("nat20_core", "class.fighter"));
+    }
+    levels
+}
+
 #[test]
 fn levels_never_exceed_20_however_much_experience() {
-    let mut levels = CharacterLevels::new();
+    let mut levels = level_20_fighter();
+    assert_eq!(levels.total_level(), 20);
     levels.add_experience(u32::MAX);
     levels.add_experience(1);
     assert_eq!(levels.experience(), u32::MAX);
+    assert!(!levels.can_level_up());
+}
+
+#[test]
+#[should_panic(expected = "maximum level")]
+fn a_level_20_character_takes_no_level_in_another_class() {
+    let mut levels = level_20_fighter();
+    levels.level_up(ClassId::new("nat20_core", "class.wizard"));
 }
