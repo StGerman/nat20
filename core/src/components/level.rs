@@ -243,15 +243,16 @@ impl CharacterLevels {
         &self.class_levels
     }
 
+    /// Adds a level in `class`. Panics at total level 20, whatever the classes.
     pub fn level_up(&mut self, class: ClassId) -> u8 {
+        if self.total_level() >= MAX_LEVEL {
+            panic!("Cannot level up beyond maximum level of {}", MAX_LEVEL);
+        }
         if !self.class_levels.contains_key(&class) {
             self.class_levels
                 .insert(class.clone(), ClassLevelProgression::new(1, None));
         } else {
             let level = self.class_levels.get_mut(&class).unwrap();
-            if level.level >= MAX_LEVEL {
-                panic!("Cannot level up beyond maximum level of {}", MAX_LEVEL);
-            }
             level.level += 1;
         }
 
