@@ -1,6 +1,7 @@
 {
     "id": "nat20_core::spell.hold_person",
     "description": "Choose a Humanoid that you can see within range. The target must succeed on a Wisdom saving throw or have the Paralyzed condition for the duration. At the end of each of its turns, the target repeats the save, ending the spell on itself on a success.",
+    "summary": "A Humanoid you can see within 60 feet is Paralyzed unless it shakes it off with a Wisdom save; it tries again at the end of each of its turns. Concentration, up to 1 minute.",
     "base_level": 2,
     "school": "enchantment",
     "flags": [

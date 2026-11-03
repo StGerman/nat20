@@ -4,8 +4,8 @@
 extern crate nat20_core;
 
 use nat20_core::{
-    components::id::{ActionId, SpellId},
-    registry::registry::{ActionsRegistry, SpellsRegistry},
+    components::id::{ActionId, ClassId, SpellId},
+    registry::registry::{ActionsRegistry, ClassesRegistry, SpellsRegistry},
 };
 
 #[test]
@@ -105,6 +105,22 @@ fn summaries_stay_short_and_carry_no_dc_or_odds() {
         assert!(summary.len() <= 240, "{summary}");
         for banned in ["DC", "%", "average", "chance"] {
             assert!(!summary.contains(banned), "{banned} in {summary}");
+        }
+    }
+}
+
+/// A level-up offers a spell by its summary, so every spell up to 2nd level on the Cleric and
+/// Wizard lists has one: the spells a level 3 pregen picks from.
+#[test]
+fn every_spell_a_level_three_caster_picks_has_a_summary() {
+    for class in ["class.cleric", "class.wizard"] {
+        let class = ClassesRegistry::get(&ClassId::new("nat20_core", class)).unwrap();
+        let rules = class.base().spellcasting.as_ref().unwrap();
+        for id in &rules.spell_list {
+            let spell = SpellsRegistry::get(id).unwrap_or_else(|| panic!("{id}"));
+            if spell.base_level() <= 2 {
+                assert!(spell.action().summary.is_some(), "{id} has no summary");
+            }
         }
     }
 }
