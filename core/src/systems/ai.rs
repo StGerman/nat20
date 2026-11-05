@@ -67,6 +67,7 @@ pub fn recommeneded_target_attitude(
                     }
                     ActionPayloadComponent::Displacement(_) => todo!(),
                     ActionPayloadComponent::LifeState(_) => return Attitude::Friendly,
+                    ActionPayloadComponent::EndCondition(_) => return Attitude::Friendly,
                 }
             }
             Attitude::Neutral

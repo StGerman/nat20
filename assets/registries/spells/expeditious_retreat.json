@@ -1,6 +1,7 @@
 {
     "id": "nat20_core::spell.expeditious_retreat",
     "description": "You take the Dash action, and until the spell ends, you can take that action again as a Bonus Action.",
+    "summary": "Take the Dash action now, and Dash as a Bonus Action on each of your turns while you concentrate.",
     "base_level": 1,
     "school": "transmutation",
     "flags": [

@@ -1,0 +1,65 @@
+{
+    "id": "nat20_core::spell.aid",
+    "description": "Choose up to three creatures within range. Each target's Hit Point maximum and current Hit Points increase by 5 for the duration. Using a Higher-Level Spell Slot: each target's Hit Points increase by 5 for each spell slot level above 2.",
+    "summary": "Up to three creatures within 30 feet gain 5 to their Hit Point maximum and current Hit Points for 8 hours.",
+    "base_level": 2,
+    "school": "abjuration",
+    "flags": [
+        "verbal",
+        "somatic"
+    ],
+    "kind": {
+        "standard": {
+            "phases": [
+                {
+                    "payload": {
+                        "components": [
+                            {
+                                "effect": {
+                                    "effect_id": "nat20_core::effect.spell.aid",
+                                    "lifetime": {
+                                        "turn_boundary": {
+                                            "entity": "applier",
+                                            "boundary": "start",
+                                            "duration": {
+                                                "time": "8 hours"
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        ],
+                        "delivery": "immediate"
+                    }
+                }
+            ]
+        }
+    },
+    "resource_cost": {
+        "nat20_core::resource.action": 1
+    },
+    "targeting": {
+        "kind": {
+            "multiple": {
+                "max_targets": "3",
+                "allow_duplicates": false
+            }
+        },
+        "range": "30 feet",
+        "line_of_sight": {
+            "trajectory": "ray"
+        },
+        "allowed_targets": [
+            {
+                "life_states": [
+                    "dead"
+                ],
+                "invert": true
+            }
+        ]
+    },
+    "timeline": {
+        "total_duration": 1.0,
+        "perform_time": 0.5
+    }
+}

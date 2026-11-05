@@ -1,0 +1,16 @@
+{
+    "id": "nat20_core::variant.lesser_restoration.paralyzed",
+    "description": "The Paralyzed condition ends on the creature, along with the effect that imposed it.",
+    "phases": [
+        {
+            "payload": {
+                "components": [
+                    {
+                        "end_condition": "nat20_core::effect.condition.paralyzed"
+                    }
+                ],
+                "delivery": "immediate"
+            }
+        }
+    ]
+}

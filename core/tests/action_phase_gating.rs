@@ -89,6 +89,14 @@ fn phase_gating(
         .spawn("goblin", "monster.goblin_warrior")
         .level(1)
         .spawn();
+    // The fixture Wizard is an Evoker, whose Potent Cantrip would turn a miss into
+    // half damage; without it the dice counts isolate the phase gating
+    let wizard = scenario.entity("wizard");
+    systems::effects::remove_effects_by_id(
+        &mut scenario.engine_state,
+        wizard,
+        &"effect.wizard.evoker.potent_cantrip".into(),
+    );
 
     cast_gated_ray_of_frost(&mut scenario, requires, attack_outcome);
 

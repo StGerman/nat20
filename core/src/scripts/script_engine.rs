@@ -55,7 +55,7 @@ use crate::{
         effects::effect::{EffectInstance, EffectLifetime},
         id::{ActionId, EffectId, EntityIdentifier, ScriptId},
         items::equipment::armor::ArmorClass,
-        modifier::FlatModifiable,
+        modifier::{FlatModifiable, ModifierMap},
         resource::ResourceAmountMap,
         speed::Speed,
     },
@@ -435,6 +435,60 @@ impl ScriptEngine {
                     scope.create_userdata_ref(engine_state)?,
                     ent,
                     scope.create_userdata_ref_mut(result)?,
+                ))
+            })
+            .map_err(Self::runtime_error)
+    }
+
+    pub fn evaluate_damage_on_failure_hook(
+        &self,
+        script: &Script,
+        engine_state: &EngineState,
+        actor: Entity,
+        action: &ActionData,
+    ) -> Result<bool, ScriptError> {
+        let func = self.get_function(script, ScriptFunction::DamageOnFailureHook)?;
+        let actor = self
+            .lua
+            .create_userdata(ScriptEntity::from(actor))
+            .map_err(Self::runtime_error)?;
+        self.lua
+            .scope(|scope| {
+                func.call::<bool>((
+                    scope.create_userdata_ref(engine_state)?,
+                    actor,
+                    scope.create_userdata_ref(action)?,
+                ))
+            })
+            .map_err(Self::runtime_error)
+    }
+
+    pub fn evaluate_healing_hook(
+        &self,
+        script: &Script,
+        engine_state: &EngineState,
+        healer: Entity,
+        target: Entity,
+        action: &ActionData,
+        healing: &mut ModifierMap,
+    ) -> Result<(), ScriptError> {
+        let func = self.get_function(script, ScriptFunction::HealingHook)?;
+        let healer = self
+            .lua
+            .create_userdata(ScriptEntity::from(healer))
+            .map_err(Self::runtime_error)?;
+        let target = self
+            .lua
+            .create_userdata(ScriptEntity::from(target))
+            .map_err(Self::runtime_error)?;
+        self.lua
+            .scope(|scope| {
+                func.call::<()>((
+                    scope.create_userdata_ref(engine_state)?,
+                    healer,
+                    target,
+                    scope.create_userdata_ref(action)?,
+                    scope.create_userdata_ref_mut(healing)?,
                 ))
             })
             .map_err(Self::runtime_error)

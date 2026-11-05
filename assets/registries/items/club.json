@@ -1,0 +1,23 @@
+{
+  "item": {
+    "id": "nat20_core::item.club",
+    "name": "Club",
+    "description": "A simple wooden club.",
+    "weight": "2 lb",
+    "value": "1 SP",
+    "rarity": "common"
+  },
+  "category": "simple",
+  "kind": "melee",
+  "properties": [
+    "Light"
+  ],
+  "damage": [
+    [
+      "1d4",
+      "bludgeoning"
+    ]
+  ],
+  "extra_weapon_actions": [],
+  "effects": []
+}

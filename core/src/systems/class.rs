@@ -6,11 +6,13 @@ use crate::{
         proficiency::ProficiencyLevel,
         resource::ResourceMap,
         saving_throw::SavingThrowKind,
+        spells::spellbook::Spellbook,
     },
     engine::engine_state::EngineState,
     registry::registry::ClassesRegistry,
 };
 use hecs::{Entity, World};
+use tracing::warn;
 
 use crate::{
     components::{
@@ -26,6 +28,14 @@ enum ClassIdentifier {
 }
 
 impl ClassIdentifier {
+    /// The class itself, or the class a subclass belongs to
+    fn class_id(&self) -> ClassId {
+        match self {
+            ClassIdentifier::Class(class_id) => class_id.clone(),
+            ClassIdentifier::Subclass(subclass_id) => subclass_class_id(subclass_id),
+        }
+    }
+
     pub fn modifier_source(&self) -> ModifierSource {
         match self {
             ClassIdentifier::Class(class_id) => ModifierSource::ClassFeature(class_id.clone()),
@@ -123,8 +133,7 @@ pub fn set_subclass(
     entity: Entity,
     subclass_id: &SubclassId,
 ) -> Vec<LevelUpPrompt> {
-    let class_name = subclass_id.id.split(".").collect::<Vec<_>>()[1];
-    let class_id = &ClassId::new("nat20_core", format!("class.{}", class_name));
+    let class_id = &subclass_class_id(subclass_id);
 
     let class = ClassesRegistry::get(class_id)
         .unwrap_or_else(|| panic!("Class with name `{}` not found in the registry", class_id));
@@ -149,6 +158,12 @@ pub fn set_subclass(
         ClassIdentifier::Subclass(subclass_id.clone()),
         level,
     )
+}
+
+/// The class a subclass belongs to: `subclass.<class>.<name>` is a subclass of `class.<class>`
+fn subclass_class_id(subclass_id: &SubclassId) -> ClassId {
+    let class_name = subclass_id.id.split(".").collect::<Vec<_>>()[1];
+    ClassId::new("nat20_core", format!("class.{}", class_name))
 }
 
 fn apply_class_base(
@@ -189,6 +204,26 @@ fn apply_class_base(
             for action in actions_for_level {
                 systems::actions::add_action(&mut engine_state.world, entity, action);
             }
+        }
+    }
+
+    // Spells that are always prepared
+    if let Some(spells_for_level) = class_base.spells_by_level.get(&level) {
+        let class_and_subclass = ClassAndSubclass {
+            class: id.class_id(),
+            subclass: None,
+        };
+        let spellbook =
+            systems::helpers::get_component_mut::<Spellbook>(&mut engine_state.world, entity);
+        match spellbook.class_state_mut(&class_and_subclass) {
+            Some(state) => state
+                .selections
+                .always_prepared
+                .extend(spells_for_level.iter().cloned()),
+            None => warn!(
+                "{:?} has no {} spellcasting to prepare {:?} in",
+                entity, class_and_subclass.class, spells_for_level
+            ),
         }
     }
 

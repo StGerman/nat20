@@ -179,6 +179,11 @@ static EXPERIENCE_PER_LEVEL: LazyLock<Vec<u32>> = LazyLock::new(|| {
 
 static MAX_LEVEL: u8 = 20;
 
+/// The XP a character needs for `level` (SRD 5.2.1, Character Advancement); 0 off the table.
+pub fn experience_for_level(level: u8) -> u32 {
+    *EXPERIENCE_PER_LEVEL.get(level as usize).unwrap_or(&0)
+}
+
 #[derive(Debug, Clone)]
 pub struct ClassLevelProgression {
     level: u8,
@@ -238,15 +243,16 @@ impl CharacterLevels {
         &self.class_levels
     }
 
+    /// Adds a level in `class`. Panics at total level 20, whatever the classes.
     pub fn level_up(&mut self, class: ClassId) -> u8 {
+        if self.total_level() >= MAX_LEVEL {
+            panic!("Cannot level up beyond maximum level of {}", MAX_LEVEL);
+        }
         if !self.class_levels.contains_key(&class) {
             self.class_levels
                 .insert(class.clone(), ClassLevelProgression::new(1, None));
         } else {
             let level = self.class_levels.get_mut(&class).unwrap();
-            if level.level >= MAX_LEVEL {
-                panic!("Cannot level up beyond maximum level of {}", MAX_LEVEL);
-            }
             level.level += 1;
         }
 
@@ -254,6 +260,11 @@ impl CharacterLevels {
             self.first_class = Some(class.clone());
         }
         self.latest_class = Some(class.clone());
+        // A character of a level has at least that level's XP (SRD 5.2.1, Character
+        // Advancement), so one built straight to level 2 starts at 300.
+        self.experience = self
+            .experience
+            .max(experience_for_level(self.total_level()));
 
         self.class_levels.get(&class).unwrap().level
     }
@@ -290,6 +301,17 @@ impl CharacterLevels {
 
     pub fn experience(&self) -> u32 {
         self.experience
+    }
+
+    /// Adds XP. The level doesn't change: levelling up is a separate choice.
+    pub fn add_experience(&mut self, experience: u32) {
+        self.experience = self.experience.saturating_add(experience);
+    }
+
+    /// Whether the character has the XP for its next level (SRD 5.2.1, Character
+    /// Advancement) and is below level 20.
+    pub fn can_level_up(&self) -> bool {
+        self.total_level() < MAX_LEVEL && self.experience >= self.experience_for_next_level()
     }
 
     pub fn experience_for_next_level(&self) -> u32 {

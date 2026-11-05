@@ -1,6 +1,6 @@
 {
     "id": "nat20_core::class.cleric",
-    "_comment": "SRD 5.2.1 Cleric, levels 1 and 2 (Spellcasting, Divine Order, Channel Divinity with Divine Spark). Thaumaturge, Turn Undead, the subclass and every later feature are not built yet. The spell list holds only the Cleric spells core has.",
+    "_comment": "SRD 5.2.1 Cleric, levels 1 to 3 (Spellcasting, Divine Order, Channel Divinity with Divine Spark, the Life Domain). Thaumaturge, Turn Undead and every later feature are not built yet. The spell list holds only the Cleric spells core has.",
     "hit_die": "d8",
     "hp_per_level": 5,
     "default_abilities": {
@@ -20,7 +20,9 @@
         "charisma"
     ],
     "subclass_level": 3,
-    "subclasses": [],
+    "subclasses": [
+        "nat20_core::subclass.cleric.life_domain"
+    ],
     "feat_levels": [
         4,
         8,
@@ -96,11 +98,14 @@
         },
         "spell_replacement_model": "long_rest",
         "spell_list": [
+            "nat20_core::spell.aid",
             "nat20_core::spell.bless",
             "nat20_core::spell.cure_wounds",
             "nat20_core::spell.guidance",
             "nat20_core::spell.guiding_bolt",
             "nat20_core::spell.healing_word",
+            "nat20_core::spell.hold_person",
+            "nat20_core::spell.lesser_restoration",
             "nat20_core::spell.sacred_flame",
             "nat20_core::spell.shield_of_faith",
             "nat20_core::spell.spare_the_dying"

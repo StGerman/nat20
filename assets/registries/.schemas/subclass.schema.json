@@ -383,6 +383,20 @@
                     ],
                     "default": null
                 },
+                "spells_by_level": {
+                    "description": "Spells that are always prepared from each level, e.g. a Cleric domain's\nspells. They don't count against the number of spells the class prepares.",
+                    "type": "object",
+                    "additionalProperties": false,
+                    "default": {},
+                    "patternProperties": {
+                        "^\\d+$": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/SpellId"
+                            }
+                        }
+                    }
+                },
                 "weapon_proficiencies": {
                     "type": "array",
                     "default": [],

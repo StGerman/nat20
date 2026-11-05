@@ -85,6 +85,14 @@
                 "$ref": "#/definitions/AttackedHookDefinition"
             }
         },
+        "on_damage_on_failure": {
+            "description": "Whether this creature's damaging actions still deal half their damage when the\nattack roll misses or the saving throw succeeds",
+            "type": "array",
+            "default": [],
+            "items": {
+                "$ref": "#/definitions/DamageOnFailureHookDefinition"
+            }
+        },
         "on_death": {
             "type": "array",
             "default": [],
@@ -97,6 +105,14 @@
             "default": [],
             "items": {
                 "$ref": "#/definitions/EffectLifetimeHookDefinition"
+            }
+        },
+        "on_healing": {
+            "description": "Hit Points this creature's actions restore, before they are rolled",
+            "type": "array",
+            "default": [],
+            "items": {
+                "$ref": "#/definitions/HealingHookDefinition"
             }
         },
         "on_resource_cost": {
@@ -370,6 +386,21 @@
                 "saving_throw",
                 "skill",
                 "attack_roll"
+            ]
+        },
+        "DamageOnFailureHookDefinition": {
+            "anyOf": [
+                {
+                    "type": "object",
+                    "properties": {
+                        "script": {
+                            "$ref": "#/definitions/ScriptId"
+                        }
+                    },
+                    "required": [
+                        "script"
+                    ]
+                }
             ]
         },
         "DamageRollHookDefinition": {
@@ -809,6 +840,23 @@
                     ]
                 },
                 {
+                    "description": "Raises the Hit Point maximum and current Hit Points by the amount while the\neffect lasts (e.g. Aid); the current Hit Points above the maximum are lost\nwhen it ends",
+                    "type": "object",
+                    "properties": {
+                        "hit_point_maximum": {
+                            "description": "Healing roll as a dice expression. Expressions may use the variables `spell_level`, `caster_level`, `character_level` and `<class>.level` (e.g. `class.wizard.level`).",
+                            "type": "string",
+                            "examples": [
+                                "1d8 + spell_level",
+                                "2d4 + 2"
+                            ]
+                        }
+                    },
+                    "required": [
+                        "hit_point_maximum"
+                    ]
+                },
+                {
                     "type": "object",
                     "properties": {
                         "block_concentration": {
@@ -869,6 +917,21 @@
                     "description": "The final result of a D20 check after reactions have been applied.",
                     "type": "string",
                     "const": "d20_check_resolved"
+                }
+            ]
+        },
+        "HealingHookDefinition": {
+            "anyOf": [
+                {
+                    "type": "object",
+                    "properties": {
+                        "script": {
+                            "$ref": "#/definitions/ScriptId"
+                        }
+                    },
+                    "required": [
+                        "script"
+                    ]
                 }
             ]
         },

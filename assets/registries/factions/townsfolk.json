@@ -1,0 +1,8 @@
+{
+    "id": "nat20_core::faction.townsfolk",
+    "name": "Townsfolk",
+    "_comment": "Default faction of the townsfolk stat blocks (Commoner, Guard, Guard Captain, Noble): friendly to each other, neutral to everyone else until the story makes them hostile.",
+    "attitudes": {},
+    "default_cross_attitude": "neutral",
+    "default_intra_attitude": "friendly"
+}

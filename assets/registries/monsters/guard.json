@@ -1,0 +1,33 @@
+{
+    "id": "nat20_core::monster.guard",
+    "name": "Guard",
+    "_comment": "SRD 5.2.1 (CC-BY-4.0), Guard. AC 16 comes from the gear (Chain Shirt 13 + Dex 1 + Shield 2); Spear +3 and 1d6 + 1 from Strength and PB +2, thrown 20/60 ft. Perception +2 is proficiency. Medium or Small: Medium here.",
+    "size": "medium",
+    "creature_type": "humanoid",
+    "challenge_rating": "1/8",
+    "hit_points": {
+        "average": 11,
+        "dice": "2d8 + 2"
+    },
+    "speed": "30 feet",
+    "abilities": {
+        "strength": 13,
+        "dexterity": 12,
+        "constitution": 12,
+        "intelligence": 10,
+        "wisdom": 11,
+        "charisma": 10
+    },
+    "skills": {
+        "perception": "proficient"
+    },
+    "gear": [
+        "nat20_core::item.chain_shirt",
+        "nat20_core::item.shield",
+        "nat20_core::item.spear"
+    ],
+    "effects": [],
+    "factions": [
+        "nat20_core::faction.townsfolk"
+    ]
+}

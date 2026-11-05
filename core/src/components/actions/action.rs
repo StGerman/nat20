@@ -523,6 +523,8 @@ pub enum ActionPayloadComponent {
     Reaction(ReactionBody),
     Displacement(Arc<DisplacementFunction>),
     LifeState(LifeStateChange),
+    /// Ends a condition on the target, together with the effect that imposed it
+    EndCondition(EffectId),
 }
 
 #[derive(Clone)]

@@ -407,6 +407,36 @@ pub fn remove_temporary_effects(
     })
 }
 
+/// Ends `condition` on `entity`: every temporary instance of it goes, together with the
+/// effect that imposed it (its topmost parent, e.g. Hold Person for Paralyzed). Permanent
+/// effects stay. Returns what was removed.
+pub fn end_condition(
+    engine_state: &mut EngineState,
+    entity: Entity,
+    condition: &EffectId,
+) -> Vec<EffectInstance> {
+    let roots: Vec<EffectInstanceId> = {
+        let manager = effects(&engine_state.world, entity);
+        let mut roots = Vec::new();
+        for (id, instance) in manager.iter() {
+            if instance.effect_id != *condition {
+                continue;
+            }
+            let (mut root_id, mut root) = (*id, instance);
+            while let Some(parent_id) = root.parent
+                && let Some(parent) = manager.get(&parent_id)
+            {
+                (root_id, root) = (parent_id, parent);
+            }
+            if !root.is_permanent() && !roots.contains(&root_id) {
+                roots.push(root_id);
+            }
+        }
+        roots
+    };
+    remove_effects(engine_state, entity, &roots)
+}
+
 fn remove_effects_by_filter(
     engine_state: &mut EngineState,
     entity: Entity,

@@ -14,7 +14,7 @@ use crate::{
         },
         id::{ActionId, EffectId},
         items::equipment::armor::ArmorClass,
-        modifier::{Modifiable, ModifierSource},
+        modifier::{Modifiable, ModifierMap, ModifierSource},
         resource::ResourceAmountMap,
         speed::Speed,
         time::TimeStep,
@@ -233,6 +233,33 @@ impl EffectManager {
             |effect| effect.post_damage_roll.as_ref(),
             |hook| hook(engine_state, entity, result, action, resolution),
         );
+    }
+
+    pub fn healing(
+        &self,
+        engine_state: &EngineState,
+        healer: Entity,
+        target: Entity,
+        action: &ActionData,
+        healing: &mut ModifierMap,
+    ) {
+        self.for_each(
+            |effect| effect.on_healing.as_ref(),
+            |hook| hook(engine_state, healer, target, action, healing),
+        );
+    }
+
+    /// Whether a damaging action that missed or was saved against deals half its damage
+    pub fn half_damage_on_failure(
+        &self,
+        engine_state: &EngineState,
+        actor: Entity,
+        action: &ActionData,
+    ) -> bool {
+        self.effects
+            .values()
+            .filter_map(|instance| instance.effect().on_damage_on_failure.as_ref())
+            .any(|hook| hook(engine_state, actor, action))
     }
 
     pub fn resource_cost(

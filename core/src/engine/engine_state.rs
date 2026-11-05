@@ -146,6 +146,13 @@ impl EngineState {
         }
     }
 
+    /// Whether it is `entity`'s turn. Outside combat there are no turns, so this is
+    /// always true.
+    pub fn is_turn_of(&self, entity: Entity) -> bool {
+        self.encounter_for_entity(entity)
+            .is_none_or(|encounter| encounter.current_entity() == entity)
+    }
+
     /// Marks a once-per-turn feature (keyed by `key`, e.g. a feat ID) as used by
     /// `entity` on the current turn. Returns true if it had not been used yet this
     /// turn, false if it had. Outside combat there are no turns, so this always

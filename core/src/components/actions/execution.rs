@@ -481,7 +481,7 @@ impl StepState {
         let resolution = resolution.clone();
 
         for component in self.components.iter_mut() {
-            if !component.resolve(engine_state, action, &resolution) {
+            if !component.resolve(engine_state, action, self.target, &resolution) {
                 return false;
             }
         }
@@ -546,6 +546,8 @@ enum PayloadResult {
     Displacement(Option<DisplacementTemplate>),
     /// None: the condition failed, so the target's life state is unchanged
     LifeState(Option<LifeStateChange>),
+    /// False: the condition failed, so no condition ends
+    EndCondition(bool),
 }
 
 impl StepComponent {
@@ -563,6 +565,7 @@ impl StepComponent {
         &mut self,
         engine_state: &mut EngineState,
         action: &ActionData,
+        target: Entity,
         resolution: &ActionConditionResolution,
     ) -> bool {
         if self.payload_result.is_ready() {
@@ -591,6 +594,15 @@ impl StepComponent {
                 damage,
                 damage_on_failure,
             } => {
+                // An effect can give an action without damage on failure half damage
+                // instead (e.g. Potent Cantrip)
+                let damage_on_failure = damage_on_failure.clone().or_else(|| {
+                    (!resolution.is_success()
+                        && systems::effects::effects(&engine_state.world, action.actor.id())
+                            .half_damage_on_failure(engine_state, action.actor.id(), action))
+                    .then_some(DamageOnFailure::Half)
+                });
+                let damage_on_failure = damage_on_failure.as_ref();
                 let damage_fn = if resolution.is_success() {
                     debug!("Condition resolved successfully, using standard damage function");
                     Some(damage.clone())
@@ -688,8 +700,15 @@ impl StepComponent {
 
             ActionPayloadComponent::Healing(healing) => {
                 // TODO: No events yet for healing, might introduce them in the future?
-                let healing_amount =
-                    healing(&engine_state.world, action.actor.id(), &action.context).evaluate();
+                let mut healing = healing(&engine_state.world, action.actor.id(), &action.context);
+                systems::effects::effects(&engine_state.world, action.actor.id()).healing(
+                    engine_state,
+                    action.actor.id(),
+                    target,
+                    action,
+                    &mut healing,
+                );
+                let healing_amount = healing.evaluate();
                 self.payload_result = Awaitable::Ready(PayloadResult::Healing(healing_amount));
                 true
             }
@@ -716,6 +735,12 @@ impl StepComponent {
             ActionPayloadComponent::LifeState(change) => {
                 let change = resolution.is_success().then_some(*change);
                 self.payload_result = Awaitable::Ready(PayloadResult::LifeState(change));
+                true
+            }
+
+            ActionPayloadComponent::EndCondition(_) => {
+                self.payload_result =
+                    Awaitable::Ready(PayloadResult::EndCondition(resolution.is_success()));
                 true
             }
         }
@@ -762,6 +787,13 @@ impl StepComponent {
             }
             PayloadResult::LifeState(change) => {
                 Self::apply_life_state(engine_state, action, target, resolution, change)
+            }
+            PayloadResult::EndCondition(ends) => {
+                let ActionPayloadComponent::EndCondition(condition) = &self.payload else {
+                    unreachable!()
+                };
+                let condition = condition.clone();
+                Self::apply_end_condition(engine_state, target, resolution, condition, ends)
             }
         });
     }
@@ -878,6 +910,26 @@ impl StepComponent {
         let result = reaction.execute(engine_state, action);
 
         ActionResultComponent::Reaction(result)
+    }
+
+    fn apply_end_condition(
+        engine_state: &mut EngineState,
+        target: Entity,
+        resolution: &ActionConditionResolution,
+        condition: EffectId,
+        ends: bool,
+    ) -> ActionResultComponent {
+        let ended =
+            ends && !systems::effects::end_condition(engine_state, target, &condition).is_empty();
+        ActionResultComponent::Effect(EffectResult {
+            resolution: resolution.clone(),
+            effects: vec![condition],
+            result: if ended {
+                EffectResultKind::Removed
+            } else {
+                EffectResultKind::None
+            },
+        })
     }
 
     fn apply_life_state(

@@ -1,0 +1,22 @@
+{
+  "_comment": "Monster weapon: the Guard Captain's Longsword (SRD 5.2.1, CC-BY-4.0) deals 2d10 + 4, more than a Longsword's own die, so the stat block equips this item instead. Only a stat block equips it.",
+  "item": {
+    "id": "nat20_core::item.guard_captain_longsword",
+    "name": "Longsword",
+    "description": "The guard captain's longsword.",
+    "weight": "3 lb",
+    "value": "15 GP",
+    "rarity": "common"
+  },
+  "category": "martial",
+  "kind": "melee",
+  "properties": [],
+  "damage": [
+    [
+      "2d10",
+      "slashing"
+    ]
+  ],
+  "extra_weapon_actions": [],
+  "effects": []
+}

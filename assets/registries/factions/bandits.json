@@ -1,0 +1,8 @@
+{
+    "id": "nat20_core::faction.bandits",
+    "name": "Bandits",
+    "_comment": "Default faction of the Bandit stat block: friendly to each other, hostile to everyone else.",
+    "attitudes": {},
+    "default_cross_attitude": "hostile",
+    "default_intra_attitude": "friendly"
+}

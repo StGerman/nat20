@@ -13,7 +13,7 @@ use crate::{
             TargetUsabilityFunction,
         },
         health::life_state::LifeStateChange,
-        id::{ActionId, ActionVariantId, ScriptId},
+        id::{ActionId, ActionVariantId, EffectId, ScriptId},
         proficiency::ProficiencyLevel,
         resource::{RechargeRule, ResourceAmountMap},
         skill::{Skill, SkillSet},
@@ -355,6 +355,12 @@ pub enum ActionPayloadComponentDefinition {
     LifeState {
         life_state: LifeStateChange,
     },
+    /// Ends a condition on the target when the condition succeeds, together with
+    /// the effect that imposed it (e.g. Lesser Restoration ending Paralyzed ends
+    /// Hold Person)
+    EndCondition {
+        end_condition: EffectId,
+    },
 }
 
 impl From<ActionPayloadComponentDefinition> for ActionPayloadComponent {
@@ -391,6 +397,9 @@ impl From<ActionPayloadComponentDefinition> for ActionPayloadComponent {
             }
             ActionPayloadComponentDefinition::LifeState { life_state } => {
                 ActionPayloadComponent::LifeState(life_state)
+            }
+            ActionPayloadComponentDefinition::EndCondition { end_condition } => {
+                ActionPayloadComponent::EndCondition(end_condition)
             }
         }
     }
@@ -544,6 +553,9 @@ fn collect_phase_references(phases: &[ActionPhaseDefinition], collector: &mut Re
         match component {
             ActionPayloadComponentDefinition::Effect { effect } => {
                 collector.add(RegistryReference::Effect(effect.effect_id.clone()));
+            }
+            ActionPayloadComponentDefinition::EndCondition { end_condition } => {
+                collector.add(RegistryReference::Effect(end_condition.clone()));
             }
             ActionPayloadComponentDefinition::Reaction { reaction } => {
                 if let Some(script_id) = &reaction.script {

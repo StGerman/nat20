@@ -1,0 +1,36 @@
+{
+    "id": "nat20_core::monster.guard_captain",
+    "name": "Guard Captain",
+    "_comment": "SRD 5.2.1 (CC-BY-4.0), Guard Captain. AC 18 comes from the gear (Breastplate 14 + Dex 2 + Shield 2). Its Longsword (2d10 + 4) is a monster weapon (item.guard_captain_longsword), +6 from Strength and PB +2. Multiattack (two attacks) is effect.extra_attack. Its Javelins (3d6 + 4, thrown 30/120 ft.) are left out: core holds one melee weapon in the main hand and a thrown javelin would take the longsword's place. Athletics +6 and Perception +4 are proficiency. Its Initiative +4 (proficiency in Initiative) is not implemented: it rolls +2. Medium or Small: Medium here.",
+    "size": "medium",
+    "creature_type": "humanoid",
+    "challenge_rating": "4",
+    "hit_points": {
+        "average": 75,
+        "dice": "10d8 + 30"
+    },
+    "speed": "30 feet",
+    "abilities": {
+        "strength": 18,
+        "dexterity": 14,
+        "constitution": 16,
+        "intelligence": 12,
+        "wisdom": 14,
+        "charisma": 13
+    },
+    "skills": {
+        "athletics": "proficient",
+        "perception": "proficient"
+    },
+    "gear": [
+        "nat20_core::item.breastplate",
+        "nat20_core::item.shield",
+        "nat20_core::item.guard_captain_longsword"
+    ],
+    "effects": [
+        "nat20_core::effect.extra_attack"
+    ],
+    "factions": [
+        "nat20_core::faction.townsfolk"
+    ]
+}

@@ -1,6 +1,7 @@
 {
     "id": "nat20_core::spell.misty_step",
     "description": "Briefly surrounded by silvery mist, you teleport up to 30 feet to an unoccupied space that you can see.",
+    "summary": "As a Bonus Action, teleport up to 30 feet to a free space you can see.",
     "base_level": 2,
     "school": "conjuration",
     "flags": [

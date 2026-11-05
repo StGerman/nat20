@@ -1,6 +1,7 @@
 {
     "id": "nat20_core::spell.poison_spray",
     "description": "You spray toxic mist at a creature within range. Make a ranged spell attack against the target. On a hit, the target takes 1d12 Poison damage.",
+    "summary": "A ranged spell attack that deals poison damage.",
     "base_level": 0,
     "school": "necromancy",
     "flags": [

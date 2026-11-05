@@ -329,3 +329,25 @@ fn the_goblin_warrior_attacks_once() {
         .assert_no_resource("resource.extra_attack")
         .assert_action_unavailable("action.melee_attack");
 }
+
+#[test]
+fn the_guard_captain_attacks_twice() {
+    let mut scenario = scenario();
+    spawn_at(
+        &mut scenario,
+        "captain",
+        "stat_block.guard_captain",
+        [1.0, 0.0, 0.0],
+    );
+
+    hit(&mut scenario, "captain", "fighter");
+    hit(&mut scenario, "captain", "fighter");
+    scenario
+        .probe("captain")
+        .assert_resource("resource.extra_attack", Operator::Equal(0));
+    scenario
+        .event_filter()
+        .actor("captain")
+        .action_performed("action.melee_attack")
+        .assert_event_count(2);
+}

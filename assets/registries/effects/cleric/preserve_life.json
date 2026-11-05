@@ -1,0 +1,11 @@
+{
+    "id": "nat20_core::effect.cleric.life_domain.preserve_life",
+    "kind": "buff",
+    "description": "Preserve Life restores Hit Points equal to five times your Cleric level, divided among the creatures you choose, and restores none above half a creature's Hit Point maximum.",
+    "_comment": "The pool is divided evenly among the chosen creatures, rounded down; Hit Points one creature can't take because of the half-maximum cap are not passed on to another. Choosing how to divide the pool is not modelled.",
+    "on_healing": [
+        {
+            "script": "nat20_core::script.effect.cleric.preserve_life"
+        }
+    ]
+}

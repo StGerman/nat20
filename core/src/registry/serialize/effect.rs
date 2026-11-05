@@ -22,15 +22,16 @@ use crate::{
             },
             hooks::{
                 ActionHook, ActionResultHook, ActionUsabilityHook, ArmorClassHook, AttackedHook,
-                D20CheckHooks, DamageRollHook, DamageRollResultHook, DeathHook, EffectLifetimeHook,
-                PostDamageMitigationHook, PreDamageMitigationHook, PreDeathHook, ResourceCostHook,
-                RestHook, SpeedHook, TurnStartHook,
+                D20CheckHooks, DamageOnFailureHook, DamageRollHook, DamageRollResultHook,
+                DeathHook, EffectLifetimeHook, HealingHook, PostDamageMitigationHook,
+                PreDamageMitigationHook, PreDeathHook, ResourceCostHook, RestHook, SpeedHook,
+                TurnStartHook,
             },
         },
         health::hit_points::{HitPoints, TemporaryHitPoints},
         id::{ActionId, EffectId, ResourceId, ScriptId},
         items::equipment::{armor::ArmorClass, loadout::Loadout},
-        modifier::{FlatModifiable, KeyedFlatModifiable, ModifierSource},
+        modifier::{FlatModifiable, KeyedFlatModifiable, ModifierMap, ModifierSource},
         resource::{ResourceAmount, ResourceAmountMap, ResourceMap},
         saving_throw::{SavingThrowKind, SavingThrowSet},
         skill::{Skill, SkillSet},
@@ -130,6 +131,13 @@ pub struct EffectDefinition {
     pub pre_damage_roll: Vec<DamageRollHookDefinition>,
     #[serde(default)]
     pub post_damage_roll: Vec<DamageRollResultHookDefinition>,
+    /// Hit Points this creature's actions restore, before they are rolled
+    #[serde(default)]
+    pub on_healing: Vec<HealingHookDefinition>,
+    /// Whether this creature's damaging actions still deal half their damage when the
+    /// attack roll misses or the saving throw succeeds
+    #[serde(default)]
+    pub on_damage_on_failure: Vec<DamageOnFailureHookDefinition>,
     #[serde(default)]
     pub pre_damage_mitigation: Vec<PreDamageMitigationHookDefinition>,
     #[serde(default)]
@@ -277,6 +285,23 @@ impl From<EffectDefinition> for Effect {
                 let hooks = collect_effect_hooks(&definition.post_damage_roll, &effect_id);
                 effect.post_damage_roll =
                     Some(DamageRollResultHookDefinition::combine_hooks(hooks));
+            }
+        }
+
+        // Build on_damage_on_failure hooks
+        {
+            if !definition.on_damage_on_failure.is_empty() {
+                let hooks = collect_effect_hooks(&definition.on_damage_on_failure, &effect_id);
+                effect.on_damage_on_failure =
+                    Some(DamageOnFailureHookDefinition::combine_hooks(hooks));
+            }
+        }
+
+        // Build on_healing hooks
+        {
+            if !definition.on_healing.is_empty() {
+                let hooks = collect_effect_hooks(&definition.on_healing, &effect_id);
+                effect.on_healing = Some(HealingHookDefinition::combine_hooks(hooks));
             }
         }
 
@@ -441,6 +466,26 @@ impl RegistryReferenceCollector for EffectDefinition {
                 }
             }
         }
+        for hook in &self.on_damage_on_failure {
+            match hook {
+                DamageOnFailureHookDefinition::Script { script } => {
+                    collector.add(RegistryReference::Script(
+                        script.clone(),
+                        ScriptFunction::DamageOnFailureHook,
+                    ));
+                }
+            }
+        }
+        for hook in &self.on_healing {
+            match hook {
+                HealingHookDefinition::Script { script } => {
+                    collector.add(RegistryReference::Script(
+                        script.clone(),
+                        ScriptFunction::HealingHook,
+                    ));
+                }
+            }
+        }
         for hook in &self.on_armor_class {
             match hook {
                 ArmorClassHookDefinition::Modifier { .. } => { /* No references to collect */ }
@@ -580,6 +625,12 @@ pub enum EffectModifier {
     },
     TemporaryHitPoints {
         temporary_hit_points: HealEquation,
+    },
+    /// Raises the Hit Point maximum and current Hit Points by the amount while the
+    /// effect lasts (e.g. Aid); the current Hit Points above the maximum are lost
+    /// when it ends
+    HitPointMaximum {
+        hit_point_maximum: HealEquation,
     },
     Concentration {
         #[serde(default)]
@@ -791,6 +842,31 @@ impl EffectModifier {
                     }
                 }
             }
+
+            EffectModifier::HitPointMaximum { hit_point_maximum } => match phase {
+                EffectPhase::Apply => {
+                    if let Some(context) = context {
+                        let amount =
+                            (hit_point_maximum.function)(&mut engine_state.world, entity, context)
+                                .evaluate()
+                                .total()
+                                .max(0) as u32;
+                        systems::helpers::get_component_mut::<HitPoints>(
+                            &mut engine_state.world,
+                            entity,
+                        )
+                        .add_max_bonus(&source, amount);
+                        systems::health::heal(&mut engine_state.world, entity, amount);
+                    }
+                }
+                EffectPhase::Unapply => {
+                    systems::helpers::get_component_mut::<HitPoints>(
+                        &mut engine_state.world,
+                        entity,
+                    )
+                    .remove_max_bonus(&source);
+                }
+            },
 
             EffectModifier::Concentration {
                 break_concentration,
@@ -1139,6 +1215,86 @@ impl HookEffect<DamageRollResultHook> for DamageRollResultHookDefinition {
     }
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
+#[serde(untagged)]
+pub enum DamageOnFailureHookDefinition {
+    Script { script: ScriptId },
+}
+
+impl HookEffect<DamageOnFailureHook> for DamageOnFailureHookDefinition {
+    fn build_hook(&self, _effect: &EffectId) -> DamageOnFailureHook {
+        match self {
+            DamageOnFailureHookDefinition::Script { script } => {
+                let script_id = script.clone();
+                Arc::new(
+                    move |engine_state: &EngineState, actor: Entity, action: &ActionData| {
+                        systems::scripts::evaluate_damage_on_failure_hook(
+                            &script_id,
+                            engine_state,
+                            actor,
+                            action,
+                        )
+                    },
+                )
+            }
+        }
+    }
+
+    /// Any hook that says yes wins
+    fn combine_hooks(hooks: Vec<DamageOnFailureHook>) -> DamageOnFailureHook {
+        Arc::new(
+            move |engine_state: &EngineState, actor: Entity, action: &ActionData| {
+                hooks.iter().any(|hook| hook(engine_state, actor, action))
+            },
+        )
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
+#[serde(untagged)]
+pub enum HealingHookDefinition {
+    Script { script: ScriptId },
+}
+
+impl HookEffect<HealingHook> for HealingHookDefinition {
+    fn build_hook(&self, _effect: &EffectId) -> HealingHook {
+        match self {
+            HealingHookDefinition::Script { script } => {
+                let script_id = script.clone();
+                Arc::new(
+                    move |engine_state: &EngineState,
+                          healer: Entity,
+                          target: Entity,
+                          action: &ActionData,
+                          healing: &mut ModifierMap| {
+                        systems::scripts::evaluate_healing_hook(
+                            &script_id,
+                            engine_state,
+                            healer,
+                            target,
+                            action,
+                            healing,
+                        );
+                    },
+                )
+            }
+        }
+    }
+
+    fn combine_hooks(hooks: Vec<HealingHook>) -> HealingHook {
+        Arc::new(
+            move |engine_state: &EngineState,
+                  healer: Entity,
+                  target: Entity,
+                  action: &ActionData,
+                  healing: &mut ModifierMap| {
+                for hook in &hooks {
+                    hook(engine_state, healer, target, action, healing);
+                }
+            },
+        )
+    }
+}
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 #[serde(untagged)]
 pub enum ArmorClassHookDefinition {

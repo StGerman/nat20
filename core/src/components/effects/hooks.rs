@@ -11,6 +11,7 @@ use crate::{
         effects::effect::{EffectInstance, EffectLifetime},
         id::{ActionId, EffectId},
         items::equipment::armor::ArmorClass,
+        modifier::ModifierMap,
         resource::ResourceAmountMap,
         speed::Speed,
     },
@@ -45,6 +46,14 @@ pub type DamageRollResultHook = Arc<
         + Send
         + Sync,
 >;
+/// Hook for the Hit Points an action restores, before they are rolled. Parameters are:
+/// the healer, the creature being healed, the action, its healing modifiers.
+pub type HealingHook =
+    Arc<dyn Fn(&EngineState, Entity, Entity, &ActionData, &mut ModifierMap) + Send + Sync>;
+/// Hook for a damaging action whose attack roll misses or whose saving throw succeeds
+/// and which deals no damage then: true if it deals half its damage after all (e.g.
+/// Potent Cantrip). Parameters are: the actor, the action.
+pub type DamageOnFailureHook = Arc<dyn Fn(&EngineState, Entity, &ActionData) -> bool + Send + Sync>;
 pub type ActionHook = Arc<dyn Fn(&mut EngineState, &ActionData) + Send + Sync>;
 pub type ActionResultHook = Arc<dyn Fn(&mut EngineState, &ActionData, &ActionResult) + Send + Sync>;
 pub type ResourceCostHook = Arc<

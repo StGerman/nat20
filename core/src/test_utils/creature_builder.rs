@@ -48,6 +48,10 @@ pub static CREATURE_TEMPLATES: LazyLock<BTreeMap<&'static str, CreatureTemplateF
                 "stat_block.giant_rat",
                 stat_block_giant_rat as CreatureTemplateFunction,
             ),
+            (
+                "stat_block.guard_captain",
+                stat_block_guard_captain as CreatureTemplateFunction,
+            ),
         ])
     });
 
@@ -97,6 +101,14 @@ fn stat_block_giant_rat(
     entity: Option<Entity>,
 ) -> EntityIdentifier {
     stat_block(engine_state, "monster.giant_rat", entity)
+}
+
+fn stat_block_guard_captain(
+    engine_state: &mut EngineState,
+    _: u8,
+    entity: Option<Entity>,
+) -> EntityIdentifier {
+    stat_block(engine_state, "monster.guard_captain", entity)
 }
 
 // TODO: Not sure where this should live

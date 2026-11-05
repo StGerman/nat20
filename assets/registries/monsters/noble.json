@@ -1,0 +1,34 @@
+{
+    "id": "nat20_core::monster.noble",
+    "name": "Noble",
+    "_comment": "SRD 5.2.1 (CC-BY-4.0), Noble. AC 15 comes from the gear (Breastplate 14 + Dex 1); Rapier +3 and 1d8 + 1 from Dexterity (Finesse) and PB +2. Deception +5, Insight +4 and Persuasion +5 are proficiency. The Parry reaction (+2 AC against one melee hit) is not implemented. Medium or Small: Medium here.",
+    "size": "medium",
+    "creature_type": "humanoid",
+    "challenge_rating": "1/8",
+    "hit_points": {
+        "average": 9,
+        "dice": "2d8"
+    },
+    "speed": "30 feet",
+    "abilities": {
+        "strength": 11,
+        "dexterity": 12,
+        "constitution": 11,
+        "intelligence": 12,
+        "wisdom": 14,
+        "charisma": 16
+    },
+    "skills": {
+        "deception": "proficient",
+        "insight": "proficient",
+        "persuasion": "proficient"
+    },
+    "gear": [
+        "nat20_core::item.breastplate",
+        "nat20_core::item.rapier"
+    ],
+    "effects": [],
+    "factions": [
+        "nat20_core::faction.townsfolk"
+    ]
+}
