@@ -270,7 +270,7 @@ fn a_move_its_movement_cuts_short_inside_a_creatures_space_ends_on_the_last_free
         "the fighter's movement must run out inside the cleric's space"
     );
 
-    scenario.movement("fighter", [9.1, 4.0, 0.0]);
+    scenario.movement("fighter", [12.0, 0.0, 0.0]);
 
     let stop = foot(&scenario, "fighter");
     assert!(
