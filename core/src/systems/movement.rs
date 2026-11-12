@@ -433,7 +433,7 @@ fn last_free_point(
 
 /// `path_result` itself when the move it takes ends on a free spot, otherwise
 /// the same move cut back to the last free spot along it.
-fn stop_on_free_spot(
+pub(crate) fn stop_on_free_spot(
     engine_state: &EngineState,
     entity: Entity,
     path_result: PathResult,

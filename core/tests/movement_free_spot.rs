@@ -3,6 +3,8 @@
 //! into range of its target (nat20-table TASKS.md ENG-12) and for a move that
 //! provokes an opportunity attack inside another creature's space (ENG-18): it
 //! walks on through that space to its goal once the attack is settled (ENG-22).
+//! A Move to a point, or one its movement left cuts short, ends on the last
+//! free spot along its path too (ENG-21).
 
 use nat20_core::{
     components::{
@@ -222,5 +224,61 @@ fn a_creature_the_opportunity_attack_drops_walks_no_further() {
     assert!(
         (at.x - FIGHTER_REACH).abs() < 0.01,
         "{at} moved after it dropped"
+    );
+}
+
+/// Where `handle` stands now.
+fn foot(scenario: &Scenario, handle: &str) -> Point3<f32> {
+    systems::geometry::get_foot_position(&scenario.engine_state.world, scenario.entity(handle))
+        .expect("it stands")
+}
+
+#[test]
+fn a_move_to_a_point_where_a_creature_stands_ends_on_the_last_free_spot_before_it() {
+    let mut scenario = walk_scenario(None);
+    let fighter = scenario.entity("fighter");
+
+    scenario.movement("fighter", [GOBLIN_X, 0.0, 0.0]);
+
+    let stop = foot(&scenario, "fighter");
+    assert!(
+        systems::movement::is_free_spot(&scenario.engine_state, fighter, &stop),
+        "{stop} is in the goblin's space"
+    );
+    assert!(
+        stop.x > GOBLIN_X - 2.0 && stop.x < GOBLIN_X,
+        "{stop} is not just short of the goblin"
+    );
+}
+
+#[test]
+fn a_move_its_movement_cuts_short_inside_a_creatures_space_ends_on_the_last_free_spot() {
+    // The fighter's 30 feet (9.144 m) run out inside the cleric's space, on the
+    // way to a point well past it.
+    let mut scenario = walk_scenario(Some(9.1));
+    scenario
+        .encounter()
+        .initiative_order(vec!["fighter", "goblin", "cleric"])
+        .build();
+    let fighter = scenario.entity("fighter");
+    assert!(
+        !systems::movement::is_free_spot(
+            &scenario.engine_state,
+            fighter,
+            &[9.144, 0.0, 0.0].into()
+        ),
+        "the fighter's movement must run out inside the cleric's space"
+    );
+
+    scenario.movement("fighter", [9.1, 4.0, 0.0]);
+
+    let stop = foot(&scenario, "fighter");
+    assert!(
+        systems::movement::is_free_spot(&scenario.engine_state, fighter, &stop),
+        "{stop} is in the cleric's space"
+    );
+    assert!(
+        (stop - Point3::new(0.0, 0.0, 0.0)).norm() <= 9.144 + 0.01,
+        "{stop} is past the fighter's movement"
     );
 }
