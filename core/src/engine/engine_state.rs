@@ -254,13 +254,12 @@ impl EngineState {
 
         info!("Submitting movement for {:?} to goal {:?}", entity, goal);
 
-        let path = systems::movement::path(
-            self,
-            entity,
-            &goal,
-            true,
-            systems::combat::is_in_combat(&self, entity),
-        )?;
+        let in_combat = systems::combat::is_in_combat(&self, entity);
+        let path = systems::movement::path(self, entity, &goal, true, in_combat)?;
+        // A creature can't end its move in another creature's space: a goal
+        // where one stands, or a path cut to the movement left, ends on the last
+        // free spot along the way (SRD 5.2.1, Moving Around Other Creatures).
+        let path = systems::movement::stop_on_free_spot(self, entity, path, in_combat)?;
 
         if systems::movement::speed(self, entity).remaining_movement() <= Length::new::<meter>(0.0)
         {
