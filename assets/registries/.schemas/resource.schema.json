@@ -7,7 +7,7 @@
             "$ref": "#/definitions/ResourceId"
         },
         "kind": {
-            "$ref": "#/definitions/ResourceDefinitionKind"
+            "$ref": "#/definitions/ResourceKind"
         },
         "partial_recharge": {
             "description": "Rests that bring back only some expended uses, e.g. Second Wind regains one\nuse on a Short Rest and all of them on a Long Rest. Flat resources only.",
@@ -62,17 +62,18 @@
                 "uses"
             ]
         },
-        "ResourceDefinitionKind": {
+        "ResourceId": {
+            "description": "Registry id `[namespace::]resource.<name>`, e.g. `nat20_core::resource.example`. The namespace defaults to `nat20_core`.",
+            "type": "string",
+            "pattern": "^([A-Za-z0-9_]+::)?resource[A-Za-z0-9_.]*$"
+        },
+        "ResourceKind": {
+            "description": "Auto-generated discriminant enum variants",
             "type": "string",
             "enum": [
                 "flat",
                 "tiered"
             ]
-        },
-        "ResourceId": {
-            "description": "Registry id `[namespace::]resource.<name>`, e.g. `nat20_core::resource.example`. The namespace defaults to `nat20_core`.",
-            "type": "string",
-            "pattern": "^([A-Za-z0-9_]+::)?resource[A-Za-z0-9_.]*$"
         }
     }
 }

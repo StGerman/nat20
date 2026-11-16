@@ -37,7 +37,10 @@ use crate::{
             FlatModifierMap, Modifiable, ModifierKind, ModifierKindResult, ModifierMap,
             ModifierResult, ModifierSource,
         },
-        resource::{ResourceAmount, ResourceAmountMap, ResourceMap},
+        resource::{
+            ResourceAmount, ResourceAmountMap, ResourceBudgetKind, ResourceMap,
+            ResourceMergeOperation, ResourceMergePolicy,
+        },
         saving_throw::SavingThrowKind,
         scratchpad::{ScratchValue, Scratchpad},
         species::CreatureSize,
@@ -708,7 +711,7 @@ impl UserData for ActionData {
     fn add_methods<M: UserDataMethods<Self>>(methods: &mut M) {
         methods.add_method("costs_resource", |_, this, resource_id: String| {
             let id = parse_id::<ResourceId>(&resource_id)?;
-            Ok(this.resource_cost.map.contains_key(&id))
+            Ok(this.resource_cost.contains_key(&id))
         });
         // How many creatures the action targets
         methods.add_method("creature_target_count", |_, this, ()| {
@@ -930,11 +933,25 @@ impl UserData for EngineState {
 
         methods.add_method_mut(
             "add_resource",
-            |_, this, (entity, resource_id, amount): (ScriptEntity, String, Value)| {
+            |_, this, (entity, resource_id, amount, source): (ScriptEntity, String, Value, String)| {
                 let id = parse_id::<ResourceId>(&resource_id)?;
                 let amount = parse_resource_amount(amount)?;
-                systems::helpers::get_component_mut::<ResourceMap>(&mut this.world, entity.into())
-                    .add(id, amount.into(), true);
+                let source = parse_source(&source)?;
+                let budget = ResourceBudgetKind::from_amount(&amount, source.clone());
+                let entity = entity.into();
+                systems::helpers::get_component_mut::<ResourceMap>(&mut this.world, entity)
+                    .add(
+                        id,
+                        budget,
+                        &ResourceMergePolicy {
+                            current_uses: ResourceMergeOperation::Add,
+                            max_uses: ResourceMergeOperation::Add,
+                        },
+                    )
+                    .expect(&format!(
+                        "Failed to add resource {} to entity {:?} from source {}",
+                        resource_id, entity, source,
+                    ));
                 Ok(())
             },
         );
@@ -1373,7 +1390,6 @@ impl UserData for ResourceAmountMap {
         methods.add_method("costs_resource", |_, this, resource_id: String| {
             let id = parse_id::<ResourceId>(&resource_id)?;
             Ok(this
-                .map
                 .get(&id)
                 .map(|resource| !resource.is_empty())
                 .unwrap_or(false))

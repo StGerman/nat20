@@ -628,7 +628,8 @@ impl PhaseOutcomes {
     }
 }
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
 pub enum ActionConditionResolution {
     Unconditional,
     Conditional {
@@ -682,7 +683,7 @@ impl ActionConditionResolution {
     }
 }
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct DamageResult {
     pub resolution: ActionConditionResolution,
     pub damage_roll: Option<DamageRollResult>,
@@ -701,7 +702,7 @@ impl DamageResult {
     }
 }
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub enum EffectResultKind {
     Applied,
     Removed,
@@ -709,7 +710,7 @@ pub enum EffectResultKind {
     None,
 }
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct EffectResult {
     pub resolution: ActionConditionResolution,
     /// Root effect first, then any children if relevant
@@ -725,21 +726,21 @@ impl EffectResult {
     }
 }
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct HealingResult {
     // TODO: Dedicated type for healing rolls?
     pub healing: ModifierResult,
     pub new_life_state: Option<LifeState>,
 }
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct LifeStateResult {
     pub resolution: ActionConditionResolution,
     /// None if the condition failed or the target was unaffected
     pub new_life_state: Option<LifeState>,
 }
 
-#[derive(Debug, Clone, PartialEq, Kinded)]
+#[derive(Debug, Clone, PartialEq, Kinded, Serialize, Deserialize)]
 pub enum ActionResultComponent {
     Damage(DamageResult),
     Effect(EffectResult),
@@ -749,7 +750,7 @@ pub enum ActionResultComponent {
     LifeState(LifeStateResult),
 }
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct ActionResult {
     pub target: EntityIdentifier,
     pub components: Vec<ActionResultComponent>,

@@ -156,15 +156,12 @@ fn human_fighter_with_skilled() {
         Skill::Perception,
     ] {
         assert_eq!(
-            skills.get(&skill).proficiency().level(),
-            &ProficiencyLevel::Proficient,
+            skills.get(&skill).proficiency().map(|p| p.level()),
+            Some(&ProficiencyLevel::Proficient),
             "{skill:?}"
         );
     }
-    assert_eq!(
-        skills.get(&Skill::Arcana).proficiency().level(),
-        &ProficiencyLevel::None
-    );
+    assert_eq!(skills.get(&Skill::Arcana).proficiency(), None);
 }
 
 #[test]

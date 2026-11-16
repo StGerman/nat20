@@ -24,6 +24,7 @@ use super::{ability::Ability, proficiency::ProficiencyLevel};
 /// The underlying map is exposed through the `Deref` trait, which haters will say
 /// is an anti-pattern, but I think it's very convenient here :^).
 #[derive(Debug, Clone, PartialEq, Eq, Default, Serialize, Deserialize, JsonSchema)]
+#[serde(transparent)]
 pub struct ModifierMap {
     modifiers: BTreeMap<ModifierSource, ModifierKind>,
 }
@@ -130,6 +131,7 @@ impl Deref for ModifierMap {
 /// Like [`ModifierMap`], but restricted to flat integer modifiers.
 /// This is useful for stuff like Armor Class, where dice don't really make sense.
 #[derive(Debug, Clone, PartialEq, Eq, Default, Serialize, Deserialize, JsonSchema)]
+#[serde(transparent)]
 pub struct FlatModifierMap {
     modifiers: BTreeMap<ModifierSource, i32>,
 }
@@ -302,7 +304,8 @@ impl fmt::Display for ModifierKind {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
 pub enum ModifierKindResult {
     Flat(i32),
     Dice(DiceSetResult),
@@ -411,10 +414,24 @@ impl ModifierValue for i32 {
     }
 }
 
+impl ModifierValue for u8 {
+    fn is_zero(&self) -> bool {
+        *self == 0
+    }
+
+    fn min(&self) -> i32 {
+        *self as i32
+    }
+
+    fn max(&self) -> i32 {
+        *self as i32
+    }
+}
+
 /// The result of evaluating a [`ModifierMap`], which contains the results of each
 /// individual modifier keyed by its source. For flat modifiers this doesn't do anything,
 /// but for the dice-based modifiers it rolls them and stores the value.
-#[derive(Debug, Clone, PartialEq, Eq, Default)]
+#[derive(Debug, Clone, PartialEq, Eq, Default, Serialize, Deserialize)]
 pub struct ModifierResult {
     results: BTreeMap<ModifierSource, ModifierKindResult>,
 }
@@ -515,38 +532,34 @@ impl_string_schema!(
     ]
 );
 
-#[derive(Debug, Hash, Eq, PartialEq, Clone, PartialOrd, Ord, Serialize, Deserialize)]
-#[serde(try_from = "String", rename_all = "snake_case")]
+#[derive(Debug, Clone, Hash, Eq, PartialEq, PartialOrd, Ord, Serialize, Deserialize)]
+#[serde(try_from = "String", into = "String", rename_all = "snake_case")]
 pub enum ModifierSource {
-    Base, // The base value, no specific source
+    Ability(Ability),
+    Action(ActionId),
     Background(BackgroundId),
-    Item(ItemId), // e.g. "Belt of Strength"
-    ClassFeature(ClassId),
-    ClassLevel(ClassId),         // e.g. "Fighter Level 3"
-    SubclassFeature(SubclassId), // e.g. "Champion"
-    Action(ActionId),            // e.g. "Tactical Mind"
-    Effect(EffectId),            // optional: unique ID for internal tracking
-    Ability(Ability),            // e.g. "Strength"
+    Base,
+    Class(ClassId),
+    Custom(String),
+    Effect(EffectId),
+    Feat(FeatId),
+    FeatRepeatable(FeatId, Uuid),
+    Item(ItemId),
     Proficiency(ProficiencyLevel),
-    Feat(FeatId),                 // e.g. "Great Weapon Master"
-    FeatRepeatable(FeatId, Uuid), // e.g. "Ability Score Improvement" with unique instance ID
-    Species(SpeciesId),           // e.g. "Dwarf"
-    Subspecies(SubspeciesId),     // e.g. "Hill Dwarf"
-    None,                         // Used for cases where no modifier is applicable
-    Custom(String),               // fallback for ad-hoc things
+    Species(SpeciesId),
+    Subclass(SubclassId),
+    Subspecies(SubspeciesId),
 }
 
+// TODO: Could be argued that this is the frontends responsibility?
 impl fmt::Display for ModifierSource {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             ModifierSource::Base => write!(f, "Base"),
             ModifierSource::Background(id) => write!(f, "Background: {}", id),
             ModifierSource::Item(name) => write!(f, "Item: {}", name),
-            ModifierSource::ClassFeature(id) => write!(f, "Class Feature: {}", id),
-            ModifierSource::ClassLevel(id) => {
-                write!(f, "Class Level: {}", id)
-            }
-            ModifierSource::SubclassFeature(id) => write!(f, "Subclass Feature: {}", id),
+            ModifierSource::Class(id) => write!(f, "Class: {}", id),
+            ModifierSource::Subclass(id) => write!(f, "Subclass: {}", id),
             ModifierSource::Action(id) => write!(f, "Action: {}", id),
             ModifierSource::Effect(id) => write!(f, "Effect: {}", id),
             ModifierSource::Custom(text) => write!(f, "{}", text),
@@ -558,7 +571,6 @@ impl fmt::Display for ModifierSource {
             }
             ModifierSource::Species(id) => write!(f, "Species: {}", id),
             ModifierSource::Subspecies(id) => write!(f, "Subspecies: {}", id),
-            ModifierSource::None => write!(f, "None"),
         }
     }
 }
@@ -568,12 +580,12 @@ impl From<Id> for ModifierSource {
         match id {
             Id::ActionId(action_id) => ModifierSource::Action(action_id),
             Id::BackgroundId(background_id) => ModifierSource::Background(background_id),
-            Id::ClassId(class_id) => ModifierSource::ClassFeature(class_id),
+            Id::ClassId(class_id) => ModifierSource::Class(class_id),
             Id::EffectId(effect_id) => ModifierSource::Effect(effect_id),
             Id::FeatId(feat_id) => ModifierSource::Feat(feat_id),
             Id::ItemId(item_id) => ModifierSource::Item(item_id),
             Id::SpeciesId(species_id) => ModifierSource::Species(species_id),
-            Id::SubclassId(subclass_id) => ModifierSource::SubclassFeature(subclass_id),
+            Id::SubclassId(subclass_id) => ModifierSource::Subclass(subclass_id),
             Id::SubspeciesId(subspecies_id) => ModifierSource::Subspecies(subspecies_id),
             other => ModifierSource::Custom(other.to_string()),
         }
@@ -584,6 +596,15 @@ impl FromStr for ModifierSource {
     type Err = String;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
+        // Try this first, otherwise it will get parsed as a regular Feat ID, including
+        // the whole UUID part, which will then fail in the registry validation.
+        if let Some((feat, instance)) = s.split_once('#')
+            && let Ok(feat_id) = FeatId::from_str(feat)
+            && let Ok(instance_id) = Uuid::from_str(instance)
+        {
+            return Ok(ModifierSource::FeatRepeatable(feat_id, instance_id));
+        }
+
         if let Ok(id) = s.parse::<Id>() {
             return Ok(ModifierSource::from(id));
         }
@@ -592,10 +613,13 @@ impl FromStr for ModifierSource {
             return Ok(ModifierSource::Ability(ability));
         }
 
+        if let Ok(proficieny) = serde_plain::from_str(s) {
+            return Ok(ModifierSource::Proficiency(proficieny));
+        }
+
         match s.to_lowercase().as_str() {
             "base" => Ok(ModifierSource::Base),
-            "none" => Ok(ModifierSource::None),
-            other => Err(format!("Unknown modifier source: {}", other)),
+            other => Ok(ModifierSource::Custom(other.to_string())),
         }
     }
 }
@@ -605,6 +629,29 @@ impl TryFrom<String> for ModifierSource {
 
     fn try_from(value: String) -> Result<Self, Self::Error> {
         value.parse::<ModifierSource>()
+    }
+}
+
+impl From<ModifierSource> for String {
+    fn from(source: ModifierSource) -> Self {
+        match source {
+            ModifierSource::Ability(ability) => ability.to_string(),
+            ModifierSource::Action(action_id) => action_id.to_string(),
+            ModifierSource::Background(background_id) => background_id.to_string(),
+            ModifierSource::Base => "base".to_string(),
+            ModifierSource::Class(class_id) => class_id.to_string(),
+            ModifierSource::Custom(custom) => custom,
+            ModifierSource::Effect(effect_id) => effect_id.to_string(),
+            ModifierSource::Feat(feat_id) => feat_id.to_string(),
+            ModifierSource::FeatRepeatable(feat_id, repeatable_id) => {
+                format!("{}#{}", feat_id.to_string(), repeatable_id.to_string())
+            }
+            ModifierSource::Item(item_id) => item_id.to_string(),
+            ModifierSource::Proficiency(proficiency) => proficiency.to_string(),
+            ModifierSource::Species(species_id) => species_id.to_string(),
+            ModifierSource::Subclass(subclass_id) => subclass_id.to_string(),
+            ModifierSource::Subspecies(subspecies_id) => subspecies_id.to_string(),
+        }
     }
 }
 

@@ -8,6 +8,7 @@ use parry3d::{
     shape::{Ball, Capsule, Shape},
 };
 use polyanya::Coords;
+use serde::{Deserialize, Serialize};
 use tracing::trace;
 use uom::si::{
     f32::{Length, Velocity},
@@ -133,7 +134,7 @@ pub fn get_shape_at_point(
     }
 }
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct Parabola {
     pub origin: Point3<f32>,
     pub initial_velocity: Vector3<f32>,
@@ -211,7 +212,7 @@ impl Parabola {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum RaycastMode {
     Ray(Ray),
     Parabola(Parabola),
@@ -1110,7 +1111,7 @@ impl DisplacementTemplate {
     }
 }
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub enum Displacement {
     Teleport,
     Push { trajectory: Parabola },

@@ -1,23 +1,21 @@
 use std::collections::{HashMap, HashSet};
 
 use schemars::JsonSchema;
-use serde::{Deserialize, Serialize};
+use serde::Deserialize;
 
 use crate::{
     components::{
         id::{ActionId, EffectId, ResourceId, SpeciesId, SubspeciesId},
         level_up::LevelUpPrompt,
-        resource::ResourceBudgetKind,
+        modifier::ModifierSource,
+        resource::{ResourceBudgetKind, ResourceMergePolicy},
         species::{CreatureSize, CreatureType, Species, SpeciesBase, Subspecies},
         speed::Speed,
     },
-    registry::{
-        registry_validation::{ReferenceCollector, RegistryReference, RegistryReferenceCollector},
-        serialize::{class::ClassResourceDefinition, quantity::LengthExpressionDefinition},
-    },
+    registry::serialize::{class::ClassResourceDefinition, quantity::LengthExpressionDefinition},
 };
 
-#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
+#[derive(Clone, Deserialize, JsonSchema)]
 pub struct SpeciesDefinition {
     pub id: SpeciesId,
     pub creature_type: CreatureType,
@@ -38,12 +36,16 @@ pub struct SpeciesDefinition {
 
 impl From<SpeciesDefinition> for Species {
     fn from(value: SpeciesDefinition) -> Self {
+        let id = value.id;
         Species {
-            id: value.id,
+            id: id.clone(),
             base: SpeciesBase {
                 effects_by_level: value.effects_by_level,
                 actions_by_level: value.actions_by_level,
-                resources_by_level: resource_grants(value.resources_by_level),
+                resources_by_level: resource_grants(
+                    value.resources_by_level,
+                    ModifierSource::Species(id.clone()),
+                ),
             },
             subspecies: value.subspecies,
             creature_type: value.creature_type,
@@ -54,33 +56,7 @@ impl From<SpeciesDefinition> for Species {
     }
 }
 
-impl RegistryReferenceCollector for SpeciesDefinition {
-    fn collect_registry_references(&self, collector: &mut ReferenceCollector) {
-        for effects in self.effects_by_level.values() {
-            for effect in effects {
-                collector.add(RegistryReference::Effect(effect.clone()));
-            }
-        }
-        for actions in self.actions_by_level.values() {
-            for action in actions {
-                collector.add(RegistryReference::Action(action.clone()));
-            }
-        }
-        for resources in self.resources_by_level.values() {
-            for resource in resources {
-                collector.add(RegistryReference::Resource(resource.id.clone()));
-            }
-        }
-        for subspecies in &self.subspecies {
-            collector.add(RegistryReference::Subspecies(subspecies.clone()));
-        }
-        for prompt in &self.prompts {
-            prompt.collect_registry_references(collector);
-        }
-    }
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
+#[derive(Clone, Deserialize, JsonSchema)]
 pub struct SubspeciesDefinition {
     pub id: SubspeciesId,
     #[serde(default)]
@@ -94,40 +70,25 @@ pub struct SubspeciesDefinition {
 
 impl From<SubspeciesDefinition> for Subspecies {
     fn from(value: SubspeciesDefinition) -> Self {
+        let id = value.id;
         Subspecies {
-            id: value.id,
+            id: id.clone(),
             base: SpeciesBase {
                 effects_by_level: value.effects_by_level,
                 actions_by_level: value.actions_by_level,
-                resources_by_level: resource_grants(value.resources_by_level),
+                resources_by_level: resource_grants(
+                    value.resources_by_level,
+                    ModifierSource::Subspecies(id.clone()),
+                ),
             },
-        }
-    }
-}
-
-impl RegistryReferenceCollector for SubspeciesDefinition {
-    fn collect_registry_references(&self, collector: &mut ReferenceCollector) {
-        for effects in self.effects_by_level.values() {
-            for effect in effects {
-                collector.add(RegistryReference::Effect(effect.clone()));
-            }
-        }
-        for actions in self.actions_by_level.values() {
-            for action in actions {
-                collector.add(RegistryReference::Action(action.clone()));
-            }
-        }
-        for resources in self.resources_by_level.values() {
-            for resource in resources {
-                collector.add(RegistryReference::Resource(resource.id.clone()));
-            }
         }
     }
 }
 
 fn resource_grants(
     resources_by_level: HashMap<u8, Vec<ClassResourceDefinition>>,
-) -> HashMap<u8, Vec<(ResourceId, ResourceBudgetKind, bool)>> {
+    source: ModifierSource,
+) -> HashMap<u8, Vec<(ResourceId, ResourceBudgetKind, ResourceMergePolicy)>> {
     resources_by_level
         .into_iter()
         .map(|(level, resources)| {
@@ -135,7 +96,7 @@ fn resource_grants(
                 level,
                 resources
                     .into_iter()
-                    .map(ClassResourceDefinition::into_grant)
+                    .map(|resource| resource.into_grant(source.clone()))
                     .collect(),
             )
         })

@@ -1,5 +1,8 @@
 use std::{collections::HashMap, fmt, str::FromStr, sync::LazyLock};
 
+use serde::{Deserialize, Serialize};
+use serde_with::{DeserializeFromStr, SerializeDisplay};
+
 use crate::{
     components::id::{ClassId, SubclassId},
     registry::registry::ClassesRegistry,
@@ -59,7 +62,7 @@ static EXPERIENCE_BY_CHALLENGE_RATING: LazyLock<HashMap<u8, u32>> = LazyLock::ne
 /// A monster's Challenge Rating: 0, 1/8, 1/4, 1/2 or a whole number. Stat
 /// blocks write it as `"1/4"` or `"3"`, which is what [`FromStr`] and
 /// [`fmt::Display`] use.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, SerializeDisplay, DeserializeFromStr)]
 pub struct ChallengeRating {
     // `numerator / denominator`; the denominator is 1, 2, 4 or 8
     numerator: u8,
@@ -184,7 +187,7 @@ pub fn experience_for_level(level: u8) -> u32 {
     *EXPERIENCE_PER_LEVEL.get(level as usize).unwrap_or(&0)
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ClassLevelProgression {
     level: u8,
     subclass: Option<SubclassId>,
@@ -207,7 +210,7 @@ impl ClassLevelProgression {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CharacterLevels {
     class_levels: HashMap<ClassId, ClassLevelProgression>,
     /// The class that was first leveled up. Occasionally this is relevant, e.g

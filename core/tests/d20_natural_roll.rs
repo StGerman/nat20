@@ -12,10 +12,7 @@ use nat20_core::components::{
 
 /// A check with a flat +5, e.g. Athletics for a character with 16 Strength and proficiency
 fn check_plus_five(kind: D20CheckKind) -> D20Check {
-    let mut check = D20Check::new(
-        kind,
-        Proficiency::new(ProficiencyLevel::None, ModifierSource::None),
-    );
+    let mut check = D20Check::new(kind, None);
     check
         .modifiers_mut()
         .add_modifier(ModifierSource::Custom("Test".to_string()), 5);

@@ -251,7 +251,6 @@
         "ProficiencyLevel": {
             "type": "string",
             "enum": [
-                "none",
                 "proficient",
                 "expertise",
                 "half"

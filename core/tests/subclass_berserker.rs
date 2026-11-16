@@ -52,7 +52,7 @@ fn berserker_turn() -> Scenario {
     // Initiative is rolled, so the Fighter may still go first
     while current(&scenario) != barbarian {
         let entity = current(&scenario);
-        scenario.engine_state.end_turn(entity);
+        nat20_core::systems::combat::end_turn(&mut scenario.engine_state, entity);
         scenario.engine_state.update(0.0);
     }
     scenario
@@ -97,10 +97,7 @@ fn reckless_hits(scenario: &mut Scenario, hits: usize, rage: bool) -> Vec<Damage
     }
 
     let barbarian = scenario.entity("barbarian");
-    let log = match scenario.engine_state.encounter_for_entity(barbarian) {
-        Some(encounter) => encounter.event_log(),
-        None => &scenario.engine_state.event_log,
-    };
+    let log = &scenario.engine_state.event_log;
     log.events
         .iter()
         .filter_map(|event| match &event.kind {

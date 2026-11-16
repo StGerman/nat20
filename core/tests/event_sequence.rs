@@ -5,7 +5,7 @@ use std::collections::HashSet;
 use nat20_core::{
     engine::{
         encounter::EncounterId,
-        event::{EncounterEvent, Event, EventLog},
+        event::{EncounterEvent, Event, EventLog, EventScope},
     },
     test_utils::scenario::Scenario,
 };
@@ -47,10 +47,10 @@ fn seq_is_set_when_an_event_is_logged() {
     assert!(log.events[0].seq > 0);
 }
 
-/// A real fight writes to the encounter's log and the global log; every event there has its own
-/// `seq`, rising within each log
+/// A real fight writes global and encounter events to the one log; every event there has its
+/// own `seq`, rising in the order they were logged
 #[test]
-fn a_fight_numbers_both_logs() {
+fn a_fight_numbers_every_event() {
     let mut scenario = Scenario::new();
     scenario.spawn("fighter", "hero.fighter").level(1).spawn();
     scenario
@@ -59,22 +59,22 @@ fn a_fight_numbers_both_logs() {
         .position([1.0, 0.0, 0.0], false)
         .spawn();
     let (fighter, goblin) = (scenario.entity("fighter"), scenario.entity("goblin"));
-    let encounter = scenario
-        .engine_state
-        .start_encounter([fighter, goblin].into_iter().collect());
+    let encounter = nat20_core::systems::combat::start_encounter(
+        &mut scenario.engine_state,
+        [fighter, goblin].into_iter().collect(),
+    );
 
-    let engine = &scenario.engine_state;
-    let logs = [
-        &engine.event_log.events,
-        &engine.encounter(&encounter).unwrap().event_log().events,
-    ];
+    let events = &scenario.engine_state.event_log.events;
+    assert!(events.windows(2).all(|pair| pair[0].seq < pair[1].seq));
     let mut seen = HashSet::new();
-    for events in logs {
-        assert!(events.windows(2).all(|pair| pair[0].seq < pair[1].seq));
-        for event in events.iter() {
-            assert!(event.seq > 0, "{event:?}");
-            assert!(seen.insert(event.seq), "seq {} twice", event.seq);
-        }
+    for event in events.iter() {
+        assert!(event.seq > 0, "{event:?}");
+        assert!(seen.insert(event.seq), "seq {} twice", event.seq);
     }
-    assert!(!seen.is_empty());
+    assert!(
+        events
+            .iter()
+            .any(|event| event.scope == EventScope::Encounter(encounter))
+    );
+    assert!(events.iter().any(|event| event.scope == EventScope::Global));
 }

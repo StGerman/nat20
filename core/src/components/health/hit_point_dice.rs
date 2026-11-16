@@ -13,7 +13,7 @@ pub enum HitPointDiceError {
 /// The Hit Point Dice of a creature, one pool per die size. A character has one
 /// die per class level, of that class's Hit Die. They're spent during a Short
 /// Rest to regain Hit Points and are all regained on a Long Rest.
-#[derive(Debug, Clone, Default, PartialEq, Eq)]
+#[derive(Debug, Clone, Default, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct HitPointDice {
     /// Die size -> (remaining, max)
     pools: BTreeMap<DieSize, (u8, u8)>,

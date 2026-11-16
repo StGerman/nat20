@@ -1,6 +1,7 @@
 use std::collections::HashMap;
 
 use hecs::{Entity, World};
+use serde::{Deserialize, Serialize};
 
 use crate::{
     components::{
@@ -17,7 +18,7 @@ use crate::{
         id::ItemId,
         items::{
             equipment::{
-                armor::{Armor, ArmorClass, ArmorDexterityBonus, ArmorTrainingSet, ArmorType},
+                armor::{Armor, ArmorClass, ArmorDexterityBonus, ArmorTrainingMap, ArmorType},
                 slots::{EquipmentSlot, SlotProvider},
                 weapon::{
                     MELEE_RANGE_DEFAULT, Weapon, WeaponKind, WeaponProficiencyMap, WeaponProperties,
@@ -44,7 +45,7 @@ pub enum TryEquipError {
     NoSlotAvailable,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Loadout {
     equipment: HashMap<EquipmentSlot, ItemId>,
     /// Persistent per-weapon-kind attack roll checks, same structure as
@@ -238,7 +239,7 @@ impl Loadout {
     }
 
     pub fn armor_class(&self, engine_state: &EngineState, entity: Entity) -> ArmorClass {
-        let mut armor_class = if let Some(armor) = &self.armor() {
+        let mut armor_class = if let Some(armor) = self.armor() {
             let ability_scores =
                 systems::helpers::get_component::<AbilityScoreMap>(&engine_state.world, entity);
             armor.armor_class(&ability_scores)
@@ -260,8 +261,8 @@ impl Loadout {
         if let Some(shield) = self.shield()
             && engine_state
                 .world
-                .get::<&ArmorTrainingSet>(entity)
-                .is_ok_and(|training| training.contains(&ArmorType::Shield))
+                .get::<&ArmorTrainingMap>(entity)
+                .is_ok_and(|training| training.is_proficient(&ArmorType::Shield))
         {
             armor_class.add_modifier(
                 ModifierSource::Item(shield.item.id.clone()),
@@ -427,8 +428,9 @@ impl AttackRollProvider for Loadout {
                     .expect("No weapon equipped in the specified slot");
                 let mut attack_roll = weapon.attack_roll(
                     &systems::helpers::get_component::<AbilityScoreMap>(world, actor),
-                    &systems::helpers::get_component::<WeaponProficiencyMap>(world, actor)
-                        .proficiency(weapon.category()),
+                    systems::helpers::get_component::<WeaponProficiencyMap>(world, actor)
+                        .proficiency(weapon.category())
+                        .as_ref(),
                 );
 
                 let range = weapon.range();
@@ -451,7 +453,10 @@ impl AttackRollProvider for Loadout {
             ActionAttackKind::Unarmed => {
                 let mut attack_roll = D20Check::new(
                     D20CheckKind::AttackRoll(AttackSource::Weapon(WeaponKind::Unarmed)),
-                    Proficiency::new(ProficiencyLevel::Proficient, ModifierSource::Base),
+                    Some(Proficiency::new(
+                        ProficiencyLevel::Proficient,
+                        ModifierSource::Base,
+                    )),
                 );
                 let strength_modifier =
                     systems::helpers::get_component::<AbilityScoreMap>(world, actor)

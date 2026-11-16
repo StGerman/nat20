@@ -1,6 +1,6 @@
 use hecs::{Entity, World};
 use schemars::JsonSchema;
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 
 use crate::{
     components::{
@@ -120,7 +120,7 @@ impl_into_item_instance! {
     ConsumableItem => Consumable,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Inventory {
     items: Vec<ItemId>,
     money: MonetaryValue,
@@ -154,6 +154,10 @@ impl Inventory {
 
     pub fn items(&self) -> &[ItemId] {
         &self.items
+    }
+
+    pub fn find_item(&self, item_id: &ItemId) -> Option<usize> {
+        self.items.iter().position(|id| id == item_id)
     }
 
     /// How many of this item are carried

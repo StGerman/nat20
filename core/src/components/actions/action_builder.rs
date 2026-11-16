@@ -17,8 +17,8 @@ use crate::{
         action_prompt::{
             ActionData, ActionDecision, ActionDecisionKind, ActionPromptId, ActionPromptKind,
         },
-        event::Event,
         engine_state::EngineState,
+        event::Event,
     },
     systems::{
         self,
@@ -690,7 +690,7 @@ impl ReactionBuilder {
                 action: ActionDecision {
                     response_to: *prompt_id,
                     kind: ActionDecisionKind::Reaction {
-                        event: event.clone(),
+                        event: event.id.clone(),
                         reactor: self.actor.id(),
                         choice: decision.clone(),
                     },
@@ -854,7 +854,9 @@ mod tests {
     }
 
     #[rstest]
-    fn action_builder_wrong_state_returns_error(engine_state_fighter: (EngineState, EntityIdentifier)) {
+    fn action_builder_wrong_state_returns_error(
+        engine_state_fighter: (EngineState, EntityIdentifier),
+    ) {
         let (mut engine_state, fighter) = engine_state_fighter;
 
         // Calling target() before action() should poison the builder with
@@ -1048,7 +1050,9 @@ mod tests {
     }
 
     #[rstest]
-    fn reaction_builder_no_prompt_returns_error(engine_state_fighter: (EngineState, EntityIdentifier)) {
+    fn reaction_builder_no_prompt_returns_error(
+        engine_state_fighter: (EngineState, EntityIdentifier),
+    ) {
         let (engine_state, fighter) = engine_state_fighter;
 
         let result = ReactionBuilder::new(&engine_state, fighter.id()).build();
@@ -1067,7 +1071,7 @@ mod tests {
         let (mut engine_state, fighter) = engine_state_fighter;
 
         // Start encounter to queue an action prompt
-        engine_state.start_encounter(HashSet::from([fighter.id()]));
+        systems::combat::start_encounter(&mut engine_state, HashSet::from([fighter.id()]));
 
         let result = ReactionBuilder::new(&engine_state, fighter.id()).build();
 

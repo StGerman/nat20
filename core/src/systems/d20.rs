@@ -12,8 +12,8 @@ use crate::{
         spells::spellbook::Spellbook,
     },
     engine::{
-        event::{Event, EventKind},
         engine_state::EngineState,
+        event::{Event, EventKind},
     },
     systems,
 };

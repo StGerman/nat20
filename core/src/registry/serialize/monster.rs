@@ -19,7 +19,6 @@ use crate::{
         species::{CreatureSize, CreatureType},
     },
     registry::{
-        registry_validation::{ReferenceCollector, RegistryReference, RegistryReferenceCollector},
         serialize::{quantity::LengthExpressionDefinition, schema::impl_string_schema},
     },
 };
@@ -56,20 +55,6 @@ impl IdProvider for MonsterDefinition {
 
     fn id(&self) -> &Self::Id {
         &self.id
-    }
-}
-
-impl RegistryReferenceCollector for MonsterDefinition {
-    fn collect_registry_references(&self, collector: &mut ReferenceCollector) {
-        for item in &self.gear {
-            collector.add(RegistryReference::Item(item.clone()));
-        }
-        for effect in &self.effects {
-            collector.add(RegistryReference::Effect(effect.clone()));
-        }
-        for faction in &self.factions {
-            collector.add(RegistryReference::Faction(faction.clone()));
-        }
     }
 }
 

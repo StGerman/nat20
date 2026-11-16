@@ -18,10 +18,7 @@ mod tests {
 
     fn roll_sequence() -> (Vec<Vec<u32>>, Vec<Vec<u8>>) {
         let dice = DiceSet::new(4, DieSize::D6);
-        let check = D20Check::new(
-            D20CheckKind::Skill(Skill::Athletics),
-            Proficiency::new(ProficiencyLevel::None, ModifierSource::None),
-        );
+        let check = D20Check::new(D20CheckKind::Skill(Skill::Athletics), None);
 
         let dice_rolls = (0..20).map(|_| dice.roll().rolls().to_vec()).collect();
         let d20_rolls = (0..20).map(|_| check.roll().rolls).collect();
@@ -75,7 +72,8 @@ mod tests {
         }
 
         rng::seed(seed);
-        let encounter_id = engine_state.start_encounter(participants);
+        let encounter_id =
+            nat20_core::systems::combat::start_encounter(&mut engine_state, participants);
         engine_state
             .encounter(&encounter_id)
             .unwrap()

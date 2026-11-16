@@ -22,8 +22,8 @@ use crate::{
     },
     engine::{
         action_prompt::ActionData,
-        event::{CallbackResult, EventCallback, EventKind},
         engine_state::EngineState,
+        event::{CallbackResult, EventCallback, EventKind},
     },
     registry::registry::ClassesRegistry,
     systems::{self, time::RestKind},
@@ -418,7 +418,9 @@ pub fn spend_hit_point_die(
     entity: Entity,
     die: DieSize,
 ) -> Result<ModifierResult, SpendHitPointDieError> {
-    if engine_state.resting.get(&entity) != Some(&RestKind::Short) {
+    if *systems::helpers::get_component::<Option<RestKind>>(&engine_state.world, entity)
+        != Some(RestKind::Short)
+    {
         return Err(SpendHitPointDieError::NotShortResting);
     }
     if systems::combat::is_in_combat(engine_state, entity) {

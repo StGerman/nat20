@@ -879,13 +879,12 @@ pub mod creatures {
                 id::{EntityIdentifier, FactionId, ItemId, Name},
                 items::{
                     equipment::{
-                        armor::ArmorTrainingSet, loadout::TryEquipError,
+                        armor::ArmorTrainingMap, loadout::TryEquipError,
                         weapon::WeaponProficiencyMap,
                     },
                     inventory::ItemInstance,
                 },
                 level::ChallengeRating,
-                proficiency::{Proficiency, ProficiencyLevel},
                 species::{CreatureSize, CreatureType},
                 speed::Speed,
             },
@@ -947,21 +946,18 @@ pub mod creatures {
                 // so we can add proficiency for what they equip
                 match ItemsRegistry::get(item_id).unwrap() {
                     ItemInstance::Armor(armor) => {
-                        systems::helpers::get_component_mut::<ArmorTrainingSet>(
+                        systems::helpers::get_component_mut::<ArmorTrainingMap>(
                             &mut engine_state.world,
                             entity,
                         )
-                        .insert(armor.armor_type.clone());
+                        .set_proficient(armor.armor_type.clone(), ModifierSource::Base);
                     }
                     ItemInstance::Weapon(weapon) => {
                         systems::helpers::get_component_mut::<WeaponProficiencyMap>(
                             &mut engine_state.world,
                             entity,
                         )
-                        .set_proficiency(
-                            weapon.category().clone(),
-                            Proficiency::new(ProficiencyLevel::Proficient, ModifierSource::None),
-                        );
+                        .set_proficient(weapon.category().clone(), ModifierSource::Base);
                     }
                     _ => {}
                 }
@@ -974,14 +970,17 @@ pub mod creatures {
 }
 
 pub mod engine {
-    use rerecast::ConfigBuilder;
-
-    use crate::engine::{engine_state::EngineState, geometry::WorldGeometry};
+    use crate::engine::{
+        engine_state::EngineState,
+        geometry::{WorldGeometry, WorldGeometrySource},
+    };
 
     pub fn engine_state() -> EngineState {
-        EngineState::new(WorldGeometry::from_obj_path(
-            "../assets/models/geometry/scenario_terrain.obj",
-            &ConfigBuilder::default().build(),
-        ))
+        EngineState::new(
+            WorldGeometry::try_from(WorldGeometrySource::Cached {
+                identifier: "scenario_terrain".to_string(),
+            })
+            .unwrap(),
+        )
     }
 }

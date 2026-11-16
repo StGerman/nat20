@@ -2,7 +2,7 @@
 //! the re-exports are the same crates (and versions) core's public API is built from.
 
 use nat20_core::{
-    engine::geometry::WorldGeometry,
+    engine::geometry::{GeometrySourceError, WorldGeometry, WorldGeometrySource},
     hecs::{Entity, World},
     parry3d::na::Point3,
     rerecast::{Config, ConfigBuilder},
@@ -14,8 +14,13 @@ use nat20_core::{
 fn reexported_crates_are_the_ones_core_uses() {
     let _: fn(&World, Entity) -> Option<Point3<f32>> = get_foot_position;
     let _: fn(&World, Entity, Point3<f32>) -> Option<Length> = distance_entity_point;
-    let _: fn(&str, &Config) -> WorldGeometry =
-        |path, config| WorldGeometry::from_obj_path(path, config);
+    let _: fn(&str, Config) -> Result<WorldGeometry, GeometrySourceError> = |path, config| {
+        WorldGeometry::try_from(WorldGeometrySource::Obj {
+            file_path: path.into(),
+            config,
+            try_cache: false,
+        })
+    };
     let _: Config = ConfigBuilder::default().build();
 
     let mut world = World::new();
