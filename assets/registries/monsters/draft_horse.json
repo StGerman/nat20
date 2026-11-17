@@ -1,0 +1,29 @@
+{
+    "id": "nat20_core::monster.draft_horse",
+    "name": "Draft Horse",
+    "_comment": "SRD 5.2.1 (CC-BY-4.0), Draft Horse. AC 10 is 10 + Dex 0 with no armour; Hooves +6 and 1d4 + 4 from Strength and PB +2. A working animal, so the townsfolk faction.",
+    "size": "large",
+    "creature_type": "beast",
+    "challenge_rating": "1/4",
+    "hit_points": {
+        "average": 15,
+        "dice": "2d10 + 4"
+    },
+    "speed": "40 feet",
+    "abilities": {
+        "strength": 18,
+        "dexterity": 10,
+        "constitution": 15,
+        "intelligence": 2,
+        "wisdom": 11,
+        "charisma": 7
+    },
+    "skills": {},
+    "gear": [
+        "nat20_core::item.draft_horse_hooves"
+    ],
+    "effects": [],
+    "factions": [
+        "nat20_core::faction.townsfolk"
+    ]
+}

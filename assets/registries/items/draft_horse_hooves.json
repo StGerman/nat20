@@ -1,0 +1,22 @@
+{
+  "_comment": "Natural weapon: the Draft Horse's Hooves (SRD 5.2.1, CC-BY-4.0). Only a monster stat block equips it; it is not loot.",
+  "item": {
+    "id": "nat20_core::item.draft_horse_hooves",
+    "name": "Hooves",
+    "description": "The horse's iron-shod hooves.",
+    "weight": "0 lb",
+    "value": "0 GP",
+    "rarity": "common"
+  },
+  "category": "simple",
+  "kind": "melee",
+  "properties": [],
+  "damage": [
+    [
+      "1d4",
+      "bludgeoning"
+    ]
+  ],
+  "extra_weapon_actions": [],
+  "effects": []
+}

@@ -1,0 +1,36 @@
+{
+    "id": "nat20_core::monster.mastiff",
+    "name": "Mastiff",
+    "_comment": "SRD 5.2.1 (CC-BY-4.0), Mastiff. AC 12 is 10 + Dex 2 with no armour; Bite +3 and 1d6 + 1 from Strength and PB +2; Perception +5 is Wis 1 with Expertise; the Wisdom save +3 is proficiency. The Bite knocking a Medium or smaller target Prone is effect.monster.knock_prone_on_bite. Darkvision and the senses are out of scope. A working dog, so the townsfolk faction.",
+    "size": "medium",
+    "creature_type": "beast",
+    "challenge_rating": "1/8",
+    "hit_points": {
+        "average": 5,
+        "dice": "1d8 + 1"
+    },
+    "speed": "40 feet",
+    "abilities": {
+        "strength": 13,
+        "dexterity": 14,
+        "constitution": 12,
+        "intelligence": 3,
+        "wisdom": 12,
+        "charisma": 7
+    },
+    "skills": {
+        "perception": "expertise"
+    },
+    "saving_throws": {
+        "wisdom": "proficient"
+    },
+    "gear": [
+        "nat20_core::item.mastiff_bite"
+    ],
+    "effects": [
+        "nat20_core::effect.monster.knock_prone_on_bite"
+    ],
+    "factions": [
+        "nat20_core::faction.townsfolk"
+    ]
+}

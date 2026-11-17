@@ -234,6 +234,16 @@ fn a_bite_knocks_a_medium_target_prone() {
 }
 
 #[test]
+fn a_mastiffs_bite_knocks_a_medium_target_prone() {
+    let mut scenario = scenario();
+    spawn_at(&mut scenario, "mastiff", "stat_block.mastiff", [1.0, 0.0, 0.0]);
+
+    scenario.probe("fighter").assert_no_effect(PRONE);
+    hit(&mut scenario, "mastiff", "fighter");
+    scenario.probe("fighter").assert_effect(PRONE);
+}
+
+#[test]
 fn a_bite_doesnt_knock_a_large_target_prone() {
     let mut scenario = scenario();
     spawn_at(&mut scenario, "wolf", "stat_block.wolf", [1.0, 0.0, 0.0]);
