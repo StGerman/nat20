@@ -133,6 +133,26 @@ mod tests {
             skills: &[],
             saving_throws: &[],
         },
+        Expected {
+            id: "monster.mastiff",
+            armor_class: 12,
+            hit_points: 5,
+            speed_ft: 40.0,
+            challenge_rating: "1/8",
+            experience: 25,
+            skills: &[(Skill::Perception, ProficiencyLevel::Expertise)],
+            saving_throws: &[(Ability::Wisdom, ProficiencyLevel::Proficient)],
+        },
+        Expected {
+            id: "monster.draft_horse",
+            armor_class: 10,
+            hit_points: 15,
+            speed_ft: 40.0,
+            challenge_rating: "1/4",
+            experience: 50,
+            skills: &[],
+            saving_throws: &[],
+        },
     ];
 
     #[test]
