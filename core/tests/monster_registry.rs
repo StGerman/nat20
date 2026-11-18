@@ -69,8 +69,8 @@ mod tests {
 
         let skills = systems::helpers::get_component::<SkillSet>(world, goblin);
         assert_eq!(
-            skills.get(&Skill::Stealth).proficiency().level(),
-            &ProficiencyLevel::Expertise
+            skills.get(&Skill::Stealth).proficiency().map(|p| p.level()),
+            Some(&ProficiencyLevel::Expertise)
         );
 
         let loadout = systems::loadout::loadout(world, goblin);

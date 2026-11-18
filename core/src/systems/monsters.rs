@@ -9,12 +9,12 @@ use crate::{
         id::{ItemId, MonsterId, Name},
         items::{
             equipment::{
-                armor::ArmorTrainingSet, loadout::TryEquipError, weapon::WeaponProficiencyMap,
+                armor::ArmorTrainingMap, loadout::TryEquipError, weapon::WeaponProficiencyMap,
             },
             inventory::ItemInstance,
         },
         modifier::ModifierSource,
-        proficiency::{Proficiency, ProficiencyLevel},
+        proficiency::Proficiency,
         saving_throw::{SavingThrowKind, SavingThrowSet},
         skill::SkillSet,
         speed::Speed,
@@ -137,21 +137,18 @@ fn fill_in(
         // Monsters are trained in their armour and proficient with their weapons.
         match ItemsRegistry::get(item_id) {
             Some(ItemInstance::Armor(armor)) => {
-                systems::helpers::get_component_mut::<ArmorTrainingSet>(
+                systems::helpers::get_component_mut::<ArmorTrainingMap>(
                     &mut engine_state.world,
                     entity,
                 )
-                .insert(armor.armor_type.clone());
+                .set_proficient(armor.armor_type.clone(), source.clone());
             }
             Some(ItemInstance::Weapon(weapon)) => {
                 systems::helpers::get_component_mut::<WeaponProficiencyMap>(
                     &mut engine_state.world,
                     entity,
                 )
-                .set_proficiency(
-                    weapon.category().clone(),
-                    Proficiency::new(ProficiencyLevel::Proficient, source.clone()),
-                );
+                .set_proficient(weapon.category().clone(), source.clone());
             }
             _ => {}
         }

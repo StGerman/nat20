@@ -1,5 +1,6 @@
 use std::ops::Deref;
 
+use crate::registry::registry_reference;
 use hecs::Entity;
 use serde::{Deserialize, Serialize};
 use std::{fmt, fmt::Debug, hash::Hash, str::FromStr};
@@ -64,7 +65,16 @@ macro_rules! id_newtypes {
                         return Err(IdError::EmptyId);
                     }
 
-                    Ok(Self::new(namespace.to_string(), id.to_string()))
+                    let parsed = Self::new(namespace.to_string(), id.to_string());
+
+                    // Record the parsed ID (usually through deserializing a file)
+                    // in the global `ReferenceRecorder`, so we can check later if it
+                    // exists in the registry.
+                    // This seems a little bit illegal, but also a little bit clever
+                    // at the same time?
+                    registry_reference::record_id(|| Id::$name(parsed.clone()));
+
+                    Ok(parsed)
                 }
             }
 
@@ -111,6 +121,7 @@ macro_rules! id_newtypes {
             }
         )+
 
+        #[derive(Debug, Clone, PartialEq, Eq, Hash)]
         pub enum Id {
             $($name($name),)+
         }
@@ -155,7 +166,7 @@ id_newtypes!(
     BackgroundId => "background",
     SpeciesId => "species",
     SubspeciesId => "subspecies",
-    AIControllerId => "aicontroller",
+    AIControllerId => "ai_controller",
     FactionId => "faction",
     ScriptId => "script"
 );
@@ -194,12 +205,11 @@ pub trait IdProvider {
     fn id(&self) -> &Self::Id;
 }
 
-// TODO: Not sure if this is the best place for this
 /// Name is a simple wrapper around a String to provide a type-safe way to
 /// handle names when querying entities in the game world. The alternative is to
 /// use a String directly, but a String can be ambiguous in terms of what it
 /// represents
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub struct Name(String);
 
 impl Name {
@@ -220,7 +230,6 @@ impl Name {
     }
 }
 
-// TODO: Not sure if this just causes more problems than it solves
 /// Identifier for an entity in the game world.
 /// This is used to uniquely identify entities, such as characters or creatures.
 /// In most cases the id (`Entity`) is meaningless outside the context of the
@@ -228,7 +237,7 @@ impl Name {
 /// When despawning an entity from the world, the `Entity` ID becomes invalid, which
 /// makes it impossible to fetch the name of the entity when rendering events related
 /// to the entity after it has been despawned.
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub struct EntityIdentifier {
     id: Entity,
     name: Name,

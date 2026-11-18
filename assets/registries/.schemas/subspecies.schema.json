@@ -36,7 +36,6 @@
             "description": "Resources granted at each level, e.g. uses of a species feature.",
             "type": "object",
             "additionalProperties": false,
-            "default": {},
             "patternProperties": {
                 "^\\d+$": {
                     "type": "array",
@@ -57,7 +56,6 @@
             "pattern": "^([A-Za-z0-9_]+::)?action[A-Za-z0-9_.]*$"
         },
         "ClassResourceDefinition": {
-            "description": "A resource a class, subclass or species grants at a level, with its budget.",
             "type": "object",
             "properties": {
                 "budget": {
@@ -66,15 +64,35 @@
                 "id": {
                     "$ref": "#/definitions/ResourceId"
                 },
-                "override": {
-                    "type": "boolean",
-                    "default": false
+                "policy": {
+                    "$ref": "#/definitions/ClassResourceMergePolicy"
                 }
             },
             "required": [
                 "id",
                 "budget"
             ]
+        },
+        "ClassResourceMergePolicy": {
+            "type": "object",
+            "properties": {
+                "current_uses": {
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/ResourceMergeOperation"
+                        }
+                    ],
+                    "default": "skip"
+                },
+                "max_uses": {
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/ResourceMergeOperation"
+                        }
+                    ],
+                    "default": "replace"
+                }
+            }
         },
         "EffectId": {
             "description": "Registry id `[namespace::]effect.<name>`, e.g. `nat20_core::effect.example`. The namespace defaults to `nat20_core`.",
@@ -93,13 +111,16 @@
                 },
                 {
                     "type": "object",
-                    "additionalProperties": {
-                        "description": "A resource budget: `<max uses>` (spawns full) or `<current>/<max>`.",
-                        "type": "string",
-                        "examples": [
-                            "2",
-                            "1/4"
-                        ]
+                    "additionalProperties": false,
+                    "patternProperties": {
+                        "^\\d+$": {
+                            "description": "A resource budget: `<max uses>` (spawns full) or `<current>/<max>`.",
+                            "type": "string",
+                            "examples": [
+                                "2",
+                                "1/4"
+                            ]
+                        }
                     }
                 }
             ]
@@ -108,6 +129,14 @@
             "description": "Registry id `[namespace::]resource.<name>`, e.g. `nat20_core::resource.example`. The namespace defaults to `nat20_core`.",
             "type": "string",
             "pattern": "^([A-Za-z0-9_]+::)?resource[A-Za-z0-9_.]*$"
+        },
+        "ResourceMergeOperation": {
+            "type": "string",
+            "enum": [
+                "add",
+                "replace",
+                "skip"
+            ]
         },
         "SubspeciesId": {
             "description": "Registry id `[namespace::]subspecies.<name>`, e.g. `nat20_core::subspecies.example`. The namespace defaults to `nat20_core`.",

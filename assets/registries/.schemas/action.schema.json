@@ -370,7 +370,7 @@
                     "type": "object",
                     "properties": {
                         "effect": {
-                            "$ref": "#/definitions/EffectInstanceDefinition"
+                            "$ref": "#/definitions/EffectInstanceTemplate"
                         }
                     },
                     "required": [
@@ -881,18 +881,28 @@
                 }
             ]
         },
-        "EffectEndConditionDefinition": {
+        "EffectEndCondition": {
             "type": "object",
             "properties": {
-                "event": {
-                    "$ref": "#/definitions/EffectEventFilterDefinition"
+                "event_filter": {
+                    "description": "The filter that determines when this end condition is triggered.",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/EffectEventFilter"
+                        }
+                    ]
                 },
                 "on_trigger": {
-                    "$ref": "#/definitions/EffectEndVerb"
+                    "description": "The action to perform when this end condition is triggered.",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/EffectEndVerb"
+                        }
+                    ]
                 }
             },
             "required": [
-                "event",
+                "event_filter",
                 "on_trigger"
             ]
         },
@@ -917,7 +927,7 @@
                 "target"
             ]
         },
-        "EffectEventFilterDefinition": {
+        "EffectEventFilter": {
             "oneOf": [
                 {
                     "type": "object",
@@ -944,6 +954,7 @@
                     ]
                 },
                 {
+                    "description": "A d20 roll of a given flavor was made, optionally by and/or against a\nspecific entity. The bread and butter of \"until the next roll\" effects\n(Studied Attacks, Vex/Sap, Sundering Blow).",
                     "type": "object",
                     "properties": {
                         "d20_check": {
@@ -965,7 +976,7 @@
                                     "$ref": "#/definitions/D20CheckKindTag"
                                 },
                                 "roller": {
-                                    "description": "Who makes the roll. Omit to match any roller.",
+                                    "description": "Who makes the roll. `None` matches any roller.",
                                     "anyOf": [
                                         {
                                             "$ref": "#/definitions/EffectEntiyReference"
@@ -977,7 +988,7 @@
                                     "default": null
                                 },
                                 "skill": {
-                                    "description": "Only match checks made with this skill (e.g. Help's Advantage is spent\nby the next check with the chosen skill). Omit to match any skill.",
+                                    "description": "Only checks made with this skill. `None` matches any skill.",
                                     "anyOf": [
                                         {
                                             "$ref": "#/definitions/Skill"
@@ -985,8 +996,7 @@
                                         {
                                             "type": "null"
                                         }
-                                    ],
-                                    "default": null
+                                    ]
                                 }
                             },
                             "required": [
@@ -1034,7 +1044,7 @@
             "type": "string",
             "pattern": "^([A-Za-z0-9_]+::)?effect[A-Za-z0-9_.]*$"
         },
-        "EffectInstanceDefinition": {
+        "EffectInstanceTemplate": {
             "type": "object",
             "properties": {
                 "effect_id": {
@@ -1043,7 +1053,7 @@
                 "end_condition": {
                     "anyOf": [
                         {
-                            "$ref": "#/definitions/EffectEndConditionDefinition"
+                            "$ref": "#/definitions/EffectEndCondition"
                         },
                         {
                             "type": "null"
@@ -1770,6 +1780,19 @@
                     },
                     "required": [
                         "turns"
+                    ]
+                },
+                {
+                    "description": "TODO: Bit of a hack to allow deserializing a `TimeDuration` which was serialized\ndirectly rather than through a `TimeDurationDefinition`",
+                    "type": "object",
+                    "properties": {
+                        "seconds": {
+                            "type": "number",
+                            "format": "float"
+                        }
+                    },
+                    "required": [
+                        "seconds"
                     ]
                 }
             ]

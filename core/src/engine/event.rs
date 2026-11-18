@@ -37,13 +37,15 @@ pub type EventId = Uuid;
 /// to an encounter's log and to the global log share one order.
 static NEXT_EVENT_SEQ: AtomicU64 = AtomicU64::new(1);
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct Event {
     pub id: EventId,
     /// When the event was pushed to a log, counted across every log in the process: sorting the
     /// events of several logs by `seq` gives the order they happened in. 0 until it is pushed.
     pub seq: u64,
     pub kind: EventKind,
+    /// Where the event happened (e.g. global or within a specific encounter)
+    pub scope: EventScope,
     pub response_to: Option<EventId>,
     pub parent: Option<EventId>,
     pub children: Vec<EventId>,
@@ -55,6 +57,7 @@ impl Event {
             id: Uuid::new_v4(),
             seq: 0,
             kind,
+            scope: EventScope::default(),
             response_to: None,
             parent: None,
             children: Vec::new(),
@@ -68,6 +71,11 @@ impl Event {
 
     pub fn with_parent(mut self, parent_id: Option<&EventId>) -> Self {
         self.parent = parent_id.copied();
+        self
+    }
+
+    pub fn with_scope(mut self, scope: EventScope) -> Self {
+        self.scope = scope;
         self
     }
 
@@ -119,7 +127,7 @@ impl Event {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, EnumDiscriminants)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, EnumDiscriminants)]
 #[strum_discriminants(
     name(EventKindTag),
     derive(Hash, PartialOrd, Ord, Serialize, Deserialize, JsonSchema),
@@ -202,14 +210,47 @@ pub enum EventKind {
     },
 }
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub enum EncounterEvent {
     EncounterStarted(EncounterId),
-    EncounterEnded(EncounterId, EventLog),
+    EncounterEnded(EncounterId),
     NewRound(EncounterId, usize),
 }
 
-#[derive(Debug, Clone, PartialEq, Default)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default, Serialize, Deserialize)]
+/// Must be representable as a string to use as a key when serializing
+#[serde(try_from = "String", into = "String")]
+pub enum EventScope {
+    #[default]
+    Global,
+    Encounter(EncounterId),
+}
+
+impl From<EventScope> for String {
+    fn from(value: EventScope) -> Self {
+        match value {
+            EventScope::Global => "global".to_string(),
+            EventScope::Encounter(id) => id.to_string(),
+        }
+    }
+}
+
+impl TryFrom<String> for EventScope {
+    type Error = String;
+
+    fn try_from(value: String) -> Result<Self, Self::Error> {
+        if value == "global" {
+            Ok(EventScope::Global)
+        } else {
+            match value.parse::<EncounterId>() {
+                Ok(id) => Ok(EventScope::Encounter(id)),
+                Err(error) => Err(error.to_string()),
+            }
+        }
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Default, Serialize, Deserialize)]
 pub struct EventLog {
     pub events: Vec<Event>,
     pub indices: HashMap<EventId, usize>,
@@ -327,7 +368,9 @@ impl EventFilter {
 
 #[derive(Clone)]
 pub struct EventCallback(
-    Arc<dyn Fn(&mut EngineState, &Event, &ListenerSource) -> CallbackResult + Send + Sync + 'static>,
+    Arc<
+        dyn Fn(&mut EngineState, &Event, &ListenerSource) -> CallbackResult + Send + Sync + 'static,
+    >,
 );
 
 impl EventCallback {
@@ -531,5 +574,9 @@ impl EventDispatcher {
                 self.remove_listener_by_id(&listener_id);
             }
         }
+    }
+
+    pub fn listeners(&self) -> impl Iterator<Item = (&EventListenerId, &EventListener)> {
+        self.listeners.iter()
     }
 }

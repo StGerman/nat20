@@ -1,8 +1,6 @@
-use std::collections::HashSet;
-
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
-use strum::Display;
+use strum::{Display, EnumIter};
 
 use crate::{
     components::{
@@ -13,13 +11,16 @@ use crate::{
             item::Item,
         },
         modifier::{FlatModifiable, FlatModifierMap, ModifierSource},
+        proficiency::BinaryProficiencyMap,
     },
     registry::serialize::{item::ArmorDefinition, schema::impl_schema_via},
 };
 
 pub const DEFAULT_ARMOR_CLASS: i32 = 10;
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash, Display, Serialize, Deserialize, JsonSchema)]
+#[derive(
+    Debug, Clone, PartialEq, Eq, Hash, Display, EnumIter, Serialize, Deserialize, JsonSchema,
+)]
 #[serde(rename_all = "snake_case")]
 pub enum ArmorType {
     Clothing,
@@ -31,9 +32,8 @@ pub enum ArmorType {
     Shield,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "snake_case")]
-#[derive(Default)]
 pub enum ArmorDexterityBonus {
     #[default]
     Unlimited, // No limit on Dexterity bonus
@@ -49,7 +49,7 @@ impl ArmorDexterityBonus {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ArmorClass {
     value: FlatModifierMap,
     pub dexterity_bonus: ArmorDexterityBonus,
@@ -218,7 +218,7 @@ impl SlotProvider for Armor {
     }
 }
 
-pub type ArmorTrainingSet = HashSet<ArmorType>;
+pub type ArmorTrainingMap = BinaryProficiencyMap<ArmorType>;
 
 #[cfg(test)]
 mod tests {
@@ -229,7 +229,7 @@ mod tests {
     #[test]
     fn armor_class_add_and_remove_modifier() {
         let mut armor_class =
-            ArmorClass::new(10, ModifierSource::None, ArmorDexterityBonus::Limited(2));
+            ArmorClass::new(10, ModifierSource::Base, ArmorDexterityBonus::Limited(2));
         assert_eq!(armor_class.total(), 10);
 
         armor_class.add_modifier(ModifierSource::Custom("Test".to_string()), 3);

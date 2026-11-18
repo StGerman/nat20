@@ -3,10 +3,9 @@ use hecs::{Entity, World};
 use crate::{
     components::{
         id::FeatId,
-        items::equipment::{armor::ArmorTrainingSet, weapon::WeaponProficiencyMap},
+        items::equipment::{armor::ArmorTrainingMap, weapon::WeaponProficiencyMap},
         level_up::LevelUpPrompt,
         modifier::ModifierSource,
-        proficiency::{Proficiency, ProficiencyLevel},
     },
     engine::engine_state::EngineState,
     registry::registry::FeatsRegistry,
@@ -72,17 +71,17 @@ pub fn add_feat(
     );
 
     let source = ModifierSource::Feat(feat.id().clone());
-    systems::helpers::get_component_mut::<ArmorTrainingSet>(&mut engine_state.world, entity)
-        .extend(feat.armor_training().iter().cloned());
+    let armor_training =
+        systems::helpers::get_component_mut::<ArmorTrainingMap>(&mut engine_state.world, entity);
+    for armor_type in feat.armor_training() {
+        armor_training.set_proficient(armor_type.clone(), source.clone());
+    }
     let weapon_proficiencies = systems::helpers::get_component_mut::<WeaponProficiencyMap>(
         &mut engine_state.world,
         entity,
     );
     for category in feat.weapon_proficiencies() {
-        weapon_proficiencies.set_proficiency(
-            category.clone(),
-            Proficiency::new(ProficiencyLevel::Proficient, source.clone()),
-        );
+        weapon_proficiencies.set_proficient(category.clone(), source.clone());
     }
 
     prompts.extend(feat.prompts().iter().cloned());

@@ -1,7 +1,7 @@
 use std::{ops::Deref, vec};
 
 use hecs::{Entity, World};
-use imgui::TreeNodeFlags;
+use imgui::{MouseButton, TreeNodeFlags};
 use nat20_core::{
     components::{
         ability::{Ability, AbilityScore, AbilityScoreMap},
@@ -147,7 +147,6 @@ impl ImguiRenderable for LifeState {
 
 fn proficiency_icon(proficiency: &ProficiencyLevel) -> &'static str {
     match proficiency {
-        ProficiencyLevel::None => "",
         ProficiencyLevel::Half => "½",
         ProficiencyLevel::Proficient => "*",
         ProficiencyLevel::Expertise => "**",
@@ -157,20 +156,18 @@ fn proficiency_icon(proficiency: &ProficiencyLevel) -> &'static str {
 impl ImguiRenderableWithContext<&str> for Proficiency {
     fn render_with_context(&self, ui: &imgui::Ui, context: &str) {
         let level = self.level();
-        if level != &ProficiencyLevel::None {
-            ui.text(proficiency_icon(level));
-            if ui.is_item_hovered() {
-                ui.tooltip(|| {
-                    let mut segments = vec![
-                        (format!("{}", level), TextKind::Normal),
-                        (format!("({})", self.source()), TextKind::Details),
-                    ];
-                    if !context.is_empty() {
-                        segments.push((context.to_string(), TextKind::Details));
-                    }
-                    TextSegments::new(segments).render(ui);
-                });
-            }
+        ui.text(proficiency_icon(level));
+        if ui.is_item_hovered() {
+            ui.tooltip(|| {
+                let mut segments = vec![
+                    (format!("{}", level), TextKind::Normal),
+                    (format!("({})", self.source()), TextKind::Details),
+                ];
+                if !context.is_empty() {
+                    segments.push((context.to_string(), TextKind::Details));
+                }
+                TextSegments::new(segments).render(ui);
+            });
         }
     }
 }
@@ -234,7 +231,7 @@ impl ImguiRenderableWithContext<(&EngineState, Entity)> for AbilityScoreMap {
 
                     ui.separator_with_text("Saving Throw");
 
-                    if saving_throw_proficiency.level() != &ProficiencyLevel::None {
+                    if let Some(saving_throw_proficiency) = saving_throw_proficiency {
                         TextSegments::new(vec![
                             (
                                 format!("{}", saving_throw_proficiency.level()),
@@ -286,8 +283,9 @@ impl ImguiRenderableWithContext<(&EngineState, Entity)> for SkillSet {
 
                 // Proficiency column
                 ui.table_next_column();
-                let proficiency = self.get(&skill).proficiency();
-                proficiency.render(ui);
+                if let Some(proficiency) = self.get(&skill).proficiency() {
+                    proficiency.render(ui);
+                }
                 // Skill name
                 ui.table_next_column();
                 ui.text(skill.to_string());
@@ -324,14 +322,21 @@ impl ImguiRenderable for ResourceMap {
             for (resource_id, resource) in flat_resources.iter() {
                 // Resource ID column
                 ui.table_next_column();
-                if let Some(source) = self.is_resource_disabled(resource_id) {
+                if let Some(sources) = self.is_resource_disabled(resource_id) {
                     TextSegment::new(resource_id.to_string(), TextKind::Red).render(ui);
 
                     if ui.is_item_hovered() {
                         ui.tooltip(|| {
                             TextSegments::new(vec![
                                 ("Disabled by:".to_string(), TextKind::Normal),
-                                (source.to_string(), TextKind::Details),
+                                (
+                                    sources
+                                        .iter()
+                                        .map(|s| s.to_string())
+                                        .collect::<Vec<_>>()
+                                        .join(", "),
+                                    TextKind::Details,
+                                ),
                             ])
                             .render(ui);
                         });
@@ -344,7 +349,19 @@ impl ImguiRenderable for ResourceMap {
                 ui.table_next_column();
                 match resource {
                     ResourceBudgetKind::Flat(budget) => {
-                        ui.text(format!("{}/{}", budget.current_uses, budget.max_uses));
+                        ui.text(format!(
+                            "{}/{}",
+                            budget.current_uses(),
+                            budget.max_uses_total()
+                        ));
+
+                        if ui.is_item_hovered() {
+                            ui.tooltip(|| {
+                                budget
+                                    .max_uses()
+                                    .render_with_context(ui, ModifierRenderMode::List(false));
+                            });
+                        }
                     }
                     _ => {
                         ui.text("Expected ResourceKind::Flat");
@@ -381,7 +398,11 @@ impl ImguiRenderable for ResourceMap {
                             ui.text(roman_numeral(*tier));
                             // Current uses column
                             ui.table_next_column();
-                            ui.text(format!("{}/{}", budget.current_uses, budget.max_uses));
+                            ui.text(format!(
+                                "{}/{}",
+                                budget.current_uses(),
+                                budget.max_uses_total()
+                            ));
                         }
                     }
                     _ => {
@@ -553,12 +574,21 @@ impl ImguiRenderableMutWithContext<&ResourceMap> for Spellbook {
 pub fn render_effect(ui: &imgui::Ui, effect: &EffectInstance, all_effects: &EffectsMap) {
     let _root_id = ui.push_id(effect.effect_id.to_string());
 
+    // Render every frame in case it has been opened
+    ui.popup("effect_tooltip_debug", || {
+        let debug_text = format!("{:#?}", effect);
+        let size = ui.calc_text_size(&debug_text);
+        ui.child_window("Effect Debug Info")
+            .size([size[0] + 10.0, f32::min(size[1], 400.0)])
+            .build(|| {
+                ui.text(debug_text);
+            });
+    });
+
     if effect.children.is_empty() {
         ui.text(effect.effect_id.to_string());
         if ui.is_item_hovered() {
-            ui.tooltip(|| {
-                render_effect_tooltip(ui, effect);
-            });
+            render_effect_tooltip(ui, effect);
         }
         return;
     }
@@ -574,17 +604,21 @@ pub fn render_effect(ui: &imgui::Ui, effect: &EffectInstance, all_effects: &Effe
         });
 
     if ui.is_item_hovered() {
-        ui.tooltip(|| {
-            render_effect_tooltip(ui, effect);
-        });
+        render_effect_tooltip(ui, effect);
     }
 }
 
 fn render_effect_tooltip(ui: &imgui::Ui, effect: &EffectInstance) {
-    ui.separator_with_text(effect.effect_id.to_string());
-    TextSegment::new(effect.effect().description.as_str(), TextKind::Details)
-        .wrap_text(true)
-        .render(ui);
+    if ui.is_mouse_clicked(MouseButton::Right) {
+        ui.open_popup("effect_tooltip_debug");
+    }
+
+    ui.tooltip(|| {
+        ui.separator_with_text(effect.effect_id.to_string());
+        TextSegment::new(effect.effect().description.as_str(), TextKind::Details)
+            .wrap_text(true)
+            .render(ui);
+    });
 }
 
 impl ImguiRenderableWithContext<&TimeMode> for EffectsMap {
@@ -1241,12 +1275,12 @@ impl ImguiRenderable for CreatureType {
 
 impl ImguiRenderable for ResourceAmountMap {
     fn render(&self, ui: &imgui::Ui) {
-        if self.map.is_empty() {
+        if self.is_empty() {
             ui.text("No cost");
             return;
         }
 
-        for (resource, amount) in self.map.iter() {
+        for (resource, amount) in self.iter() {
             let amount_text = match amount {
                 ResourceAmount::Flat(amount) => amount.to_string(),
                 ResourceAmount::Tiered { tier, amount } => format!("{} Level {}", amount, tier),
@@ -1378,9 +1412,8 @@ impl ImguiRenderable for ModifierSource {
             ModifierSource::Base => todo!(),
             ModifierSource::Background(_background_id) => todo!(),
             ModifierSource::Item(_item_id) => todo!(),
-            ModifierSource::ClassFeature(_class_id) => todo!(),
-            ModifierSource::ClassLevel(_class_id) => todo!(),
-            ModifierSource::SubclassFeature(_subclass_id) => todo!(),
+            ModifierSource::Class(_class_id) => todo!(),
+            ModifierSource::Subclass(_subclass_id) => todo!(),
             ModifierSource::Action(_action_id) => todo!(),
             ModifierSource::Effect(effect_id) => {
                 TextSegment::new(format!("{}", effect_id), TextKind::Effect).render(ui);
@@ -1392,7 +1425,6 @@ impl ImguiRenderable for ModifierSource {
             ModifierSource::Custom(_) => todo!(),
             ModifierSource::Species(_species_id) => todo!(),
             ModifierSource::Subspecies(_subspecies_id) => todo!(),
-            ModifierSource::None => todo!(),
         }
     }
 }

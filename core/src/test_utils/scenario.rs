@@ -21,7 +21,7 @@ use crate::{
         },
         health::hit_points::HitPoints,
         id::{ActionId, ActionVariantId, EffectId, EntityIdentifier, ItemId, ResourceId},
-        items::equipment::{loadout::Loadout, slots::EquipmentSlot},
+        items::equipment::slots::EquipmentSlot,
         modifier::{
             FlatModifiable, FlatModifierMap, Modifiable, ModifierKind, ModifierKindResult,
             ModifierMap, ModifierResult, ModifierSource,
@@ -35,13 +35,18 @@ use crate::{
         action_prompt::{ActionData, ActionDecision, ActionDecisionKind},
         encounter::EncounterId,
         engine_state::EngineState,
-        event::{Event, EventCallback, EventFilter, EventKind},
+        event::{Event, EventCallback, EventFilter, EventKind, EventScope},
     },
-    registry::registry::ItemsRegistry,
-    systems,
-    systems::time::RestKind,
+    persistence::{
+        self,
+        engine::{EngineLoadBlocker, EngineSaveBlocker, SaveFileSource, SaveFileTarget},
+        registry::LoadPolicy,
+    },
+    systems::{self, time::RestKind},
     test_utils::{creature_builder::CreatureBuilder, fixtures},
 };
+
+pub const SAVE_FILE_PATH: &str = "save_file.json";
 
 pub struct Scenario {
     pub engine_state: EngineState,
@@ -118,6 +123,15 @@ impl Scenario {
         ScenarioCreatureBuilder::new(self, handle, builder)
     }
 
+    #[track_caller]
+    pub fn despawn(&mut self, handle: &str) {
+        let entity = self.entity(handle);
+        self.creatures.remove(handle);
+        self.engine_state
+            .despawn(entity)
+            .unwrap_or_else(|err| panic!("Failed to despawn {handle}: {err:?}"));
+    }
+
     pub fn encounter<'s>(&'s mut self) -> ScenarioEncounterBuilder<'s> {
         ScenarioEncounterBuilder {
             scenario: self,
@@ -137,6 +151,7 @@ impl Scenario {
         ScenarioActionBuilder {
             scenario: self,
             builder,
+            auto_update: true,
         }
     }
 
@@ -198,17 +213,8 @@ impl Scenario {
     }
 
     pub fn filter_events(&self, event_filter: EventFilter) -> Vec<&Event> {
-        let event_log = if let Some(encounter_id) = &self.encounter_id {
-            self.engine_state
-                .encounters
-                .get(encounter_id)
-                .unwrap_or_else(|| panic!("No encounter with id {encounter_id} in engine state"))
-                .event_log()
-        } else {
-            &self.engine_state.event_log
-        };
-
-        event_log
+        self.engine_state
+            .event_log
             .events
             .iter()
             .rev()
@@ -220,8 +226,52 @@ impl Scenario {
         ScenarioEventFilterBuilder {
             scenario: self,
             actor: None,
+            scope: None,
             kind: None,
         }
+    }
+
+    pub fn save_to_target(
+        &mut self,
+        save_target: impl Into<SaveFileTarget>,
+    ) -> Result<SaveFileSource, EngineSaveBlocker> {
+        persistence::engine::save_engine_state(&self.engine_state, save_target)
+    }
+
+    pub fn save(&mut self) -> Result<SaveFileSource, EngineSaveBlocker> {
+        self.save_to_target(SAVE_FILE_PATH)
+    }
+
+    pub fn load_from_source(
+        &mut self,
+        save_source: impl Into<SaveFileSource>,
+        policy: LoadPolicy,
+        delete_after_load: bool,
+    ) -> Result<(), EngineLoadBlocker> {
+        let save_source = save_source.into();
+
+        let path = if let SaveFileSource::Path(path) = &save_source {
+            Some(path.clone())
+        } else {
+            None
+        };
+
+        self.engine_state = persistence::engine::load_engine_state(save_source, policy)?;
+
+        if let Some(path) = path
+            && delete_after_load
+        {
+            if std::fs::remove_file(&path).is_err() {
+                // Ignore errors, as the file might not exist
+            }
+        }
+
+        Ok(())
+    }
+
+    pub fn load(&mut self, delete_after_load: bool) -> Result<(), EngineLoadBlocker> {
+        let result = self.load_from_source(SAVE_FILE_PATH, LoadPolicy::Strict, delete_after_load);
+        result
     }
 }
 
@@ -331,13 +381,17 @@ impl<'s> ScenarioEncounterBuilder<'s> {
                 );
         }
 
-        self.scenario.encounter_id = Some(self.scenario.engine_state.start_encounter(participants));
+        self.scenario.encounter_id = Some(systems::combat::start_encounter(
+            &mut self.scenario.engine_state,
+            participants,
+        ));
     }
 }
 
 pub struct ScenarioActionBuilder<'s> {
     scenario: &'s mut Scenario,
     builder: ActionBuilder,
+    auto_update: bool,
 }
 
 impl ScenarioActionBuilder<'_> {
@@ -399,11 +453,18 @@ impl ScenarioActionBuilder<'_> {
         self
     }
 
+    pub fn auto_update(mut self, auto_update: bool) -> Self {
+        self.auto_update = auto_update;
+        self
+    }
+
     pub fn perform(self) {
         self.builder.perform_ok(&mut self.scenario.engine_state);
-        // TODO: Do this in a more elegant way
-        for _ in 0..10 {
-            self.scenario.engine_state.update(0.5);
+        if self.auto_update {
+            // TODO: Do this in a more elegant way
+            for _ in 0..10 {
+                self.scenario.engine_state.update(0.5);
+            }
         }
     }
 
@@ -515,7 +576,7 @@ impl ScenarioProbe<'_> {
         let entity = self.entity();
         if systems::combat::is_in_combat(self.engine_state(), entity) {
             // The encounter fires both boundaries and moves initiative on
-            self.scenario.engine_state.end_turn(entity);
+            systems::combat::end_turn(&mut self.scenario.engine_state, entity);
             self.scenario.engine_state.update(0.0);
             self
         } else {
@@ -711,7 +772,7 @@ impl ScenarioProbe<'_> {
                 resource, amount
             );
         };
-        budget.current_uses
+        budget.current_uses()
     }
 
     #[track_caller]
@@ -740,7 +801,7 @@ impl ScenarioProbe<'_> {
                 budgets.keys().collect::<Vec<_>>()
             );
         };
-        budget.current_uses
+        budget.current_uses()
     }
 
     pub fn effect_remaining_turns(&self, effect: impl Into<EffectId>) -> Option<u32> {
@@ -1186,8 +1247,7 @@ impl ScenarioProbe<'_> {
     #[track_caller]
     pub fn assert_armor_class(&mut self, modifiers: &FlatModifierMap) -> &mut Self {
         let entity = self.entity();
-        let armor_class = systems::helpers::get_component::<Loadout>(self.world(), entity)
-            .armor_class(&self.scenario.engine_state, entity);
+        let armor_class = systems::loadout::armor_class(&self.scenario.engine_state, entity);
         assert_eq!(
             armor_class.modifiers(),
             modifiers,
@@ -1243,6 +1303,7 @@ impl<T: PartialOrd + PartialEq> Operator<T> {
 pub struct ScenarioEventFilterBuilder<'s> {
     scenario: &'s Scenario,
     actor: Option<Entity>,
+    scope: Option<EventScope>,
     kind: Option<EventFilterKind>,
 }
 
@@ -1256,6 +1317,17 @@ impl ScenarioEventFilterBuilder<'_> {
                 .unwrap_or_else(|| panic!("No creature with handle {handle} in scenario"))
                 .id(),
         );
+        self
+    }
+
+    /// Only events that happened in the scenario's encounter
+    #[track_caller]
+    pub fn in_encounter(mut self) -> Self {
+        let encounter_id = self
+            .scenario
+            .encounter_id
+            .expect("Scenario has no encounter");
+        self.scope = Some(EventScope::Encounter(encounter_id));
         self
     }
 
@@ -1345,8 +1417,13 @@ impl ScenarioEventFilterBuilder<'_> {
     fn build(&self) -> EventFilter {
         EventFilter::new({
             let actor = self.actor;
+            let scope = self.scope;
             let kind = self.kind.clone();
             move |event| {
+                if scope.is_some_and(|scope| scope != event.scope) {
+                    return false;
+                }
+
                 if let Some(actor) = actor
                     && let Some(event_actor) = event.actor()
                     && actor != event_actor
@@ -1412,25 +1489,10 @@ impl ScenarioEventFilterBuilder<'_> {
             .join("event_logs");
         let path = dir.join(format!("{test_name}.log"));
 
-        let contents = format!("{:#?}", self.event_log());
+        let contents = format!("{:#?}", self.scenario.engine_state.event_log.events);
         match fs::create_dir_all(&dir).and_then(|_| fs::write(&path, contents)) {
             Ok(()) => path.display().to_string(),
             Err(err) => format!("<failed to write {}: {err}>", path.display()),
-        }
-    }
-
-    fn event_log(&self) -> &Vec<Event> {
-        if let Some(encounter_id) = &self.scenario.encounter_id {
-            &self
-                .scenario
-                .engine_state
-                .encounters
-                .get(encounter_id)
-                .unwrap_or_else(|| panic!("No encounter with id {encounter_id} in engine state"))
-                .event_log()
-                .events
-        } else {
-            &self.scenario.engine_state.event_log.events
         }
     }
 }
@@ -1439,6 +1501,7 @@ impl std::fmt::Debug for ScenarioEventFilterBuilder<'_> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("ScenarioEventFilterBuilder")
             .field("actor", &self.actor)
+            .field("scope", &self.scope)
             .field("kind", &self.kind)
             .finish()
     }

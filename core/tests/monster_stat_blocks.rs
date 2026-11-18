@@ -183,8 +183,8 @@ mod tests {
             let skills = systems::helpers::get_component::<SkillSet>(world, monster);
             for (skill, level) in expected.skills {
                 assert_eq!(
-                    skills.get(skill).proficiency().level(),
-                    level,
+                    skills.get(skill).proficiency().map(|p| p.level()),
+                    Some(level),
                     "{id} {skill:?}"
                 );
             }
@@ -194,8 +194,8 @@ mod tests {
                     saving_throws
                         .get(&SavingThrowKind::Ability(*ability))
                         .proficiency()
-                        .level(),
-                    level,
+                        .map(|p| p.level()),
+                    Some(level),
                     "{id} {ability:?} save"
                 );
             }

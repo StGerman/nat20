@@ -22,7 +22,12 @@ use crate::{
         engine_state::EngineState,
         event::{Event, EventKind, EventKindTag},
     },
-    registry::{registry::rules, serialize::schema::impl_string_schema},
+    registry::{
+        registry::rules,
+        registry_reference::{self, RegistryReference},
+        serialize::schema::impl_string_schema,
+    },
+    scripts::script::ScriptFunction,
     systems,
 };
 
@@ -60,8 +65,8 @@ static REACTION_BODY_DEFAULTS: LazyLock<HashMap<String, Arc<ReactionBodyFunction
                                 action
                             );
                             let mut resources_to_refund = action.resource_cost.clone();
-                            for resource in rules().default_resources.map.keys() {
-                                resources_to_refund.map.remove(&resource);
+                            for resource in rules().default_resources.keys() {
+                                resources_to_refund.remove(&resource);
                             }
                             let _ = systems::resources::restore(
                                 &mut engine_state.world,
@@ -74,7 +79,7 @@ static REACTION_BODY_DEFAULTS: LazyLock<HashMap<String, Arc<ReactionBodyFunction
                         };
 
                     Some(ReactionResult::CancelEvent {
-                        event: event.clone().into(),
+                        event: event.clone(),
                         resources_refunded,
                     })
                 },
@@ -108,6 +113,11 @@ impl FromStr for ReactionTriggerScript {
                 s
             )
         })?;
+
+        registry_reference::record_reference(|| {
+            RegistryReference::Script(script_id.clone(), vec![ScriptFunction::ReactionTrigger])
+        });
+
         let script = Some(script_id.clone());
 
         Ok(ReactionTriggerScript {
@@ -182,6 +192,11 @@ impl FromStr for ReactionBodyDefinition {
                 s
             )
         })?;
+
+        registry_reference::record_reference(|| {
+            RegistryReference::Script(script_id.clone(), vec![ScriptFunction::ReactionBody])
+        });
+
         let script = Some(script_id.clone());
 
         Ok(ReactionBodyDefinition {

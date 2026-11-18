@@ -1,63 +1,24 @@
-use std::collections::{BTreeMap, HashMap, HashSet};
+use std::collections::{HashMap, HashSet};
 
 use schemars::JsonSchema;
-use serde::{Deserialize, Serialize};
+use serde::Deserialize;
 
 use crate::{
     components::{
         ability::{Ability, AbilityScoreDistribution},
-        class::{Class, SpellcastingRules, Subclass},
+        class::{Class, SpellcastingRules},
         dice::DieSize,
         id::{ActionId, ClassId, EffectId, ResourceId, SubclassId},
         items::equipment::{armor::ArmorType, weapon::WeaponCategory},
-        level_up::{ChoiceItem, ChoiceSpec, LevelUpPrompt},
-        resource::{ResourceBudget, ResourceBudgetKind},
+        level_up::LevelUpPrompt,
+        modifier::ModifierSource,
+        resource::{ResourceBudgetKind, ResourceMergeOperation, ResourceMergePolicy},
         skill::Skill,
     },
-    registry::registry_validation::{
-        ReferenceCollector, RegistryReference, RegistryReferenceCollector,
-    },
+    registry::serialize::resource::ResourceBudgetKindDefinition,
 };
 
-#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
-#[serde(untagged)]
-pub enum ResourceBudgetKindDefinition {
-    Flat(ResourceBudget),
-    // Tier keys should be the level (u8), but serde only supports string keys in maps
-    // so we need this intermediate representation
-    Tiered(BTreeMap<String, ResourceBudget>),
-}
-
-/// A resource a class, subclass or species grants at a level, with its budget.
-#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
-pub struct ClassResourceDefinition {
-    pub id: ResourceId,
-    pub budget: ResourceBudgetKindDefinition,
-    #[serde(default, rename(deserialize = "override"))]
-    pub override_existing: bool,
-}
-
-impl ClassResourceDefinition {
-    /// The resource, its budget and whether it replaces an existing budget.
-    pub fn into_grant(self) -> (ResourceId, ResourceBudgetKind, bool) {
-        let budget = match self.budget {
-            ResourceBudgetKindDefinition::Flat(resource_budget) => {
-                ResourceBudgetKind::Flat(resource_budget)
-            }
-            ResourceBudgetKindDefinition::Tiered(btree_map) => {
-                let mut tiered_map = BTreeMap::new();
-                for (tier_str, budget) in btree_map {
-                    let tier: u8 = tier_str.parse().unwrap_or(0);
-                    tiered_map.insert(tier, budget);
-                }
-                ResourceBudgetKind::Tiered(tiered_map)
-            }
-        };
-        (self.id, budget, self.override_existing)
-    }
-}
-
-#[derive(Clone, Serialize, Deserialize, JsonSchema)]
+#[derive(Clone, Deserialize, JsonSchema)]
 pub struct ClassDefinition {
     pub id: ClassId,
     pub hit_die: DieSize,
@@ -89,7 +50,7 @@ impl From<ClassDefinition> for Class {
                     level,
                     resources
                         .into_iter()
-                        .map(ClassResourceDefinition::into_grant)
+                        .map(|res_def| res_def.into_grant(ModifierSource::Class(def.id.clone())))
                         .collect(),
                 )
             })
@@ -117,97 +78,53 @@ impl From<ClassDefinition> for Class {
     }
 }
 
-impl RegistryReferenceCollector for ClassDefinition {
-    fn collect_registry_references(&self, collector: &mut ReferenceCollector) {
-        for effect_list in self.effects_by_level.values() {
-            for effect in effect_list {
-                collector.add(RegistryReference::Effect(effect.clone()));
-            }
-        }
-        for action_list in self.actions_by_level.values() {
-            for action in action_list {
-                collector.add(RegistryReference::Action(action.clone()));
-            }
-        }
-        for prompts in self.prompts_by_level.values() {
-            for prompt in prompts {
-                prompt.collect_registry_references(collector);
-            }
+#[derive(Clone, Deserialize, JsonSchema)]
+pub struct ClassResourceDefinition {
+    pub id: ResourceId,
+    pub budget: ResourceBudgetKindDefinition,
+    #[serde(default = "default_policy")]
+    pub policy: ClassResourceMergePolicy,
+}
+
+#[derive(Clone, Deserialize, JsonSchema)]
+pub struct ClassResourceMergePolicy {
+    #[serde(default = "default_current_uses")]
+    pub current_uses: ResourceMergeOperation,
+    #[serde(default = "default_max_uses")]
+    pub max_uses: ResourceMergeOperation,
+}
+
+impl ClassResourceDefinition {
+    /// The resource, its budget from `source` and how it merges with a budget already there.
+    pub fn into_grant(
+        self,
+        source: ModifierSource,
+    ) -> (ResourceId, ResourceBudgetKind, ResourceMergePolicy) {
+        let budget = self.budget.try_into_budget_kind(source).unwrap();
+        (self.id, budget, self.policy.into())
+    }
+}
+
+impl Into<ResourceMergePolicy> for ClassResourceMergePolicy {
+    fn into(self) -> ResourceMergePolicy {
+        ResourceMergePolicy {
+            current_uses: self.current_uses,
+            max_uses: self.max_uses,
         }
     }
 }
 
-impl RegistryReferenceCollector for LevelUpPrompt {
-    fn collect_registry_references(&self, collector: &mut ReferenceCollector) {
-        match self {
-            LevelUpPrompt::Choice(choice_spec) => {
-                choice_spec.collect_registry_references(collector);
-            }
-            LevelUpPrompt::AbilityScoreImprovement { feat, .. } => {
-                collector.add(RegistryReference::Feat(feat.clone()));
-            }
-            _ => { /* No references to collect */ }
-        }
-    }
+fn default_current_uses() -> ResourceMergeOperation {
+    ResourceMergeOperation::Skip
 }
 
-impl RegistryReferenceCollector for ChoiceSpec {
-    fn collect_registry_references(&self, collector: &mut ReferenceCollector) {
-        for option in &self.options {
-            match option {
-                ChoiceItem::Action(action_id) => {
-                    collector.add(RegistryReference::Action(action_id.clone()));
-                }
-                ChoiceItem::Spell(spell_id, _) => {
-                    collector.add(RegistryReference::Spell(spell_id.clone()));
-                }
-                ChoiceItem::Background(background_id) => {
-                    collector.add(RegistryReference::Background(background_id.clone()));
-                }
-                ChoiceItem::Class(class_id) => {
-                    collector.add(RegistryReference::Class(class_id.clone()));
-                }
-                ChoiceItem::Subclass(subclass_id) => {
-                    collector.add(RegistryReference::Subclass(subclass_id.clone()));
-                }
-                ChoiceItem::Effect(effect_id) => {
-                    collector.add(RegistryReference::Effect(effect_id.clone()));
-                }
-                ChoiceItem::Feat(feat_id) => {
-                    collector.add(RegistryReference::Feat(feat_id.clone()));
-                }
-                ChoiceItem::Species(species_id) => {
-                    collector.add(RegistryReference::Species(species_id.clone()));
-                }
-                ChoiceItem::Subspecies(subspecies_id) => {
-                    collector.add(RegistryReference::Subspecies(subspecies_id.clone()));
-                }
-                ChoiceItem::Equipment { items, .. } => {
-                    for (_, item_id) in items {
-                        collector.add(RegistryReference::Item(item_id.clone()));
-                    }
-                }
-            }
-        }
-    }
+fn default_max_uses() -> ResourceMergeOperation {
+    ResourceMergeOperation::Replace
 }
 
-impl RegistryReferenceCollector for Subclass {
-    fn collect_registry_references(&self, collector: &mut ReferenceCollector) {
-        for effect_list in self.base.effects_by_level.values() {
-            for effect in effect_list {
-                collector.add(RegistryReference::Effect(effect.clone()));
-            }
-        }
-        for action_list in self.base.actions_by_level.values() {
-            for action in action_list {
-                collector.add(RegistryReference::Action(action.clone()));
-            }
-        }
-        for spell_list in self.base.spells_by_level.values() {
-            for spell in spell_list {
-                collector.add(RegistryReference::Spell(spell.clone()));
-            }
-        }
+fn default_policy() -> ClassResourceMergePolicy {
+    ClassResourceMergePolicy {
+        current_uses: default_current_uses(),
+        max_uses: default_max_uses(),
     }
 }

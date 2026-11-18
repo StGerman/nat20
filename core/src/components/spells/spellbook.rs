@@ -239,7 +239,7 @@ pub enum SpellbookError {
     NotFound,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Spellbook {
     /// Per-class spellcasting state.
     class_states: HashMap<ClassAndSubclass, ClassSpellcastingState>,
@@ -269,7 +269,10 @@ impl Spellbook {
             ),
             attack_roll: D20Check::new(
                 D20CheckKind::AttackRoll(AttackSource::Spell),
-                Proficiency::new(ProficiencyLevel::Proficient, ModifierSource::Base),
+                Some(Proficiency::new(
+                    ProficiencyLevel::Proficient,
+                    ModifierSource::Base,
+                )),
             ),
         }
     }
@@ -293,6 +296,14 @@ impl Spellbook {
         self.granted.get_mut(source)
     }
 
+    pub fn granted_spells(&self) -> &HashMap<GrantedSpellSource, GrantedSpellMap> {
+        &self.granted
+    }
+
+    pub fn granted_spells_mut(&mut self) -> &mut HashMap<GrantedSpellSource, GrantedSpellMap> {
+        &mut self.granted
+    }
+
     pub fn insert_class_state(
         &mut self,
         class_and_subclass: ClassAndSubclass,
@@ -306,6 +317,10 @@ impl Spellbook {
         class_and_subclass: &ClassAndSubclass,
     ) -> Option<&ClassSpellcastingState> {
         self.class_states.get(class_and_subclass)
+    }
+
+    pub fn class_states(&self) -> &HashMap<ClassAndSubclass, ClassSpellcastingState> {
+        &self.class_states
     }
 
     pub fn class_state_mut(
@@ -952,7 +967,7 @@ impl ActionProvider for Spellbook {
                         let mut resource_cost: ResourceAmountMap =
                             spell.action().resource_cost().clone();
 
-                        resource_cost.map.insert(
+                        resource_cost.insert(
                             spellcasting_rules.spellcasting_resource.clone(),
                             ResourceAmount::Tiered {
                                 tier: cast_level,

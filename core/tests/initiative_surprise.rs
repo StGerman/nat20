@@ -39,9 +39,11 @@ fn initiative(scenario: &Scenario, encounter: EncounterId, entity: Entity) -> D2
 fn surprised_creatures_roll_initiative_with_disadvantage() {
     let mut scenario = fighter_and_goblin();
     let (fighter, goblin) = (scenario.entity("fighter"), scenario.entity("goblin"));
-    let encounter = scenario
-        .engine_state
-        .start_surprised_encounter(HashSet::from([fighter, goblin]), HashSet::from([goblin]));
+    let encounter = nat20_core::systems::combat::start_surprised_encounter(
+        &mut scenario.engine_state,
+        HashSet::from([fighter, goblin]),
+        HashSet::from([goblin]),
+    );
 
     let goblin_roll = initiative(&scenario, encounter, goblin);
     assert_eq!(
@@ -72,9 +74,10 @@ fn surprised_creatures_roll_initiative_with_disadvantage() {
 fn an_encounter_without_surprise_rolls_initiative_normally() {
     let mut scenario = fighter_and_goblin();
     let (fighter, goblin) = (scenario.entity("fighter"), scenario.entity("goblin"));
-    let encounter = scenario
-        .engine_state
-        .start_encounter(HashSet::from([fighter, goblin]));
+    let encounter = nat20_core::systems::combat::start_encounter(
+        &mut scenario.engine_state,
+        HashSet::from([fighter, goblin]),
+    );
 
     for entity in [fighter, goblin] {
         assert_eq!(

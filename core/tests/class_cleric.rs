@@ -7,7 +7,7 @@ use nat20_core::{
         damage::{AttackSource, DamageType},
         dice::{DiceSet, DieSize},
         health::life_state::LifeState,
-        items::equipment::{armor::ArmorTrainingSet, armor::ArmorType, weapon::WeaponCategory},
+        items::equipment::{armor::ArmorTrainingMap, armor::ArmorType, weapon::WeaponCategory},
         modifier::{FlatModifiable, ModifierMap, ModifierSource},
         proficiency::ProficiencyLevel,
         saving_throw::SavingThrowKind,
@@ -84,15 +84,12 @@ fn protector_trains_heavy_armor_and_martial_weapons() {
     let scenario = chapel();
     let world = &scenario.engine_state.world;
     let cleric = scenario.entity("cleric");
-    let armor = systems::helpers::get_component::<ArmorTrainingSet>(world, cleric);
-    assert!(armor.contains(&ArmorType::Heavy), "{armor:?}");
+    let armor = systems::helpers::get_component::<ArmorTrainingMap>(world, cleric);
+    assert!(armor.is_proficient(&ArmorType::Heavy), "{armor:?}");
     let weapons = systems::helpers::get_component::<
         nat20_core::components::items::equipment::weapon::WeaponProficiencyMap,
     >(world, cleric);
-    assert_eq!(
-        weapons.proficiency(&WeaponCategory::Martial).level(),
-        &ProficiencyLevel::Proficient
-    );
+    assert!(weapons.is_proficient(&WeaponCategory::Martial));
 }
 
 #[test]
@@ -414,7 +411,7 @@ fn guiding_bolt_lasts_until_the_end_of_the_casters_next_turn() {
     };
     let end_current_turn = |scenario: &mut Scenario| {
         let entity = current(scenario);
-        scenario.engine_state.end_turn(entity);
+        nat20_core::systems::combat::end_turn(&mut scenario.engine_state, entity);
         scenario.engine_state.update(0.0);
     };
     while current(&scenario) != scenario.entity("cleric") {

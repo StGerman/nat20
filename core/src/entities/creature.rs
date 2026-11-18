@@ -26,7 +26,7 @@ use crate::{
         },
         id::{AIControllerId, BackgroundId, FeatId, Name, SpeciesId, SubspeciesId},
         items::{
-            equipment::{armor::ArmorTrainingSet, loadout::Loadout, weapon::WeaponProficiencyMap},
+            equipment::{armor::ArmorTrainingMap, loadout::Loadout, weapon::WeaponProficiencyMap},
             inventory::Inventory,
         },
         level::{ChallengeRating, CharacterLevels},
@@ -48,6 +48,7 @@ use crate::{
         entities::EntityKind,
         geometry::Pose,
         movement::{MOVEMENT_SPEED, MoveMode},
+        time::RestKind,
     },
 };
 
@@ -82,7 +83,7 @@ from_world!(
         pub saving_throws: SavingThrowSet,
         pub resistances: DamageResistances,
         pub weapon_proficiencies: WeaponProficiencyMap,
-        pub armor_training: ArmorTrainingSet,
+        pub armor_training: ArmorTrainingMap,
         pub inventory: Inventory,
         pub loadout: Loadout,
         pub spellbook: Spellbook,
@@ -95,6 +96,7 @@ from_world!(
         pub cooldowns: ActionCooldownMap,
         pub factions: FactionSet,
         pub scratchpad: Scratchpad,
+        pub resting: Option<RestKind>,
     }
 );
 
@@ -125,8 +127,8 @@ impl Character {
             skills: SkillSet::default(),
             saving_throws: SavingThrowSet::default(),
             resistances: DamageResistances::new(),
-            armor_training: ArmorTrainingSet::new(),
-            weapon_proficiencies: WeaponProficiencyMap::new(),
+            armor_training: ArmorTrainingMap::default(),
+            weapon_proficiencies: WeaponProficiencyMap::default(),
             loadout: Loadout::new(),
             inventory: Inventory::new(),
             spellbook: Spellbook::new(),
@@ -139,6 +141,7 @@ impl Character {
             cooldowns: HashMap::new(),
             factions: FactionSet::from([rules().default_character_faction.clone()]),
             scratchpad: Scratchpad::default(),
+            resting: None,
         }
     }
 }
@@ -182,9 +185,10 @@ from_world!(
         pub execution_mailbox: ExecutionMailbox,
         pub cooldowns: ActionCooldownMap,
         pub weapon_proficiencies: WeaponProficiencyMap,
-        pub armor_training: ArmorTrainingSet,
+        pub armor_training: ArmorTrainingMap,
         pub factions: FactionSet,
         pub scratchpad: Scratchpad,
+        pub resting: Option<RestKind>,
     }
 );
 
@@ -227,10 +231,11 @@ impl Monster {
             action_execution: None,
             execution_mailbox: None,
             cooldowns: ActionCooldownMap::default(),
-            weapon_proficiencies: WeaponProficiencyMap::new(),
-            armor_training: ArmorTrainingSet::default(),
+            weapon_proficiencies: WeaponProficiencyMap::default(),
+            armor_training: ArmorTrainingMap::default(),
             factions,
             scratchpad: Scratchpad::default(),
+            resting: None,
         }
     }
 }
@@ -281,7 +286,7 @@ fn handle_ai(engine_state: &mut EngineState, entity: Entity) {
             let result = engine_state.submit_activity(activity);
             info!("AI submitted activity: {:?}", result);
         } else {
-            engine_state.end_turn(entity);
+            systems::combat::end_turn(engine_state, entity);
         }
     }
 }

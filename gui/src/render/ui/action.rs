@@ -192,6 +192,7 @@ impl ImguiRenderableWithContext<(&World, Entity, &ActionContext, Option<&ActionV
                         )
                         .render(ui);
                     }
+                    ActionPayloadComponent::EndCondition(_) => { /* Nothing to render */ }
                     ActionPayloadComponent::Reaction(_) => { /* Not sure what (if anything) to render here */
                     }
                     ActionPayloadComponent::Displacement(displacement) => {

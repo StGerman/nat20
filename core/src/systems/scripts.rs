@@ -14,7 +14,7 @@ use crate::{
         resource::ResourceAmountMap,
         speed::Speed,
     },
-    engine::{action_prompt::ActionData, event::Event, engine_state::EngineState},
+    engine::{action_prompt::ActionData, engine_state::EngineState, event::Event},
     registry::registry::ScriptsRegistry,
     scripts::{script::ScriptError, script_engine::SCRIPT_ENGINE},
     systems::time::RestKind,
@@ -149,7 +149,8 @@ pub fn evaluate_action_result_hook(
             action_result_hook
         )
     });
-    if let Err(err) = SCRIPT_ENGINE.evaluate_action_result_hook(script, engine_state, action, results)
+    if let Err(err) =
+        SCRIPT_ENGINE.evaluate_action_result_hook(script, engine_state, action, results)
     {
         error!(
             "Error evaluating action result hook script {:?}: {:?}",
@@ -258,7 +259,12 @@ pub fn evaluate_effect_lifetime_hook(
         )
     });
     if let Err(err) = SCRIPT_ENGINE.evaluate_effect_lifetime_hook(
-        script, engine_state, applier, target, effect_id, lifetime,
+        script,
+        engine_state,
+        applier,
+        target,
+        effect_id,
+        lifetime,
     ) {
         error!(
             "Error evaluating effect lifetime hook script {:?} for effect {:?} on entity {:?}: {:?}",
@@ -458,7 +464,8 @@ pub fn evaluate_death_hook(
 ) {
     let script = ScriptsRegistry::get(death_hook)
         .unwrap_or_else(|| panic!("Death hook script not found in registry: {:?}", death_hook));
-    if let Err(err) = SCRIPT_ENGINE.evaluate_death_hook(script, engine_state, victim, killer, applier)
+    if let Err(err) =
+        SCRIPT_ENGINE.evaluate_death_hook(script, engine_state, victim, killer, applier)
     {
         error!(
             "Error evaluating death hook script {:?} for entity {:?}: {:?}",
@@ -506,7 +513,11 @@ pub fn evaluate_rest_hook(
     }
 }
 
-pub fn evaluate_turn_start_hook(script_id: &ScriptId, engine_state: &mut EngineState, entity: Entity) {
+pub fn evaluate_turn_start_hook(
+    script_id: &ScriptId,
+    engine_state: &mut EngineState,
+    entity: Entity,
+) {
     let script = ScriptsRegistry::get(script_id)
         .unwrap_or_else(|| panic!("Turn start hook script not found: {:?}", script_id));
     if let Err(err) = SCRIPT_ENGINE.evaluate_turn_start_hook(script, engine_state, entity) {

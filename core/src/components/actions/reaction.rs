@@ -1,6 +1,7 @@
 use std::sync::Arc;
 
 use hecs::Entity;
+use serde::{Deserialize, Serialize};
 use tracing::{debug, warn};
 
 use crate::{
@@ -59,9 +60,7 @@ impl ReactionBody {
 
         let result = result.unwrap_or_else(|| {
             // TODO: Not sure if this check actually works
-            if let Some(trigger_event) = engine_state
-                .event_log(action.actor.id())
-                .get(&trigger_event)
+            if let Some(trigger_event) = engine_state.event_log.get(&trigger_event)
                 && *trigger_event != pending.event
             {
                 ReactionResult::ModifyEvent {
@@ -97,14 +96,14 @@ impl ReactionBody {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum ReactionResult {
     ModifyEvent {
         before: Event,
         after: Event,
     },
     CancelEvent {
-        event: Box<Event>,
+        event: Event,
         resources_refunded: ResourceAmountMap,
     },
     NoEffect,

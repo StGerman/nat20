@@ -1,6 +1,5 @@
-use std::{fs::File, io::BufReader};
-
 use hecs::Entity;
+
 use imgui::{ChildFlags, MouseButton};
 use nat20_core::{
     components::{
@@ -8,7 +7,12 @@ use nat20_core::{
         health::{hit_points::HitPoints, life_state::LifeState},
         id::Name,
     },
-    engine::{action_prompt::ActionPromptKind, engine_state::EngineState, geometry::WorldGeometry},
+    engine::{
+        action_prompt::ActionPromptKind,
+        engine_state::EngineState,
+        event::EventScope,
+        geometry::{WorldGeometry, WorldGeometrySource},
+    },
     entities::projectile::ProjectileData,
     systems::{
         self,
@@ -22,7 +26,7 @@ use crate::{
     render::{
         common::{
             colors::Color,
-            utils::{Renderable, RenderableMutWithContext, RenderableWithContext},
+            utils::{Renderable, RenderableMutWithContext},
         },
         ui::{
             engine::LogLevel,
@@ -50,6 +54,7 @@ use crate::{
         line_of_sight_debug::LineOfSightDebugWindow,
         navigation_debug::NavigationDebugWindow,
         reactions::ReactionsWindow,
+        save_load::SaveLoadWindow,
         spawn_predefined::SpawnPredefinedWindow,
     },
 };
@@ -60,7 +65,7 @@ pub enum MainMenuState {
         auto_scroll_event_log: bool,
         log_level: LogLevel,
         log_source: usize,
-        encounters: Vec<EncounterWindow>,
+        encounter: Option<EncounterWindow>,
         level_up: Option<LevelUpWindow>,
         spawn_predefined: Option<SpawnPredefinedWindow>,
         creature_debug: Option<CreatureDebugWindow>,
@@ -70,6 +75,7 @@ pub enum MainMenuState {
         navigation_debug: NavigationDebugWindow,
         line_of_sight_debug: LineOfSightDebugWindow,
         engine_state_debug: EngineStateDebugWindow,
+        save_load: Option<SaveLoadWindow>,
     },
 }
 
@@ -86,27 +92,10 @@ impl MainMenuWindow {
         initial_config.min_region_size = 4;
         initial_config.max_vertices_per_polygon = 4;
 
-        let geometry_name = "test_terrain_2";
-        // Attempt to load from the local cache first
-        let geometry = if let Ok(file) = File::open(format!(
-            "assets/models/geometry/cache/{}.json",
-            geometry_name
-        )) {
-            serde_json::from_reader(BufReader::new(file)).expect("Failed to load cached geometry")
-        } else {
-            let geometry = WorldGeometry::from_obj_path(
-                format!("assets/models/geometry/{}.obj", geometry_name),
-                &initial_config.clone().build(),
-            );
-            // Save to local cache for next time
-            let file = File::create(format!(
-                "assets/models/geometry/cache/{}.json",
-                geometry_name
-            ))
-            .expect("Failed to create cache file for geometry");
-            serde_json::to_writer_pretty(file, &geometry).expect("Failed to write cached geometry");
-            geometry
-        };
+        let geometry = WorldGeometry::try_from(WorldGeometrySource::Cached {
+            identifier: "test_terrain_2".to_string(),
+        })
+        .unwrap();
 
         Self {
             state: MainMenuState::World {
@@ -114,7 +103,7 @@ impl MainMenuWindow {
                 log_level: LogLevel::Info,
                 log_source: 0,
                 engine_state: EngineState::new(geometry),
-                encounters: Vec::new(),
+                encounter: None,
                 level_up: None,
                 spawn_predefined: None,
                 creature_debug: None,
@@ -124,6 +113,7 @@ impl MainMenuWindow {
                 navigation_debug: NavigationDebugWindow::new(&initial_config),
                 line_of_sight_debug: LineOfSightDebugWindow::new(),
                 engine_state_debug: EngineStateDebugWindow::new(),
+                save_load: None,
             },
         }
     }
@@ -135,7 +125,7 @@ impl MainMenuWindow {
                 auto_scroll_event_log,
                 log_level,
                 log_source,
-                encounters,
+                encounter,
                 level_up,
                 spawn_predefined,
                 creature_debug,
@@ -145,6 +135,7 @@ impl MainMenuWindow {
                 navigation_debug,
                 line_of_sight_debug,
                 engine_state_debug,
+                save_load,
             } => {
                 engine_state_debug.render_mut_with_context(ui, gui_state, engine_state);
 
@@ -203,14 +194,15 @@ impl MainMenuWindow {
                     AUTO_RESIZE,
                     &mut true,
                     || {
-                        Self::render_character_menu(
+                        Self::render_world_menu(
                             ui,
                             gui_state,
                             engine_state,
                             level_up,
                             spawn_predefined,
-                            encounters,
+                            encounter,
                             creature_debug,
+                            save_load,
                             log_source,
                         );
                     },
@@ -237,21 +229,30 @@ impl MainMenuWindow {
                     ui,
                     &mut gui_state.window_manager,
                     engine_state,
-                    encounters,
                     auto_scroll_event_log,
                     log_level,
                     log_source,
                 );
 
-                let mut encounter_finished = None;
-                for encounter in &mut *encounters {
-                    encounter.render_mut_with_context(ui, gui_state, engine_state);
-                    if encounter.finished() {
-                        encounter_finished = Some(*encounter.id());
-                    }
+                let mut ended_encounter = None;
+                for (id, encounter) in &engine_state.encounters {
+                    gui_state.window_manager.render_window(
+                        ui,
+                        &format!("Encounter {:?}", id),
+                        &anchor::CENTER_LEFT,
+                        AUTO_RESIZE,
+                        &mut true,
+                        || {
+                            encounter.render_with_context(ui, engine_state);
+
+                            if ui.button("End Encounter") {
+                                ended_encounter = Some(*id);
+                            }
+                        },
+                    );
                 }
-                if let Some(id) = encounter_finished {
-                    encounters.retain(|encounter| encounter.id() != &id);
+                if let Some(id) = ended_encounter {
+                    systems::combat::end_encounter(engine_state, &id);
                 }
 
                 if let Some(action_bar) = action_bar {
@@ -315,17 +316,18 @@ impl MainMenuWindow {
         }
     }
 
-    fn render_character_menu(
+    fn render_world_menu(
         ui: &imgui::Ui,
         gui_state: &mut GuiState,
         engine_state: &mut EngineState,
         level_up_window: &mut Option<LevelUpWindow>,
         spawn_predefined_window: &mut Option<SpawnPredefinedWindow>,
-        encounters: &mut Vec<EncounterWindow>,
+        encounter: &mut Option<EncounterWindow>,
         debug_window: &mut Option<CreatureDebugWindow>,
+        save_load: &mut Option<SaveLoadWindow>,
         log_source: &mut usize,
     ) {
-        ui.child_window("Characters")
+        ui.child_window("Creatures")
             .child_flags(
                 ChildFlags::ALWAYS_AUTO_RESIZE
                     | ChildFlags::AUTO_RESIZE_X
@@ -384,9 +386,31 @@ impl MainMenuWindow {
                     entitiy_count < 2,
                     "You must have at least two characters to create an encounter.",
                 ) {
-                    let window = EncounterWindow::new();
-                    encounters.push(window);
-                    *log_source = encounters.len(); // Select the new encounter as log source
+                    encounter.replace(EncounterWindow::new());
+                    ui.open_popup("EncounterWindow");
+                }
+
+                if let Some(encounter) = encounter {
+                    let mut encounter_id = None;
+                    ui.popup("EncounterWindow", || {
+                        encounter.render_mut_with_context(ui, (engine_state, &mut encounter_id));
+                    });
+                    if encounter_id.is_some() {
+                        *log_source = engine_state.encounters.len();
+                    }
+                }
+
+                // TEMP
+                ui.separator();
+
+                if ui.button("Save & Load") {
+                    ui.open_popup("Save & Load");
+                    save_load.replace(SaveLoadWindow::new());
+                }
+                if let Some(save_load) = save_load {
+                    ui.popup("Save & Load", || {
+                        save_load.render_mut_with_context(ui, engine_state);
+                    });
                 }
             });
     }
@@ -433,7 +457,6 @@ impl MainMenuWindow {
         ui: &imgui::Ui,
         window_manager: &mut WindowManager,
         engine_state: &mut EngineState,
-        encounters: &mut Vec<EncounterWindow>,
         auto_scroll_event_log: &mut bool,
         log_level: &mut LogLevel,
         log_source: &mut usize,
@@ -445,7 +468,7 @@ impl MainMenuWindow {
             AUTO_RESIZE,
             &mut true,
             || {
-                let mut log_sources = vec!["World".to_string()];
+                let mut log_sources = vec!["Global".to_string()];
                 log_sources.extend(
                     engine_state
                         .encounters
@@ -460,15 +483,17 @@ impl MainMenuWindow {
                 });
                 width_token.end();
 
-                let event_log = if *log_source == 0 || encounters.len() < *log_source {
-                    &engine_state.event_log
+                let scope = if *log_source == 0 || engine_state.encounters.len() < *log_source {
+                    EventScope::Global
                 } else {
-                    let id = encounters.get(*log_source - 1).map(|e| e.id()).unwrap();
-                    engine_state
-                        .encounters
-                        .get(id)
-                        .map(|e| e.event_log())
-                        .unwrap_or(&engine_state.event_log)
+                    EventScope::Encounter(
+                        engine_state
+                            .encounters
+                            .keys()
+                            .nth(*log_source - 1)
+                            .cloned()
+                            .unwrap(),
+                    )
                 };
 
                 ui.child_window("Event Log Content")
@@ -479,7 +504,9 @@ impl MainMenuWindow {
                     )
                     .size([0.0, 200.0])
                     .build(|| {
-                        event_log.render_with_context(ui, &(engine_state, &*log_level));
+                        engine_state
+                            .event_log
+                            .render_with_context(ui, &(&*engine_state, &*log_level, &scope));
 
                         if *auto_scroll_event_log && ui.scroll_y() >= ui.scroll_max_y() - 5.0 {
                             ui.set_scroll_here_y_with_ratio(1.0);
